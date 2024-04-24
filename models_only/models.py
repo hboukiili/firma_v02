@@ -35,6 +35,21 @@ class saison(models.Model):
     field_id = models.ForeignKey(field, on_delete=models.CASCADE)
     rendement = models.IntegerField()
 
+class Crop(models.Model):
+
+    crop_type = models.CharField(max_length=30)
+    vatiety = models.CharField(max_length=30)
+    state = models.CharField(max_length=30)
+    saison_id = models.ForeignKey(saison, on_delete=models.CASCADE)
+
+class Pratique_Agricole(models.Model):
+
+    types = models.CharField(max_length=50)
+    date_debut = models.DateField()
+    date_fin = models.DateField()
+    quantite = models.IntegerField()
+    crop_id = models.ForeignKey(Crop, on_delete=models.CASCADE)
+
 class Soil_type(Enum):
 
     Loam = "Loam"
