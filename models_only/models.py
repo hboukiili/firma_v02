@@ -1,13 +1,18 @@
 from django.db import models
 from enum import Enum
+from datetime import datetime
+
 
 class users(models.Model):
-
-    first_name = models.CharField(max_length=30)
-    last_name = models.CharField(max_length=30)
-    email = models.CharField(max_length=50)
-    password = models.CharField(max_length=30)
-    created_at = models.DateField(auto_now_add=True)
+    id = models.BigAutoField(primary_key=True, default=0)
+    first_name = models.CharField(max_length=30, blank=True, null=True)
+    last_name = models.CharField(max_length=30, blank=True, null=True)
+    email = models.CharField(max_length=50, blank=True, null=True)
+    password = models.CharField(max_length=30, blank=True, null=True)
+    created_at = models.DateField(auto_now_add=True, blank=True, null=True)
+    
+    class Meta:
+        abstract = True
 
 class Agriculture(users):
 
@@ -23,7 +28,7 @@ class Policy_Maker(users):
 
 class field(models.Model):
 
-    user_id = models.ForeignKey(users, on_delete=models.CASCADE)
+    user_id = models.ForeignKey(Agriculture, on_delete=models.CASCADE)
     name = models.CharField(max_length=30)
     boundaries = models.CharField(max_length=50)
     created_at = models.DateField(auto_now_add=True)
@@ -74,9 +79,12 @@ class irrigation_system(models.Model):
     field_id = models.ForeignKey(field, on_delete=models.CASCADE)
 
 class Data_source(models.Model):
+    id = models.BigAutoField(primary_key=True, default=0)
+    datetime = models.DateField(blank=True, null=True)
+    field_id = models.ForeignKey(field, on_delete=models.CASCADE, blank=True, null=True)
 
-    datetime = models.DateField()
-    field_id = models.ForeignKey(field, on_delete=models.CASCADE)
+    class Meta:
+        abstract = True
 
 class Remote_sensing(Data_source):
 
@@ -93,6 +101,6 @@ class station(Data_source):
 
 class Ogimet_stations(models.Model):
 
-    id = models.IntegerField()
-    coordinates = models.CharField()
-    location_name = models.CharField()
+    id = models.IntegerField(primary_key=True)
+    coordinates = models.CharField(max_length=50)
+    location_name = models.CharField(max_length=50)
