@@ -4,7 +4,6 @@ from datetime import datetime
 
 
 class users(models.Model):
-    id = models.BigAutoField(primary_key=True, default=0)
     first_name = models.CharField(max_length=30, blank=True, null=True)
     last_name = models.CharField(max_length=30, blank=True, null=True)
     email = models.CharField(max_length=50, blank=True, null=True)
@@ -79,7 +78,6 @@ class irrigation_system(models.Model):
     field_id = models.ForeignKey(field, on_delete=models.CASCADE)
 
 class Data_source(models.Model):
-    id = models.BigAutoField(primary_key=True, default=0)
     datetime = models.DateField(blank=True, null=True)
     field_id = models.ForeignKey(field, on_delete=models.CASCADE, blank=True, null=True)
 
@@ -101,6 +99,7 @@ class station(Data_source):
 
 class Ogimet_stations(models.Model):
 
-    id = models.IntegerField(primary_key=True)
-    coordinates = models.CharField(max_length=50)
+    station_id = models.IntegerField(blank=True, null=True)
+    lat = models.CharField(max_length=50)
+    long = models.CharField(max_length=50)
     location_name = models.CharField(max_length=50)
