@@ -1,0 +1,46 @@
+version: '3'
+services:
+  backend:
+    build : ./back-end
+    volumes:
+      - ./back-end:/app
+      # - ./firma-backend/requirements.txt:/app/requirements.txt
+      # - /media/hboukili/EXTERNAL_USB/Data:/Data
+      # - ./firma-backend/tools:/tools
+    ports:
+      - "8000:8000"
+    restart : always
+    depends_on:
+      - postgres
+
+  # frontend:
+  #   build: ./frontend/
+  #   volumes:
+  #     - ./frontend/src:/app/src
+  #   ports:
+  #     - "5173:5173"
+  #   restart : always
+  #   depends_on:
+  #     - backend
+
+  postgres:
+    image: postgis/postgis
+    environment:
+      POSTGRES_DB: firma
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: firma123
+    volumes:
+      - ./postgis:/var/lib/postgresql/data
+
+
+  # geoserver:
+  #   image: kartoza/geoserver
+  #   ports:
+  #     - "8080:8080"
+  #   depends_on:
+  #     - postgres
+  #   environment:
+  #     GEOSERVER_ADMIN_PASSWORD : 123
+  #     GEOSERVER_ADMIN_USER: test
+  #   volumes:
+  #     - ./geoserver_data:/data

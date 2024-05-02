@@ -12,7 +12,8 @@ class ogimet(APIView):
         
         Ogimet = Ogimet_class()
     
-        stations_ids = Ogimet.get_closest_stations(34.33597054747763, -4.885676122165933)
-        data, station_id = Ogimet.download(stations_ids, "2018-01-01", "2018-01-05")
-        decoded_data = Ogimet.decode_data(station_id, data)
+        stations_ids = Ogimet.get_closest_stations(32.04071866778945, -7.700995879688435)
+        result = Ogimet.download(stations_ids, "2018-01-01", "2018-01-05")
+        if result:
+            decoded_data = Ogimet.decode_data()
         return Response (decoded_data)

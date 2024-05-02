@@ -15,24 +15,27 @@ class Ogimet_class:
     def __init__(self):
         self.version = "1.0"
         self.url = "http://www.ogimet.com/cgi-bin/getsynop"
-        self.capteurs = {
-                            1:{"nom":"rainfall sensor (unknown)", "reference":"9999", "hauteur":"2"},
-                            2:{"nom":"temperature sensor (unknown)", "reference":"9999", "hauteur":"2"},
-                            3:{"nom":"visibility sensor (unknown)", "reference":"9999", "hauteur":"2"},
-                            4:{"nom":"weathercock (unknown)", "reference":"9999", "hauteur":"2"},
-                            5:{"nom":"anemometer (unknown)", "reference":"9999", "hauteur":"2"},
-                            6:{"nom":"dew temperature sensor (unknown)", "reference":"9999", "hauteur":"2"},
-                            7:{"nom":"pressure sensor (unknown)", "reference":"9999", "hauteur":"2"}
-                        }
-        self.variables={
-                        1:{"nom":"Rainfall", "description":"Precipitation", "unite":"mm", "minimum":"0", "maximum":"200"},
-                        2:{"nom":"Temperature", "description":"Air Temperature", "unite":"C", "minimum":"-10", "maximum":"50"},
-                        3:{"nom":"Visibility", "description":"Visibility", "unite":"km", "minimum":"0", "maximum":"100"},
-                        4:{"nom":"WinDir", "description":"Wind Direction", "unite":"deg", "minimum":"0", "maximum":"360"},
-                        5:{"nom":"WindSpeed", "description":"Wind Speed", "unite":"m.s-1", "minimum":"0", "maximum":"100"},
-                        6:{"nom":"Tdew", "description":"Dew Temperature", "unite":"C", "minimum":"-100", "maximum":"100"},
-                        7:{"nom":"Pressure", "description":"Air Pressure", "unite":"mb", "minimum":"0", "maximum":"2000"}           
-                    }     
+        # self.capteurs = {
+        #                     1:{"nom":"rainfall sensor (unknown)", "reference":"9999", "hauteur":"2"},
+        #                     2:{"nom":"temperature sensor (unknown)", "reference":"9999", "hauteur":"2"},
+        #                     3:{"nom":"visibility sensor (unknown)", "reference":"9999", "hauteur":"2"},
+        #                     4:{"nom":"weathercock (unknown)", "reference":"9999", "hauteur":"2"},
+        #                     5:{"nom":"anemometer (unknown)", "reference":"9999", "hauteur":"2"},
+        #                     6:{"nom":"dew temperature sensor (unknown)", "reference":"9999", "hauteur":"2"},
+        #                     7:{"nom":"pressure sensor (unknown)", "reference":"9999", "hauteur":"2"}
+                        # }
+        # self.variables={
+        #                 "Rainfall":{"description":"Precipitation", "unite":"mm", "minimum":"0", "maximum":"200"},
+        #                 "Temperature":{"description":"Air Temperature", "unite":"C", "minimum":"-10", "maximum":"50"},
+        #                 "Visibility":{"description":"Visibility", "unite":"km", "minimum":"0", "maximum":"100"},
+        #                 "WinDir":{"description":"Wind Direction", "unite":"deg", "minimum":"0", "maximum":"360"},
+        #                 "WindSpeed":{"description":"Wind Speed", "unite":"m.s-1", "minimum":"0", "maximum":"100"},
+        #                 "Tdew":{"description":"Dew Temperature", "unite":"C", "minimum":"-100", "maximum":"100"},
+        #                 "Pressure":{"description":"Air Pressure", "unite":"mb", "minimum":"0", "maximum":"2000"}           
+        #             }
+        self.id = ""
+        self.location_name = ""
+        self.data = ""
 
         
     def haversine(self, lat1, lon1, lat2, lon2):
@@ -68,26 +71,25 @@ class Ogimet_class:
         
         # Sort the stations by distance and get the 5 closest ones
         sorted_stations = sorted(distances.items(), key=lambda x: x[1])[:num_stations]
-        closest_stations = [station.station_id for station, _ in sorted_stations]    
+        closest_stations = [{'station_id': station.station_id, 'location_name': station.location_name} for station, _ in sorted_stations]
+
         return closest_stations
     
-    def decode_data(self, id_station, data):
+    def decode_data(self):
         
-        Ligs = str(data)
-        Ligs = Ligs.split('\\n')
         final_data = []
 
-        for Lig in Ligs:
+        for Lig in self.data:
             
-            L = Lig.split(" ")
+
+            L = str(Lig).replace("b'", '').split(" ")
             
             data1 = L[0].split(',')
             Rainf = -9999
             Rainf_timeacc = -9999
-            
+
             if len(L) > 4:
-                
-                if data1[0] == id_station and L[3] != 'NIL=':
+                if data1[0] == self.id and L[3] != 'NIL=':
                     Tmean=Rainf=Tdew=Visibility=P=Uz= -9999
                     annee = data1[1]
                     mois = data1[2]
@@ -216,30 +218,34 @@ class Ogimet_class:
                     date = datetime.datetime(int(annee),int(mois),int(jour))
                     
                     final_data.append({
+                        # unity, location_name
+                        "station" : self.location_name,
                         "date" : date.strftime('%Y-%m-%d'),
                         "hour" : f"{heure}:{minute}",
-                        "Rainfall" : Rainf,
-                        "Temperature" : Tmean,
-                        "Visibility" : Visibility,
-                        "WinDir" : dv,
-                        "WindSpeed" : Uz,
-                        "Tdew" : Tdew,
-                        "Pressure" : P
+                        "Rainfall" : f"{Rainf} mm",
+                        "Temperature" : f"{Tmean} C",
+                        "Visibility" : f"{Visibility} Km",
+                        "WinDir" : f"{dv} deg",
+                        "WindSpeed" : f"{Uz} m.s-1",
+                        "Tdew" : f"{Tdew} C",
+                        "Pressure" : f"{P} mb"
                     })
+                    
 
         return final_data
         
-    def download(self, id_station, date_begin, date_end):
-
+    def download(self, stations, date_begin, date_end):
+        
         date_end_format = datetime.datetime.strptime(date_end,'%Y-%m-%d').strftime("%Y%m%d%H%M")    
         date_begin_format = datetime.datetime.strptime(date_begin,'%Y-%m-%d').strftime("%Y%m%d%H%M")
         
-        for id in id_station:
-            id = str(id)
+        for station in stations:
+            id = str(station["station_id"])
             pause = 0
             while pause <= 60:
                 try:
                     response =urllib.request.urlopen(self.url+"?block="+id+"&begin="+date_begin_format+"&end="+date_end_format+"")
+                    response_body = response.readlines()
                 except urllib.error.URLError as e:
                     return -1
                 
@@ -247,10 +253,14 @@ class Ogimet_class:
                     
                     pause += 30
                     time.sleep(pause)
-        
-                else :
-                    return response.read(), id
-        return -1
+                    
+                else:
+                    self.data =  response_body
+                    self.id =  id
+                    self.location_name = station["location_name"]
+                    return True
+
+        return False
 
 
 if __name__ == '__main__':
