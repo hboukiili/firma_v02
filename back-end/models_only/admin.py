@@ -4,8 +4,8 @@ from .models import *
 
 # admin.site.register(users)
 admin.site.register(Agriculture)
-admin.site.register(chercheur)
-admin.site.register(Policy_Maker)
+admin.site.register(Chercheur)
+admin.site.register(PolicyMaker)
 admin.site.register(field)
 admin.site.register(saison)
 admin.site.register(Crop)

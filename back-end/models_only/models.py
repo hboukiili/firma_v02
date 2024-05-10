@@ -1,29 +1,80 @@
 from django.db import models
 from enum import Enum
 from datetime import datetime
+from django.contrib.auth.hashers import make_password
 
+class UserManager(models.Manager):
+    def create_user(self, first_name, last_name, email, password=None, **extra_fields):
+        if not email:
+            raise ValueError('The Email field must be set')
+        email = email.lower()
+        user = self.model(first_name=first_name, last_name=last_name, email=email, **extra_fields)
+        if password:
+            user.password = make_password(password)
+        user.save(using=self._db)
+        return user
 
 class users(models.Model):
     first_name = models.CharField(max_length=30, blank=True, null=True)
     last_name = models.CharField(max_length=30, blank=True, null=True)
-    email = models.CharField(max_length=50, blank=True, null=True)
-    password = models.CharField(max_length=30, blank=True, null=True)
+    email = models.CharField(max_length=50, unique=True, blank=True, null=True)
+    password = models.CharField(max_length=128, blank=True, null=True)
     created_at = models.DateField(auto_now_add=True, blank=True, null=True)
-    
+
+    objects = UserManager()
+
     class Meta:
         abstract = True
+
+class AgricultureManager(UserManager):
+    pass
 
 class Agriculture(users):
 
     test = models.CharField(max_length=50)
 
-class chercheur(users):
+    objects = AgricultureManager()
+
+class ChercheurManager(UserManager):
+    pass
+
+class Chercheur(users):
 
     test = models.CharField(max_length=30)
 
-class Policy_Maker(users):
+    objects = ChercheurManager()
+
+class PolicyMakerManager(UserManager):
+    pass
+
+class PolicyMaker(users):
 
     test = models.CharField(max_length=30)
+
+    objects = PolicyMakerManager()
+
+
+# class users(models.Model):
+#     first_name = models.CharField(max_length=30, blank=True, null=True)
+#     last_name = models.CharField(max_length=30, blank=True, null=True)
+#     email = models.CharField(max_length=50, blank=True, null=True)
+#     password = models.CharField(max_length=30, blank=True, null=True)
+#     created_at = models.DateField(auto_now_add=True, blank=True, null=True)
+    
+#     class Meta:
+#         abstract = True
+
+# class Agriculture(users):
+
+#     test = models.CharField(max_length=50)
+
+# class chercheur(users):
+
+#     test = models.CharField(max_length=30)
+
+# class Policy_Maker(users):
+
+#     test = models.CharField(max_length=30)
 
 class field(models.Model):
 

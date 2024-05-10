@@ -169,7 +169,7 @@ class Ogimet_class:
                             #    hpression=float(L[i][2:5])/10.
                             
                             elif code=='6': # Precipitation in mm
-                                print(str(annee+'-'+mois+'-'+jour+','+heure+'-'+minute)," L[i]:",L[i])
+                                # print(str(annee+'-'+mois+'-'+jour+','+heure+'-'+minute)," L[i]:",L[i])
                                 Rainf=float(L[i][1:4])
                                 if Rainf>=900 and Rainf<989: Rainf=0.
                                 elif Rainf>=990: Rainf=(Rainf-990)/10.
@@ -187,7 +187,7 @@ class Ogimet_class:
                                     '9': 15,
                                     '/': 24
                                     }[L[i][4:5]]                                
-                                print('===> SECTION 1 code 6 ',L[i],Rainf, Rainf_timeacc)
+                                # print('===> SECTION 1 code 6 ',L[i],Rainf, Rainf_timeacc)
                             elif code=='/' or code=='7': # fin
                                 break
 
@@ -203,7 +203,7 @@ class Ogimet_class:
                                     if Rainf_S2==900.90: Rainf_S2=0
 
                                     Rainf_S2_timeacc = 24
-                                    print("===> SECTION 2 code 6", Rainf_S2, Rainf_S2_timeacc )
+                                    # print("===> SECTION 2 code 6", Rainf_S2, Rainf_S2_timeacc )
                             elif code=='7': # Precipitation in mm for 24h
                                 Rainf_S2=float(L[i][1:5])
                                 if Rainf_S2>=900 and Rainf_S2<990: Rainf_S2=(Rainf_S2-990)/10.
@@ -213,7 +213,7 @@ class Ogimet_class:
                                 if Rainf_S2==900.90: Rainf_S2=0
 
                                 Rainf_S2_timeacc = 24
-                                print("===> SECTION 2 code 7", Rainf_S2, Rainf_S2_timeacc )
+                                # print("===> SECTION 2 code 7", Rainf_S2, Rainf_S2_timeacc )
 
                     date = datetime.datetime(int(annee),int(mois),int(jour))
                     
@@ -268,6 +268,6 @@ if __name__ == '__main__':
     Ogimet = Ogimet_class()
     
     stations = Ogimet.get_closest_stations(34.33597054747763, -4.885676122165933)
-    print(stations)
+    # print(stations)
     # data = Ogimet.download( 60060, "2018-01-01", "2018-05-05" )
     # print(ogimet_file)

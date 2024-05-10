@@ -8,7 +8,7 @@ RUN apt-get update && apt-get install build-essential -y
 
 RUN conda install python=3.10
 
-# RUN conda install -c conda-forge gdal
+RUN conda install -c conda-forge gdal
  
 # RUN conda install -c conda-forge gcc
 
@@ -32,7 +32,7 @@ WORKDIR /app
  
 COPY ./requirements.txt .
 
-# RUN pip install -r requirements.txt
+RUN pip install -r requirements.txt
 
 # RUN pip install openpyxl
 
