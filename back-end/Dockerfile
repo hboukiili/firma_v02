@@ -1,18 +1,14 @@
 FROM continuumio/miniconda3
 
-# FROM continuumio/anaconda-pkg-build:2023.03.28-amd64
- 
-# RUN conda update conda
-
 RUN apt-get update && apt-get install build-essential -y
 
 RUN conda install python=3.10
 
 RUN conda install -c conda-forge gdal
  
-# RUN conda install -c conda-forge gcc
+RUN conda install -c conda-forge gcc
 
-# RUN conda install -c conda-forge pcraster
+RUN conda install -c conda-forge pcraster
  
 # RUN conda install future
 
@@ -34,15 +30,15 @@ COPY ./requirements.txt .
 
 RUN pip install -r requirements.txt
 
-# RUN pip install openpyxl
+RUN pip install openpyxl
 
 # RUN pip install drigo --no-deps
 
-# RUN conda install gcc_linux-64 gxx_linux-64
+RUN conda install gcc_linux-64 gxx_linux-64
 
-# RUN pip install aquacrop && pip install --upgrade numpy && pip install --upgrade numba
+RUN pip install aquacrop && pip install --upgrade numpy && pip install --upgrade numba
 
-# RUN pip install xarray
+RUN pip install xarray
 
 # COPY ./tools /tools
 

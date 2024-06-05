@@ -2,6 +2,9 @@ from django.db import models
 from enum import Enum
 from datetime import datetime
 from django.contrib.auth.hashers import make_password
+from django.contrib.auth.models import AbstractUser
+from django.contrib.auth.hashers import check_password
+
 
 class UserManager(models.Manager):
     def create_user(self, first_name, last_name, email, password=None, **extra_fields):
@@ -14,35 +17,46 @@ class UserManager(models.Manager):
         user.save(using=self._db)
         return user
 
+
 class users(models.Model):
     first_name = models.CharField(max_length=30, blank=True, null=True)
     last_name = models.CharField(max_length=30, blank=True, null=True)
-    email = models.CharField(max_length=50, unique=True, blank=True, null=True)
+    email = models.EmailField(max_length=50, unique=True, blank=True, null=True)
     password = models.CharField(max_length=128, blank=True, null=True)
-    created_at = models.DateField(auto_now_add=True, blank=True, null=True)
+    username = None
 
     objects = UserManager()
+    USERNAME_FIELD = 'email'
 
     class Meta:
         abstract = True
 
-class AgricultureManager(UserManager):
+    def check_user_password(self, raw_password):
+        return check_password(raw_password, self.password)
+
+class farmermanager(UserManager):
     pass
 
-class Agriculture(users):
+class Farmer(users):
 
-    test = models.CharField(max_length=50)
+    test = models.CharField(max_length=50,blank=True, null=True)
 
-    objects = AgricultureManager()
+    USERNAME_FIELD = 'email'
+    REQUIRED_FIELDS = ['username']    
+    class Meta:
+        verbose_name = ('farmer')
+        verbose_name_plural = ('farmers')
 
-class ChercheurManager(UserManager):
+    objects = farmermanager()
+
+class SearcherManager(UserManager):
     pass
 
-class Chercheur(users):
+class Searcher(users):
 
     test = models.CharField(max_length=30)
 
-    objects = ChercheurManager()
+    objects = SearcherManager()
 
 class PolicyMakerManager(UserManager):
     pass
@@ -53,49 +67,25 @@ class PolicyMaker(users):
 
     objects = PolicyMakerManager()
 
+class Field(models.Model):
 
-# class users(models.Model):
-#     first_name = models.CharField(max_length=30, blank=True, null=True)
-#     last_name = models.CharField(max_length=30, blank=True, null=True)
-#     email = models.CharField(max_length=50, blank=True, null=True)
-#     password = models.CharField(max_length=30, blank=True, null=True)
-#     created_at = models.DateField(auto_now_add=True, blank=True, null=True)
-    
-#     class Meta:
-#         abstract = True
-
-# class Agriculture(users):
-
-#     test = models.CharField(max_length=50)
-
-# class chercheur(users):
-
-#     test = models.CharField(max_length=30)
-
-# class Policy_Maker(users):
-
-#     test = models.CharField(max_length=30)
-
-class field(models.Model):
-
-    user_id = models.ForeignKey(Agriculture, on_delete=models.CASCADE)
+    user_id = models.ForeignKey(Farmer, on_delete=models.CASCADE)
     name = models.CharField(max_length=30)
     boundaries = models.CharField(max_length=50)
-    created_at = models.DateField(auto_now_add=True)
 
-class saison(models.Model):
+class Season(models.Model):
 
     start_date = models.DateField(blank=True, null=True)
     end_date = models.DateField(blank=True, null=True)
-    field_id = models.ForeignKey(field, on_delete=models.CASCADE)
-    rendement = models.IntegerField()
+    field_id = models.ForeignKey(Field, on_delete=models.CASCADE)
+    # rendement = models.IntegerField()
 
 class Crop(models.Model):
 
     crop_type = models.CharField(max_length=30)
     vatiety = models.CharField(max_length=30)
     state = models.CharField(max_length=30)
-    saison_id = models.ForeignKey(saison, on_delete=models.CASCADE)
+    saison_id = models.ForeignKey(Season, on_delete=models.CASCADE)
 
 class Pratique_Agricole(models.Model):
 
@@ -115,22 +105,58 @@ class Soil_type(Enum):
     Black = "Black soil"
     Arid = "Arid soil"
 
-class soil(models.Model):
+class Soil(models.Model):
 
     soil_type = models.CharField(max_length=20, choices=[(tag, tag.value) for tag in Soil_type])
-    field_id = models.ForeignKey(field, on_delete=models.CASCADE)
+    field_id = models.ForeignKey(Field, on_delete=models.CASCADE)
 
-class irrigation_system(models.Model):
+class Soil_analysis(models.Model):
+
+    soil_id = models.ForeignKey(Soil, on_delete=models.CASCADE)
+    PH_eau = models.FloatField()
+    EC_ms_cm = models.FloatField()
+    EC_ms_cm_pate_saturée = models.FloatField()
+    Argile = models.FloatField()
+    Limon = models.FloatField()
+    Sable = models.FloatField()
+    MO = models.FloatField()
+    Nt = models.FloatField()
+    P205 = models.FloatField()
+    K20 = models.FloatField()
+    Na20 = models.FloatField()
+    Na = models.FloatField()
+    Cao = models.FloatField()
+    Ca = models.FloatField()
+    MGo = models.FloatField()
+    Mg = models.FloatField()
+    SAR = models.FloatField()
+    Cu = models.FloatField()
+    Mn = models.FloatField()
+    Fe = models.FloatField()
+    Zn = models.FloatField()
+    NNH4 = models.FloatField()
+    NO3 = models.FloatField()
+    CI = models.FloatField()
+    BORE = models.FloatField()
+    Caco3 = models.FloatField()
+    Caco3_actif_AXB = models.FloatField() 
+
+class Irrigation_system(models.Model):
 
     irrigation_type = models.CharField(max_length=50) # should be enum
     debit = models.IntegerField()
     instalation_date = models.DateField()
     Maintenance_date = models.DateField()
-    field_id = models.ForeignKey(field, on_delete=models.CASCADE)
+    field_id = models.ForeignKey(Field, on_delete=models.CASCADE)
+
+class Maitenance_dates(models.Model):
+
+    date = models.DateField()
+    irrigation_system_id = models.ForeignKey(Irrigation_system, on_delete=models.CASCADE)
 
 class Data_source(models.Model):
     datetime = models.DateField(blank=True, null=True)
-    field_id = models.ForeignKey(field, on_delete=models.CASCADE, blank=True, null=True)
+    field_id = models.ForeignKey(Field, on_delete=models.CASCADE, blank=True, null=True)
 
     class Meta:
         abstract = True
@@ -141,12 +167,20 @@ class Remote_sensing(Data_source):
     RS_type = models.CharField(max_length=50)
     source = models.CharField(max_length=50)
 
-class station(Data_source):
+class Station(Data_source):
 
     coordinates = models.CharField(max_length=50)
     station_type = models.CharField(max_length=20) # should be enum
     sensor_type = models.CharField(max_length=20) # should be enum
     mesur = models.IntegerField()
+
+class Lidar(Data_source):
+
+    test = models.CharField(max_length=20)
+
+class Drone (Data_source):
+
+    test = models.CharField(max_length=20)
 
 class Ogimet_stations(models.Model):
 
@@ -154,3 +188,4 @@ class Ogimet_stations(models.Model):
     lat = models.CharField(max_length=50)
     long = models.CharField(max_length=50)
     location_name = models.CharField(max_length=50)
+
