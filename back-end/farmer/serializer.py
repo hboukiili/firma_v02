@@ -1,5 +1,26 @@
 from rest_framework import serializers
 from models_only.models import *
+from rest_framework_gis.serializers import GeoFeatureModelSerializer
+from rest_framework_gis.fields import GeometryField
+import json
+from django.contrib.gis.geos import GEOSGeometry
+
+
+class GeoJSONStringField(serializers.Field):
+    def to_internal_value(self, data):
+        try:
+            # Parse the string to a JSON object
+            geojson = json.loads(data)
+            # Extract the geometry part from the GeoJSON FeatureCollection
+            geometry = geojson['features'][0]['geometry']
+            # Convert the geometry JSON object to a GEOSGeometry object
+            return GEOSGeometry(json.dumps(geometry))
+        except (TypeError, ValueError, KeyError) as e:
+            raise serializers.ValidationError(f"Invalid GeoJSON: {str(e)}")
+
+    def to_representation(self, value):
+        # Convert the GEOSGeometry object to GeoJSON string
+        return value.json
 
 def email_exists(email):
     return (Farmer.objects.filter(email=email).exists() or
@@ -11,7 +32,7 @@ class FarmerSerializer(serializers.ModelSerializer):
     
     class Meta:
         model = Farmer
-        fields = ['first_name', 'last_name', 'email', 'password', 'test', 'type',]
+        fields = ['first_name', 'last_name', 'email', 'password', 'type',]
         extra_kwargs = {'password': {'write_only': True}}
     
     def create(self, validated_data):
@@ -23,10 +44,17 @@ class loginSerializer(serializers.Serializer):
     email = serializers.EmailField()
     password = serializers.CharField(max_length=20)
 
-class FieldSerializer(serializers.Serializer):
+class FieldSerializer(GeoFeatureModelSerializer):
+    boundaries = GeoJSONStringField()
 
-    name = serializers.CharField(max_length=20)
-    boundaries = serializers.CharField(max_length=100)
+    class Meta:
+        model = Field
+        fields = ('id', 'name', 'boundaries')
+        geo_field = 'boundaries'
+
+    def create(self, validated_data):
+        validated_data['user_id'] = self.context['request'].user
+        return super().create(validated_data)
 
 class SoilSerializer(serializers.Serializer):
 

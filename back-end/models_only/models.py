@@ -4,6 +4,7 @@ from datetime import datetime
 from django.contrib.auth.hashers import make_password
 from django.contrib.auth.models import AbstractUser
 from django.contrib.auth.hashers import check_password
+from django.contrib.gis.db import models as gis
 
 
 class UserManager(models.Manager):
@@ -39,8 +40,6 @@ class farmermanager(UserManager):
 
 class Farmer(users):
 
-    test = models.CharField(max_length=50,blank=True, null=True)
-
     USERNAME_FIELD = 'email'
     REQUIRED_FIELDS = ['username']    
     class Meta:
@@ -54,8 +53,6 @@ class SearcherManager(UserManager):
 
 class Searcher(users):
 
-    test = models.CharField(max_length=30)
-
     objects = SearcherManager()
 
 class PolicyMakerManager(UserManager):
@@ -63,15 +60,13 @@ class PolicyMakerManager(UserManager):
 
 class PolicyMaker(users):
 
-    test = models.CharField(max_length=30)
-
     objects = PolicyMakerManager()
 
 class Field(models.Model):
 
     user_id = models.ForeignKey(Farmer, on_delete=models.CASCADE)
     name = models.CharField(max_length=30)
-    boundaries = models.CharField(max_length=50)
+    boundaries = gis.PolygonField()
 
 class Season(models.Model):
 

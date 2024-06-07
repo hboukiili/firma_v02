@@ -11,25 +11,17 @@ from .serializer import *
 from rest_framework_simplejwt.tokens import RefreshToken
 from .tools.functions_tools import get_user_by_email
 from .tools.FarmerAUTH import FARMERJWTAuthentication
+from django.contrib.gis.geos import GEOSGeometry
+import json
+
 
 class register(APIView):
 
 	permission_classes = [AllowAny]
 
 	@swagger_auto_schema(
-	    operation_description="register a new user",
-	    request_body=openapi.Schema(
-	        type=openapi.TYPE_OBJECT,
-	        properties={
-	            'first_name': openapi.Schema(type=openapi.TYPE_STRING),
-	            'last_name': openapi.Schema(type=openapi.TYPE_STRING),
-	            'password' : openapi.Schema(type=openapi.TYPE_STRING),
-	            'email' : openapi.Schema(type=openapi.TYPE_STRING),
-				'test' : openapi.Schema(type=openapi.TYPE_STRING),
-				'type' : openapi.Schema(type=openapi.TYPE_STRING)
-				
-			},
-	    ),
+		request_body=FarmerSerializer,
+		responses={201: FarmerSerializer}
 	)
 
 	def post(self, request):
@@ -46,10 +38,12 @@ class register(APIView):
 			user = serializer.save()
 			refresh = RefreshToken.for_user(user)
 			refresh['user_type'] = user_type
-			access_token = str(refresh.access_token)
 			refresh_token = str(refresh)
-			return Response({'access_token': access_token,
-					'refresh_token': refresh_token}, status=status.HTTP_201_CREATED)
+			return Response({'access_token': str(refresh.access_token),
+							'refresh_token': refresh_token,
+							'type' : user_type,
+						},
+						status=status.HTTP_201_CREATED)
 
 		return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 	
@@ -81,7 +75,8 @@ class login(APIView):
 
 			return Response({
 				'access_token': str(refresh.access_token),
-				'refresh_token': str(refresh)
+				'refresh_token': str(refresh),
+				'type' : user_type
 			}, status=status.HTTP_201_CREATED)
 		
 		return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
@@ -101,33 +96,20 @@ class field(APIView):
 		return Response({"detail": "No fields found for this user."}, status=status.HTTP_404_NOT_FOUND)
 	
 	@swagger_auto_schema(
-	    operation_description="create a new field",
-	    request_body=openapi.Schema(
-	        type=openapi.TYPE_OBJECT,
-	        properties={
-	            'name': openapi.Schema(type=openapi.TYPE_STRING),
-	            'boundaries': openapi.Schema(type=openapi.TYPE_STRING),
-			},
-	    ),
-	)
+        request_body=FieldSerializer,
+        responses={201: FieldSerializer}
+    )
 	def post(self, request):
-		
-		serializer = FieldSerializer(data=request.data)
+		serializer = FieldSerializer(data=request.data, context={'request': request})
 		if serializer.is_valid():
-			try:
-				new_field = Field.objects.create(
-					user_id=request.user, 
-					name=serializer.validated_data.get('name'),
-					boundaries=serializer.validated_data.get('boundaries')
-				)
-				new_field.save()
+			try :
+				serializer.save()
 				return Response({"message": "Field created successfully"}, status=status.HTTP_201_CREATED)
 			except Exception as e:
 				return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
 		return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 	
 	@swagger_auto_schema(
-	    operation_description="create a new field",
 	    request_body=openapi.Schema(
 	        type=openapi.TYPE_OBJECT,
 	        properties={

@@ -40,6 +40,7 @@ REST_FRAMEWORK = {
 INSTALLED_APPS = [
     'django.contrib.admin',
     'django.contrib.auth',
+    'django.contrib.gis',
     'django.contrib.contenttypes',
     'django.contrib.sessions',
     'django.contrib.messages',
@@ -48,6 +49,7 @@ INSTALLED_APPS = [
     'models_only',
     'drf_yasg',
     'farmer',
+    'corsheaders',
 ]
 
 SIMPLE_JWT = {
@@ -56,6 +58,7 @@ SIMPLE_JWT = {
 }
 
 MIDDLEWARE = [
+    'corsheaders.middleware.CorsMiddleware',
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
@@ -67,6 +70,15 @@ MIDDLEWARE = [
 ]
 
 ROOT_URLCONF = 'firma_v02.urls'
+
+CORS_ALLOW_CREDENTIALS = True
+
+# CORS_ALLOWED_ORIGINS = [
+#     "http://localhost:5173",  # Add your frontend domain
+#     # Add other origins as needed
+# ]
+
+CORS_ALLOW_ALL_ORIGINS = True
 
 TEMPLATES = [
     {
@@ -109,7 +121,7 @@ WSGI_APPLICATION = 'firma_v02.wsgi.application'
 
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.postgresql',
+        'ENGINE': 'django.contrib.gis.db.backends.postgis',
         'NAME': 'firma',
         'USER': 'admin',
         'PASSWORD': 'firma123',
