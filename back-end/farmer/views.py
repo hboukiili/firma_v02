@@ -91,7 +91,7 @@ class field(APIView):
 		user = request.user
 		fields = Field.objects.filter(user_id=user.id)
 		if fields.exists():
-			fields_data = [{'id' : field.id, 'name': field.name, 'boundaries': field.boundaries} for field in fields]
+			fields_data = [{'id' : field.id, 'name': field.name, 'boundaries': json.loads(field.boundaries.geojson)} for field in fields]
 			return Response(fields_data, status=status.HTTP_200_OK)
 		return Response({"detail": "No fields found for this user."}, status=status.HTTP_404_NOT_FOUND)
 	
