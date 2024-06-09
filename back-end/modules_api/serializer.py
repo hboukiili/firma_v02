@@ -2,7 +2,7 @@ from rest_framework import serializers
 
 class Ogimet_Serializer(serializers.Serializer):
     
-    Polygon = serializers.CharField()
+    field_id = serializers.IntegerField()
     start_date = serializers.CharField()
     end_date = serializers.CharField()
     # band = serializers.CharField()

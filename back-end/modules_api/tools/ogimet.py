@@ -72,7 +72,6 @@ class Ogimet_class:
         # Sort the stations by distance and get the 5 closest ones
         sorted_stations = sorted(distances.items(), key=lambda x: x[1])[:num_stations]
         closest_stations = [{'station_id': station.station_id, 'location_name': station.location_name} for station, _ in sorted_stations]
-
         return closest_stations
     
     def decode_data(self):
@@ -135,11 +134,16 @@ class Ogimet_class:
                                 '99': 50.                                    
                                 }[visi[3:5]]
 
-                    dv1=float(L[4][1:3])
-                    dv=dv1 * 10
-                    
-                    Uz=float(L[4][3:5])
-                    Uz=Uz*MultWind
+                    if L[4][1:3] != '//':
+                        dv1=float(L[4][1:3])
+                        dv=dv1 * 10
+                    else :
+                        dv = -9999
+                    if L[4][3:5] != '//':
+                        Uz=float(L[4][3:5])
+                        Uz=Uz*MultWind
+                    else :
+                        Uz = -9999
                     
                     i=5
                 

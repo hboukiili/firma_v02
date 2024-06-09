@@ -4,7 +4,7 @@ import jwt.utils
 from rest_framework.views import APIView
 from rest_framework import permissions, status
 from rest_framework.response import Response
-from models_only.models import Farmer
+from models_only.models import Farmer, Field
 from .tools.ogimet import Ogimet_class
 from rest_framework.permissions import IsAuthenticated
 from .serializer import Ogimet_Serializer
@@ -19,16 +19,8 @@ class ogimet(APIView):
 	permission_classes = [IsAuthenticated]
 
 	@swagger_auto_schema(
-		operation_description="Create some data",
-		request_body=openapi.Schema(
-			type=openapi.TYPE_OBJECT,
-			properties={
-				'Polygon': openapi.Schema(type=openapi.TYPE_STRING),
-				'start_date': openapi.Schema(type=openapi.TYPE_STRING),
-				'end_date' : openapi.Schema(type=openapi.TYPE_STRING)
-			},
-			required=['name']
-		),
+		request_body=Ogimet_Serializer,
+		responses={201: Ogimet_Serializer}
 	)
 
 	def post(self, request):
@@ -40,17 +32,24 @@ class ogimet(APIView):
 
 			Ogimet = Ogimet_class()
 
-			Polygon = serializer.validated_data.get("Polygon")
+			field_id = serializer.validated_data.get("field_id")
 			start_date = serializer.validated_data.get('start_date')
 			end_date = serializer.validated_data.get('end_date')
 
-			stations_ids = Ogimet.get_closest_stations(32.04071866778945, -7.700995879688435)
-			result = Ogimet.download(stations_ids, "2018-01-01", "2018-01-05")
-			if result:
-				decoded_data = Ogimet.decode_data()
-				return Response (decoded_data, status=status.HTTP_200_OK)
-			return Response ("No Data Has been found", status=status.HTTP_404_NOT_FOUND)
-		return Response ("Error in Input", status=status.HTTP_400_BAD_REQUEST)
+			try :
+	
+				field = Field.objects.get(id=field_id)
+				point = field.boundaries[0][0]
+				stations_ids = Ogimet.get_closest_stations(point[1], point[0])
+				result = Ogimet.download(stations_ids, start_date, end_date)
+				if result:
+					decoded_data = Ogimet.decode_data()
+					return Response (decoded_data, status=status.HTTP_200_OK)
+				return Response ("No Data Has been found", status=status.HTTP_404_NOT_FOUND)
+					
+			except Exception as e:
+				return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+		return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 	def get(self, request):
 
