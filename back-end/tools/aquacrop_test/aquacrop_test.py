@@ -102,7 +102,7 @@ model_os = AquaCropModel(
 model_os.run_model(till_termination=True)
 
 # print(model_os.get_water_flux())
-print(model_os.get_crop_growth())
+# print(model_os.get_crop_growth())
 
 # hr_min = daily_min_max["Chichawa_M_IHr_(%)"].get('min')
 # hr_max = daily_min_max["Chichawa_M_IHr_(%)"].get('max')

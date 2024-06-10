@@ -9,8 +9,8 @@ services:
     ports:
       - "8000:8000"
     restart : always
-    # depends_on:
-    #   - postgres
+    depends_on:
+      - postgres
 
   # frontend:
   #   build: ./frontend/
@@ -30,8 +30,9 @@ services:
       POSTGRES_PASSWORD: firma123
     volumes:
       - ./postgis:/var/lib/postgresql/data
-
-
+      - ./db_tools/file.sql:/file.sql
+      - ./db_tools/script.sh:/script.sh
+    # command: chmod +x /script.sh && /script.sh
   # geoserver:
   #   image: kartoza/geoserver
   #   ports:

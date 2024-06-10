@@ -1,3 +1,4 @@
+djangorestframework-gis==1.0
 affine==2.4.0
 amqp==5.1.1
 appdirs==1.4.4

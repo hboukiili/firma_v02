@@ -1,7 +1,0 @@
-LOAD DATABASE
-  FROM sqlite:///db.sqlite3
-  INTO postgresql://admin:firma123@postgres:5432/firma
-
-WITH include no drop, create tables, create indexes, reset sequences;
-
-

@@ -1,44 +1,38 @@
 FROM continuumio/miniconda3
 
-RUN apt-get update && apt-get install build-essential -y
+RUN apt-get update && apt-get install -y \
+    build-essential \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
 
 RUN conda install python=3.10
 
-RUN conda install -c conda-forge gdal
- 
-RUN conda install -c conda-forge gcc
-
-RUN conda install -c conda-forge pcraster
- 
-# RUN conda install future
-
-# RUN conda install netcdf4
-
-# RUN conda install matplotlib
-# 
-# RUN conda install refet
-
-# RUN conda install requests
-
-# RUN conda install scipy
-
-# RUN conda install requests-html
+RUN conda install -y -c conda-forge \
+    python=3.10 gdal gcc_linux-64 gxx_linux-64 pcraster \
+    && conda update --all \
+    && conda clean --all --yes
 
 WORKDIR /app
  
 COPY ./requirements.txt .
 
-RUN pip install -r requirements.txt
-
-RUN pip install openpyxl
-
-# RUN pip install drigo --no-deps
-
-RUN conda install gcc_linux-64 gxx_linux-64
+RUN pip install --no-cache-dir -r requirements.txt
 
 RUN pip install aquacrop && pip install --upgrade numpy && pip install --upgrade numba
 
 RUN pip install xarray
+
+COPY ./script.sh /app/
+
+RUN chmod +x /app/script.sh
+
+ENTRYPOINT [ "/app/script.sh" ]
+
+# CMD python managy.py makemigrations && python manage.py migrate && python manage.py makemigrations models_only && python manage.py migrate models_only && python manage.py runserver 0.0.0.0:8000
+
+# RUN pip install openpyxl
+
+# RUN pip install aquacrop && pip install --upgrade numpy && pip install --upgrade numba
 
 # COPY ./tools /tools
 
@@ -57,5 +51,3 @@ RUN pip install xarray
 # WORKDIR /app
 
 CMD ["tail", "-f"]
-
-# CMD python manage.py runserver 0.0.0.0:8000

@@ -35,15 +35,19 @@ class register(APIView):
 		serializer = FarmerSerializer(data=request.data)
 		if serializer.is_valid() :
 
-			user = serializer.save()
-			refresh = RefreshToken.for_user(user)
-			refresh['user_type'] = user_type
-			refresh_token = str(refresh)
-			return Response({'access_token': str(refresh.access_token),
-							'refresh_token': refresh_token,
-							'type' : user_type,
-						},
-						status=status.HTTP_201_CREATED)
+			try :
+				user = serializer.save()
+				refresh = RefreshToken.for_user(user)
+				refresh['user_type'] = user_type
+				refresh_token = str(refresh)
+				return Response({'access_token': str(refresh.access_token),
+								'refresh_token': refresh_token,
+								'type' : user_type,
+							},
+							status=status.HTTP_201_CREATED)
+			except Exception as e:
+				return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+				
 
 		return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 	
@@ -63,22 +67,27 @@ class login(APIView):
 			email = serializer.validated_data.get('email')
 			password = serializer.validated_data.get('password')
 			
-			user, user_type = get_user_by_email(email)
-			if user is None:
-				return Response({"message": "User does not exist"}, status=status.HTTP_404_NOT_FOUND)
+			try :
 
-			if not user.check_user_password(password):
-				return Response({"message": "Wrong password"}, status=status.HTTP_400_BAD_REQUEST)
+				user, user_type = get_user_by_email(email)
+				if user is None:
+					return Response({"message": "User does not exist"}, status=status.HTTP_404_NOT_FOUND)
 
-			refresh = RefreshToken.for_user(user)
-			refresh['user_type'] = user_type
+				if not user.check_user_password(password):
+					return Response({"message": "Wrong password"}, status=status.HTTP_400_BAD_REQUEST)
 
-			return Response({
-				'access_token': str(refresh.access_token),
-				'refresh_token': str(refresh),
-				'type' : user_type
-			}, status=status.HTTP_201_CREATED)
-		
+				refresh = RefreshToken.for_user(user)
+				refresh['user_type'] = user_type
+
+				return Response({
+					'access_token': str(refresh.access_token),
+					'refresh_token': str(refresh),
+					'type' : user_type
+				}, status=status.HTTP_201_CREATED)
+	
+			except Exception as e:
+				return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
 		return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 class field(APIView):
@@ -89,16 +98,22 @@ class field(APIView):
 	def get(self, request):
 		
 		user = request.user
-		fields = Field.objects.filter(user_id=user.id)
-		if fields.exists():
-			fields_data = [{'id' : field.id, 'name': field.name, 'boundaries': json.loads(field.boundaries.geojson)} for field in fields]
-			return Response(fields_data, status=status.HTTP_200_OK)
+		try : 
+
+			fields = Field.objects.filter(user_id=user.id)
+			if fields.exists():
+				fields_data = [{'id' : field.id, 'name': field.name, 'boundaries': json.loads(field.boundaries.geojson)} for field in fields]
+				return Response(fields_data, status=status.HTTP_200_OK)
+
+		except Exception as e:
+				return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
 		return Response({"detail": "No fields found for this user."}, status=status.HTTP_404_NOT_FOUND)
 	
 	@swagger_auto_schema(
         request_body=FieldSerializer,
         responses={201: FieldSerializer}
     )
+
 	def post(self, request):
 		serializer = FieldSerializer(data=request.data, context={'request': request})
 		if serializer.is_valid():
@@ -157,16 +172,21 @@ class season(APIView):
 		],
 		responses={200: SeasonSerializer(many=True)}
 	)
+
 	def get(self, request):
 		field_id = request.query_params.get('field_id')
 		
 		if not field_id:
 			return Response({"error": "Field ID is required"}, status=status.HTTP_400_BAD_REQUEST)
+		try :
 
-		seasons = Season.objects.filter(field_id=field_id)
-		if seasons.exists():
-			seasons_data = [{'id' : _season.id, 'start_date' : _season.start_date, 'end_date' : _season.end_date} for _season in seasons]
-			return Response(seasons_data, status=status.HTTP_200_OK)
+			seasons = Season.objects.filter(field_id=field_id)
+			if seasons.exists():
+					seasons_data = [{'id' : _season.id, 'start_date' : _season.start_date, 'end_date' : _season.end_date} for _season in seasons]
+					return Response(seasons_data, status=status.HTTP_200_OK)
+	
+		except Exception as e:
+			return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
 		return Response({"detail": "No Season found for this field."}, status=status.HTTP_404_NOT_FOUND)
 
 	@swagger_auto_schema(
