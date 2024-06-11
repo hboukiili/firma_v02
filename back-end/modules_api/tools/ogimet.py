@@ -74,9 +74,34 @@ class Ogimet_class:
         closest_stations = [{'station_id': station.station_id, 'location_name': station.location_name} for station, _ in sorted_stations]
         return closest_stations
     
+
+    def parse_visibility(self, visi):
+        if visi[3:5] == '//':
+            return -9999
+        if visi[-1] != '/':
+            visibility = float(visi[3:5])
+        else:
+            visibility = float(visi[2:4])
+        if visibility < 50:
+            return visibility / 10
+        elif visibility < 90:
+            return visibility - 50
+        else:
+            return {
+                '91': 0.05,
+                '92': 0.2,
+                '93': 0.5,
+                '94': 1.,
+                '95': 2.,
+                '96': 4.,
+                '97': 10.,
+                '98': 20.,
+                '99': 50.
+            }.get(visi[3:5], -9999)
+
     def decode_data(self):
         
-        final_data = []
+        Rainfall_list, Visibility_list, Temperature_list, WinDir_list, WindSpeed_list, Tdew_list, Pressure_list  = [], [], [], [], [], [], []
 
         for Lig in self.data:
             
@@ -86,7 +111,7 @@ class Ogimet_class:
             data1 = L[0].split(',')
             Rainf = -9999
             Rainf_timeacc = -9999
-
+            print(L)
             if len(L) > 4:
                 if data1[0] == self.id and L[3] != 'NIL=':
                     Tmean=Rainf=Tdew=Visibility=P=Uz= -9999
@@ -109,30 +134,12 @@ class Ogimet_class:
                         Rainf=0.
                     elif codeRain=='5':
                         Rainf= -9999
+                    print('L[3] = ', L[3])
                     visi=L[3]
 
-                    if(visi[3:5]=='//'):
-                        Visibility = -9999
+                    Visibility = self.parse_visibility(visi)
                     
-                    else:
-                        
-                        Visibility = float(visi[3:5])
-                        if Visibility < 50:
-                            Visibility / 10.
-                        elif Visibility < 90:
-                            Visibility = Visibility-50
-                        else:
-                            Visibility = {
-                                '91': 0.05,
-                                '92': 0.2,
-                                '93': 0.5,
-                                '94': 1.,
-                                '95': 2.,
-                                '96': 4.,
-                                '97': 10.,
-                                '98': 20.,
-                                '99': 50.                                    
-                                }[visi[3:5]]
+                    
 
                     if L[4][1:3] != '//':
                         dv1=float(L[4][1:3])
@@ -219,21 +226,31 @@ class Ogimet_class:
                                 Rainf_S2_timeacc = 24
                                 # print("===> SECTION 2 code 7", Rainf_S2, Rainf_S2_timeacc )
 
-                    date = datetime.datetime(int(annee),int(mois),int(jour))
+                    date = datetime.datetime(int(annee),int(mois),int(jour), int(heure), int(minute))
+
+                    timestamp = datetime.datetime.timestamp(date)
+                    print(timestamp)
+                    timestamp = int(timestamp)
                     
-                    final_data.append({
-                        # unity, location_name
-                        "station" : self.location_name,
-                        "date" : date.strftime('%Y-%m-%d'),
-                        "hour" : f"{heure}:{minute}",
-                        "Rainfall" : f"{Rainf} mm",
-                        "Temperature" : f"{Tmean} C",
-                        "Visibility" : f"{Visibility} Km",
-                        "WinDir" : f"{dv} deg",
-                        "WindSpeed" : f"{Uz} m.s-1",
-                        "Tdew" : f"{Tdew} C",
-                        "Pressure" : f"{P} mb"
-                    })
+
+                    Rainfall_list.append([timestamp, Rainf])
+                    Temperature_list.append([timestamp, Tmean])
+                    Visibility_list.append([timestamp, Visibility])
+                    WinDir_list.append([timestamp, dv])
+                    WindSpeed_list.append([timestamp, Uz])
+                    Tdew_list.append([timestamp, Tdew])
+                    Pressure_list.append([timestamp, P])
+
+        final_data = {
+            "station" : self.location_name,
+            "Rainfall mm" : Rainfall_list,
+            "Temperature C" : Temperature_list,
+            "Visibility Km" : Visibility_list,
+            "WinDir deg" : WinDir_list,
+            "WindSpeed m.s-1" : WindSpeed_list,
+            "Tdew C" : Tdew_list,
+            "Pressure mb" : Pressure_list
+        }
                     
 
         return final_data

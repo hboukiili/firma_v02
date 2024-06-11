@@ -18,7 +18,7 @@ COPY ./requirements.txt .
 
 RUN pip install --no-cache-dir -r requirements.txt
 
-RUN pip install aquacrop && pip install --upgrade numpy && pip install --upgrade numba
+RUN pip install aquacrop==3.0.7 && pip install --upgrade numpy && pip install --upgrade numba
 
 RUN pip install xarray
 
@@ -50,4 +50,4 @@ ENTRYPOINT [ "/app/script.sh" ]
 
 # WORKDIR /app
 
-CMD ["tail", "-f"]
+# CMD ["tail", "-f"]
