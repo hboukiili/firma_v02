@@ -1,10 +1,13 @@
 import openmeteo_requests
-
 import requests_cache
 import pandas as pd
 from retry_requests import retry
 from datetime import datetime, timedelta
+import numpy as np
+from openmeteo_sdk.Variable import Variable
 
+pd.set_option('display.max_rows', None)  # This will display all rows
+pd.set_option('display.max_columns', None)  # This will display all columns
 
 # Setup the Open-Meteo API client with cache and retry on error
 cache_session = requests_cache.CachedSession('.cache', expire_after = 3600)
@@ -14,26 +17,48 @@ openmeteo = openmeteo_requests.Client(session = retry_session)
 # Make sure all required weather variables are listed here
 # The order of variables in hourly or daily is important to assign them correctly below
 url = "https://api.open-meteo.com/v1/forecast"
+
 params = {
 	"latitude": 32.243,
 	"longitude": -7.9596,
     # "daily": "temperature_2m_max,temperature_2m_min,precipitation_sum",  # Request multiple daily variables
-	"hourly": ["temperature_2m", "precipitation"],
+	"hourly": ["temperature_2m", "precipitation", "wind_speed_10m", "et0_fao_evapotranspiration"],
 	"timezone" : "Africa/Casablanca"
 }
+
 responses = openmeteo.weather_api(url, params=params)
 
 # Process first location. Add a for-loop for multiple locations or weather models
 response = responses[0]
-print(f"Coordinates {response.Latitude()}°N {response.Longitude()}°E")
-print(f"Elevation {response.Elevation()} m asl")
-print(f"Timezone {response.Timezone()} {response.TimezoneAbbreviation()}")
-print(f"Timezone difference to GMT+0 {response.UtcOffsetSeconds()} s")
+hourly = response.Hourly()
+hourly_time = range(hourly.Time(), hourly.TimeEnd(), hourly.Interval())
+hourly_variables = list(map(lambda i: hourly.Variables(i), range(0, hourly.VariablesLength())))
 
-Daily = response.Hourly()
-# start_datetime = datetime.utcfromtimestamp(Daily.Time())
-# print(start_datetime)
-Daily_temperature_2m_max = Daily.Variables(0).ValuesAsNumpy()
+# Print all variables to check what's available
+for variable in hourly_variables:
+    print("Variable:", variable.Variable(), "Altitude:", variable.Altitude())
+
+
+hourly_temperature_2m = next(filter(lambda x: x.Variable() == Variable.temperature and x.Altitude() == 2, hourly_variables)).ValuesAsNumpy()
+hourly_precipitation = next(filter(lambda x: x.Variable() == Variable.precipitation, hourly_variables)).ValuesAsNumpy()
+hourly_wind_speed_10m = next(filter(lambda x: x.Variable() == Variable.wind_speed and x.Altitude() == 10, hourly_variables)).ValuesAsNumpy()
+hourly_et0_fao_evapotranspiration = next(filter(lambda x: x.Variable() == Variable.et0_fao_evapotranspiration, hourly_variables)).ValuesAsNumpy()
+
+hourly_data = {"date": pd.date_range(
+	start = pd.to_datetime(hourly.Time(), unit = "s"),
+	end = pd.to_datetime(hourly.TimeEnd(), unit = "s"),
+	freq = pd.Timedelta(seconds = hourly.Interval()),
+	inclusive = "left"
+)}
+
+hourly_data["temperature_2m"] = hourly_temperature_2m
+hourly_data["precipitation"] = hourly_precipitation
+hourly_data["wind_speed_10m"] = hourly_wind_speed_10m
+hourly_data["et0_fao_evapotranspiration"] = hourly_et0_fao_evapotranspiration
+
+hourly_dataframe = pd.DataFrame(data = hourly_data)
+print(hourly_dataframe)
+
 # print(Daily_temperature_2m_max)
 # Daily_temperature_2m_min = Daily.Variables(1).ValuesAsNumpy()
 # Daily_temperature_2m_precipitation_sum = Daily.Variables(2).ValuesAsNumpy()

@@ -73,7 +73,17 @@ class Season(models.Model):
     start_date = models.DateField(blank=True, null=True)
     end_date = models.DateField(blank=True, null=True)
     field_id = models.ForeignKey(Field, on_delete=models.CASCADE)
-    # rendement = models.IntegerField()
+
+# class Season(models.Model):
+#     start_date = models.DateField(blank=True, null=True)
+#     end_date = models.DateField(blank=True, null=True)
+
+# class Field(models.Model):
+
+#     user_id = models.ForeignKey(Farmer, on_delete=models.CASCADE)
+#     name = models.CharField(max_length=30)
+#     boundaries = gis.PolygonField()
+#     saison_id = models.ForeignKey(Season, on_delete=models.CASCADE)
 
 class Crop(models.Model):
 

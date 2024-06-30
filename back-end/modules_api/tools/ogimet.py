@@ -102,7 +102,6 @@ class Ogimet_class:
     def decode_data(self):
         
         Rainfall_list, Visibility_list, Temperature_list, WinDir_list, WindSpeed_list, Tdew_list, Pressure_list  = [], [], [], [], [], [], []
-
         for Lig in self.data:
             
 
@@ -111,7 +110,6 @@ class Ogimet_class:
             data1 = L[0].split(',')
             Rainf = -9999
             Rainf_timeacc = -9999
-            print(L)
             if len(L) > 4:
                 if data1[0] == self.id and L[3] != 'NIL=':
                     Tmean=Rainf=Tdew=Visibility=P=Uz= -9999
@@ -229,10 +227,8 @@ class Ogimet_class:
                     date = datetime.datetime(int(annee),int(mois),int(jour), int(heure), int(minute))
 
                     timestamp = datetime.datetime.timestamp(date)
-                    print(timestamp)
                     timestamp = int(timestamp)
                     
-
                     Rainfall_list.append([timestamp, Rainf])
                     Temperature_list.append([timestamp, Tmean])
                     Visibility_list.append([timestamp, Visibility])
@@ -263,13 +259,21 @@ class Ogimet_class:
         for station in stations:
             id = str(station["station_id"])
             pause = 0
+
+            # params = {
+            #     'block': id,
+            #     'begin': date_begin_format,
+            #     'end': date_end_format
+            # }
+
             while pause <= 60:
                 try:
                     response =urllib.request.urlopen(self.url+"?block="+id+"&begin="+date_begin_format+"&end="+date_end_format+"")
                     response_body = response.readlines()
+                    print('response : ', response.readlines())
                 except urllib.error.URLError as e:
                     return -1
-                
+                print(len(response_body))
                 if response.status == 501:
                     
                     pause += 30
@@ -277,6 +281,7 @@ class Ogimet_class:
                     
                 else:
                     self.data =  response_body
+                    print(self.data)
                     self.id =  id
                     self.location_name = station["location_name"]
                     return True

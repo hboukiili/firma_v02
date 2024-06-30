@@ -26,7 +26,7 @@ COPY ./script.sh /app/
 
 RUN chmod +x /app/script.sh
 
-ENTRYPOINT [ "/app/script.sh" ]
+# ENTRYPOINT [ "/app/script.sh" ]
 
 # CMD python managy.py makemigrations && python manage.py migrate && python manage.py makemigrations models_only && python manage.py migrate models_only && python manage.py runserver 0.0.0.0:8000
 
@@ -50,4 +50,4 @@ ENTRYPOINT [ "/app/script.sh" ]
 
 # WORKDIR /app
 
-# CMD ["tail", "-f"]
+CMD ["tail", "-f"]

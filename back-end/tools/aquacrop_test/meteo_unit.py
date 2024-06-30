@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """
 """
-import config
+# import config
 
 # ==============   CONVERSIONS ===============
 
@@ -28,7 +28,7 @@ def WindSpeed_fts_to_ms(vv): # foot per second
 	
 # ---Radiation: standard unit is megajoules per square meter per day (MJ/m2.day) ---
 def Radiation_wm2_to_Mjm2day(R): # Watt/m2
-	if(R==config.meteo_missing):return(config.meteo_missing)
+	if(R==-9999):return(-9999)
 	return(0.0864*R)
 def Radiation_Jcm2day_to_Mjm2day(R): #Joule per cm2 per day
 	return(0.01*R)
