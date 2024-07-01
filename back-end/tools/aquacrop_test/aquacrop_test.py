@@ -13,6 +13,7 @@ pd.set_option('display.max_columns', None)  # This will display all columns
 
 def calculate_relative_humidity(T, Tdew):
     # Calculate saturation vapor pressure at T
+
     e_T = 6.112 * math.exp((17.67 * T) / (T + 243.5))
     # Calculate saturation vapor pressure at Tdew
     e_Tdew = 6.112 * math.exp((17.67 * Tdew) / (Tdew + 243.5))
@@ -33,6 +34,7 @@ print("starting...")
 data = Ogimet.download( ["60115", "60115"], start_date, end_date)
 print('got Data ...')
 T, Ws, Tdew, Rain = Ogimet.decode_data()
+print("Done decoding Data ...")
 
 
 start_date_ = datetime.strptime(start_date, '%Y-%m-%d')
@@ -48,18 +50,20 @@ T_max = []
 et0_ = []
 pre = []
 dates = []
+rh = []
 irg = 132.47606058304277
 while current_date <= end_date_:
 
-    rh_min = calculate_relative_humidity(min(T[current_date.strftime('%Y-%m-%d')]), min(Tdew[current_date.strftime('%Y-%m-%d')]))
-    rh_max = calculate_relative_humidity(max(T[current_date.strftime('%Y-%m-%d')]), max(Tdew[current_date.strftime('%Y-%m-%d')]))
-    
-    if (rh_min > rh_max):
-        tmp = rh_min
-        rh_min = rh_max
-        rh_max = rh_min
-    et0_simple = et0_pm_simple(current_date.timetuple().tm_yday, 509, 2, 34.33597054747763, np.nanmean(T[current_date.strftime('%Y-%m-%d')]), min(T[current_date.strftime('%Y-%m-%d')]), max(T[current_date.strftime('%Y-%m-%d')]), np.nanmean(Ws[current_date.strftime("%Y-%m-%d")]), rh_min, rh_min, rh_max, irg)
-    print(et0_simple)
+    i = 0
+    while(i < len(T[current_date.strftime("%Y-%m-%d")])):
+        rh.append(calculate_relative_humidity(T[current_date.strftime("%Y-%m-%d")][i], Tdew[current_date.strftime("%Y-%m-%d")][i])) 
+        i += 1
+    # print(rh)
+    # break 
+    print(min(rh), max(rh))
+
+    # et0_simple = et0_pm_simple(current_date.timetuple().tm_yday, 509, 2, 34.33597054747763, np.nanmean(T[current_date.strftime('%Y-%m-%d')]), min(T[current_date.strftime('%Y-%m-%d')]), max(T[current_date.strftime('%Y-%m-%d')]), np.nanmean(Ws[current_date.strftime("%Y-%m-%d")]), np.nanmean(rh), min(rh), max(rh), irg)
+    # print(et0_simple)
     current_date += timedelta(days=1)
 
 

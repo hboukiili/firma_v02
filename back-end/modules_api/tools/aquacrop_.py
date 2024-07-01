@@ -1,4 +1,4 @@
-from aquacrop import AquaCropModel, Soil, Crop, InitialWaterContent
+from aquacrop import AquaCropModel, Soil, Crop, InitialWaterContent, IrrigationManagement
 from aquacrop.utils import prepare_weather, get_filepath
 import pandas as pd
 from .meteo_ET0 import et0_pm, et0_pm_simple
@@ -89,7 +89,7 @@ def aquacrop_run():
             weather_df=data,
             soil=Soil(soil_type='SandyLoam'),
             crop=Crop('Maize', planting_date='01/01'),
-            # irrigation_management=
+            irrigation_management=IrrigationManagement(irrigation_method=4),
             initial_water_content=InitialWaterContent(value=['FC']),
         )
 
@@ -99,6 +99,7 @@ def aquacrop_run():
     crop_growth = model_os.get_crop_growth()[['gdd_cum', 'canopy_cover', 'biomass', 'z_root', 'DryYield', 'FreshYield', 'harvest_index']]
     date_strings = [date.strftime('%Y-%m-%d') for date in dates]
 
+    print(Water_flux.IrrDay.values)
     return {
         'dates' : date_strings,
         'IrrDay' : Water_flux.IrrDay.values,
@@ -115,4 +116,5 @@ def aquacrop_run():
         'DryYield' : crop_growth.DryYield.values,
         'FreshYield' : crop_growth.FreshYield.values,
         'harvest_index' : crop_growth.harvest_index.values,
+        'ET' : Water_flux.Tr.values + Water_flux.Es.values,
     }
