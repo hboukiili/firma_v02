@@ -232,13 +232,15 @@ class Ogimet_class:
                         WindSpeed_list[date] = []
                         Rainfall_list[date] = []
                         Tdew_list[date] = []
+                        Visibility_list[date] = []
                     
                     Temperature_list[date].append(Tmean)
                     WindSpeed_list[date].append(Uz)
                     Tdew_list[date].append(Tdew)
+                    Visibility_list[date].append(Visibility)
                     Rainfall_list[date].append(Rainf)
 
-        return Temperature_list, WindSpeed_list, Tdew_list, Rainfall_list
+        return Temperature_list, WindSpeed_list, Tdew_list, Rainfall_list, Visibility_list
         
     def download(self, stations, date_begin, date_end):
         
