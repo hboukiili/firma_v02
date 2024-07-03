@@ -12,7 +12,7 @@ class GeoJSONStringField(serializers.Field):
             # Parse the string to a JSON object
             geojson = json.loads(data)
             # Extract the geometry part from the GeoJSON FeatureCollection
-            geometry = geojson['features'][0]['geometry']
+            geometry = geojson['geometry']
             # Convert the geometry JSON object to a GEOSGeometry object
             return GEOSGeometry(json.dumps(geometry))
         except (TypeError, ValueError, KeyError) as e:

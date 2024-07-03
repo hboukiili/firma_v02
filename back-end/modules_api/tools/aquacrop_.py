@@ -90,8 +90,8 @@ def aquacrop_run(long = None, lat = None, T = None, Ws = None, Tdew = None, Rain
 
     if start_date_ is None:
 
-        start_date_ = datetime.strptime('2018-01-01', '%Y-%m-%d')
-        end_date_ = datetime.strptime('2018-01-31', '%Y-%m-%d')
+        start_date_ = datetime.strptime('2019-01-01', '%Y-%m-%d')
+        end_date_ = datetime.strptime('2019-05-01', '%Y-%m-%d')
 
         fichier = "/app/tools/aquacrop_test/chichaoua_Zoubair_2019-2023_N0_Unification.xlsx"
 
@@ -131,17 +131,20 @@ def aquacrop_run(long = None, lat = None, T = None, Ws = None, Tdew = None, Rain
         while current_date <= end_date_:
 
             i = 0
-            while(i < len(T[current_date.strftime("%Y-%m-%d")])):
-                rh.append(calculate_relative_humidity(T[current_date.strftime("%Y-%m-%d")][i], Tdew[current_date.strftime("%Y-%m-%d")][i])) 
-                irg.append(Solar_radiation_cloudiness(lat, current_date.timetuple().tm_yday, Visibility[current_date.strftime("%Y-%m-%d")][i]))
-                i += 1
-            et0_simple = et0_pm_simple(current_date.timetuple().tm_yday, alt, 2, lat, np.nanmean(T[current_date.strftime('%Y-%m-%d')]), min(T[current_date.strftime('%Y-%m-%d')]), max(T[current_date.strftime('%Y-%m-%d')]), np.nanmean(Ws[current_date.strftime("%Y-%m-%d")]), np.nanmean(rh), min(rh), max(rh), np.nanmean(irg))
-            et0_.append(et0_simple)
-            T_max.append(max(T[current_date.strftime("%Y-%m-%d")]))
-            T_min.append(min(T[current_date.strftime("%Y-%m-%d")]))
-            pre.append(np.nanmean(Rain[current_date.strftime('%Y-%m-%d')]))
-            dates.append(current_date)
+            if current_date.strftime("%Y-%m-%d") in T:
+                while(i < len(T[current_date.strftime("%Y-%m-%d")])):
+                    rh.append(calculate_relative_humidity(T[current_date.strftime("%Y-%m-%d")][i], Tdew[current_date.strftime("%Y-%m-%d")][i])) 
+                    irg.append(Solar_radiation_cloudiness(lat, current_date.timetuple().tm_yday, Visibility[current_date.strftime("%Y-%m-%d")][i]))
+                    i += 1
+                et0_simple = et0_pm_simple(current_date.timetuple().tm_yday, alt, 2, lat, np.nanmean(T[current_date.strftime('%Y-%m-%d')]), min(T[current_date.strftime('%Y-%m-%d')]), max(T[current_date.strftime('%Y-%m-%d')]), np.nanmean(Ws[current_date.strftime("%Y-%m-%d")]), np.nanmean(rh), min(rh), max(rh), np.nanmean(irg))
+                et0_.append(et0_simple)
+                T_max.append(max(T[current_date.strftime("%Y-%m-%d")]))
+                T_min.append(min(T[current_date.strftime("%Y-%m-%d")]))
+                pre.append(np.nanmean(Rain[current_date.strftime('%Y-%m-%d')]))
+                dates.append(current_date)
             current_date += timedelta(days=1)
+
+    end_date_ = dates[-1]
 
     data = pd.DataFrame({'MinTemp' : T_min,
             'MaxTemp' : T_max,
@@ -149,6 +152,7 @@ def aquacrop_run(long = None, lat = None, T = None, Ws = None, Tdew = None, Rain
             'ReferenceET' : et0_,
             'Date' : dates,
         })
+    
 
     model_os = AquaCropModel(
             sim_start_time=start_date_.strftime('%Y/%m/%d'),
