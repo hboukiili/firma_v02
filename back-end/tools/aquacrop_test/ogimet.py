@@ -77,7 +77,7 @@ class Ogimet_class:
 
     def parse_visibility(self, visi):
         if visi[3:5] == '//':
-            return -9999
+            return np.nan
         if visi[-1] != '/':
             visibility = float(visi[3:5])
         else:
@@ -97,28 +97,26 @@ class Ogimet_class:
                 '97': 10.,
                 '98': 20.,
                 '99': 50.
-            }.get(visi[3:5], -9999)
+            }.get(visi[3:5], np.nan)
 
     def decode_data(self):
         
         Rainfall_list, Visibility_list, Temperature_list, WinDir_list, WindSpeed_list, Tdew_list, Pressure_list  = {}, {}, {}, {}, {}, {}, {}
         for Lig in self.data:
-            
+            # print(self.id)
 
             L = str(Lig).replace("b'", '').split(" ")
-            
-            data1 = L[0].split(',')
-            Rainf = -9999
-            Rainf_timeacc = -9999
+            data1 = L[0].split(',') 
+            Rainf = np.nan
+            Rainf_timeacc = np.nan
             if len(L) > 4:
                 if data1[0] == self.id and L[3] != 'NIL=':
-                    Tmean=Rainf=Tdew=Visibility=P=Uz= -9999
+                    Tmean = Rainf = Tdew = Visibility = P = Uz = np.nan
                     annee = data1[1]
                     mois = data1[2]
                     jour = data1[3]
                     heure = data1[4]
                     minute = data1[5]
-                    
                     codewind=L[1][4]
                     MultWind = {
                                 '0': 1.,
@@ -127,12 +125,11 @@ class Ogimet_class:
                                 '3': 0.5144    ,
                                 '4': 0.5144                                
                                 }[codewind]
-                    codeRain=L[3][0]
-                    if codeRain=='4':
-                        Rainf=0.
+                    codeRain = L[3][0]
+                    if codeRain == '4':
+                        Rainf = 0.
                     elif codeRain=='5':
-                        Rainf= -9999
-                    # print('L[3] = ', L[3])
+                        Rainf = np.nan
                     visi=L[3]
 
                     Visibility = self.parse_visibility(visi)
@@ -143,12 +140,12 @@ class Ogimet_class:
                         dv1=float(L[4][1:3])
                         dv=dv1 * 10
                     else :
-                        dv = -9999
+                        dv = np.nan
                     if L[4][3:5] != '//':
                         Uz=float(L[4][3:5])
                         Uz=Uz*MultWind
                     else :
-                        Uz = -9999
+                        Uz = np.nan
                     
                     i=5
                 
@@ -225,7 +222,8 @@ class Ogimet_class:
                                 # print("===> SECTION 2 code 7", Rainf_S2, Rainf_S2_timeacc )
 
                     date = datetime.datetime(int(annee),int(mois),int(jour)).strftime("%Y-%m-%d")
-                    
+                    hour = datetime.datetime(int(annee),int(mois),int(jour), int(heure)).strftime('%H')
+
                     if date not in Temperature_list:
                         
                         Temperature_list[date] = []
@@ -284,6 +282,7 @@ if __name__ == '__main__':
 
     Ogimet = Ogimet_class()
     
-    # stations = Ogimet.get_closest_stations(34.33597054747763, -4.885676122165933)
+    stations = Ogimet.get_closest_stations(34.33597054747763, -4.885676122165933)
+    Ogimet.decode_data()
     # print(stations)
     # print(data)

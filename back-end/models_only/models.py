@@ -71,7 +71,7 @@ class Field(models.Model):
 class Season(models.Model):
 
     start_date = models.DateField(blank=True, null=True)
-    end_date = models.DateField(blank=True, null=True)
+    # end_date = models.DateField(blank=True, null=True)
     field_id = models.ForeignKey(Field, on_delete=models.CASCADE)
 
 # class Season(models.Model):
@@ -87,10 +87,11 @@ class Season(models.Model):
 
 class Crop(models.Model):
 
-    crop_type = models.CharField(max_length=30)
-    vatiety = models.CharField(max_length=30)
-    state = models.CharField(max_length=30)
-    saison_id = models.ForeignKey(Season, on_delete=models.CASCADE)
+    type = models.CharField(max_length=30)
+    value = models.CharField(max_length=30)
+    variety = models.CharField(max_length=30, blank=True, null=True)
+    state = models.CharField(max_length=30, blank=True, null=True)
+    Season = models.ForeignKey(Season, on_delete=models.CASCADE)
 
 class Pratique_Agricole(models.Model):
 
@@ -102,17 +103,20 @@ class Pratique_Agricole(models.Model):
 
 class Soil_type(Enum):
 
-    Loam = "Loam"
-    Sandy = "Sandy soil"
-    Clay = "Clay"
-    Silty = "Silty"
-    Peat = "Peat soil"
-    Black = "Black soil"
-    Arid = "Arid soil"
+    SILT = 'SILT'
+    LOAMY_SAND = 'LOAMY SAND'
+    SAND = 'SAND'
+    SANDY_LOAM = 'SANDY LOAM'
+    LOAM = 'LOAM'
+    SANDY_CLAY_LOAM = 'SANDY CLAY LOAM'
+    CLAY_LOAM = 'CLAY LOAM'
+    SILTY_CLAY = 'SILTY CLAY'
+    SANDY_CLAY = 'SANDY CLAY'
+    CLAY = 'CLAY'
 
 class Soil(models.Model):
 
-    soil_type = models.CharField(max_length=20, choices=[(tag, tag.value) for tag in Soil_type])
+    soil_type = models.CharField(max_length=20, choices=[(tag.name, tag.value) for tag in Soil_type])
     field_id = models.ForeignKey(Field, on_delete=models.CASCADE)
 
 class Soil_analysis(models.Model):
@@ -146,18 +150,6 @@ class Soil_analysis(models.Model):
     Caco3 = models.FloatField()
     Caco3_actif_AXB = models.FloatField() 
 
-class Irrigation_system(models.Model):
-
-    irrigation_type = models.CharField(max_length=50) # should be enum
-    debit = models.IntegerField()
-    instalation_date = models.DateField()
-    Maintenance_date = models.DateField()
-    field_id = models.ForeignKey(Field, on_delete=models.CASCADE)
-
-class Maitenance_dates(models.Model):
-
-    date = models.DateField()
-    irrigation_system_id = models.ForeignKey(Irrigation_system, on_delete=models.CASCADE)
 
 class Data_source(models.Model):
     datetime = models.DateField(blank=True, null=True)
@@ -194,3 +186,46 @@ class Ogimet_stations(models.Model):
     long = models.CharField(max_length=50)
     location_name = models.CharField(max_length=50)
 
+class Irrigation_type(Enum):
+
+    Sprinkler = 'Sprinkler irrigation'
+    Surface = 'Surface irrigation'
+    Drip = 'Drip irrigation'
+    Rainfed = 'Rainfed irrigation'
+
+
+
+class Irrigation_system(models.Model):
+
+    irrigation_type = models.CharField(max_length=20, choices=[(tag.name, tag.value) for tag in Irrigation_type])
+    instalation_date = models.DateField(blank=True, null=True)
+    field_id = models.ForeignKey(Field, on_delete=models.CASCADE)
+
+class Irrigation_amount(models.Model):
+
+    amount = models.IntegerField()
+    date = models.DateField()
+    irrigation_system_id = models.ForeignKey(Irrigation_system, on_delete=models.CASCADE)
+
+class Surface_irrigation(Irrigation_system):
+    pass
+
+class Sprinkler_irrigation(Irrigation_system):
+
+    radius = models.IntegerField(blank=True, null=True)
+    coverage_area = models.IntegerField(blank=True, null=True)
+    outflow_rate = models.IntegerField(blank=True, null=True)
+    number_in_use = models.IntegerField(blank=True, null=True)
+
+
+class Drip_Irrigation(Irrigation_system):
+    
+    Tubes_distance = models.IntegerField(blank=True, null=True)
+    Drippers_distance = models.IntegerField(blank=True, null=True)
+    drippers_area = models.IntegerField(blank=True, null=True)
+    
+
+class Maitenance_dates(models.Model):
+
+    date = models.DateField()
+    irrigation_system_id = models.ForeignKey(Irrigation_system, on_delete=models.CASCADE)

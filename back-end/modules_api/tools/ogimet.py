@@ -76,9 +76,11 @@ class Ogimet_class:
         return closest_stations
     
 
-    def parse_visibility(self, visi):
+    def parse_visibility(self, visi, aqua):
         if visi[3:5] == '//':
-            return -9999
+            if aqua == 1:
+                return -9999
+            return np.nan
         if visi[-1] != '/':
             visibility = float(visi[3:5])
         else:
@@ -88,160 +90,170 @@ class Ogimet_class:
         elif visibility < 90:
             return visibility - 50
         else:
+            if aqua == 0:
+                return {
+                    '91': 0.05,
+                    '92': 0.2,
+                    '93': 0.5,
+                    '94': 1.,
+                    '95': 2.,
+                    '96': 4.,
+                    '97': 10.,
+                    '98': 20.,
+                    '99': 50.
+                }.get(visi[3:5], -9999)
             return {
-                '91': 0.05,
-                '92': 0.2,
-                '93': 0.5,
-                '94': 1.,
-                '95': 2.,
-                '96': 4.,
-                '97': 10.,
-                '98': 20.,
-                '99': 50.
-            }.get(visi[3:5], -9999)
+                    '91': 0.05,
+                    '92': 0.2,
+                    '93': 0.5,
+                    '94': 1.,
+                    '95': 2.,
+                    '96': 4.,
+                    '97': 10.,
+                    '98': 20.,
+                    '99': 50.
+                }.get(visi[3:5], np.nan)
 
     def decode_data_for_aquacrop(self):
             
-            Rainfall_list, Visibility_list, Temperature_list, WinDir_list, WindSpeed_list, Tdew_list, Pressure_list  = {}, {}, {}, {}, {}, {}, {}
-            for Lig in self.data:
-                
+        Rainfall_list, Visibility_list, Temperature_list, WinDir_list, WindSpeed_list, Tdew_list, Pressure_list  = {}, {}, {}, {}, {}, {}, {}
 
-                L = str(Lig).replace("b'", '').split(" ")
-                
-                data1 = L[0].split(',')
-                Rainf = -9999
-                Rainf_timeacc = -9999
-                if len(L) > 4:
-                    if data1[0] == self.id and L[3] != 'NIL=':
-                        Tmean=Rainf=Tdew=Visibility=P=Uz= -9999
-                        annee = data1[1]
-                        mois = data1[2]
-                        jour = data1[3]
-                        heure = data1[4]
-                        minute = data1[5]
-                        
-                        codewind=L[1][4]
-                        MultWind = {
-                                    '0': 1.,
-                                    '1': 1.,
-                                    '2': 0.5144,
-                                    '3': 0.5144    ,
-                                    '4': 0.5144                                
-                                    }[codewind]
-                        codeRain=L[3][0]
-                        if codeRain=='4':
-                            Rainf=0.
-                        elif codeRain=='5':
-                            Rainf= -9999
-                        # print('L[3] = ', L[3])
-                        visi=L[3]
+        for Lig in self.data:
+            
+            L = str(Lig).replace("b'", '').split(" ")
+            data1 = L[0].split(',') 
+            Rainf = np.nan
+            Rainf_timeacc = np.nan
 
-                        Visibility = self.parse_visibility(visi)
-                        
-                        
+            if len(L) > 4:
+                if data1[0] == self.id and L[3] != 'NIL=':
+                    Tmean = Rainf = Tdew = Visibility = P = Uz = np.nan
+                    annee = data1[1]
+                    mois = data1[2]
+                    jour = data1[3]
+                    heure = data1[4]
+                    minute = data1[5]
+                    codewind=L[1][4]
+                    MultWind = {
+                                '0': 1.,
+                                '1': 1.,
+                                '2': 0.5144,
+                                '3': 0.5144    ,
+                                '4': 0.5144                                
+                                }[codewind]
+                    codeRain = L[3][0]
+                    if codeRain == '4':
+                        Rainf = 0.
+                    elif codeRain=='5':
+                        Rainf = np.nan
+                    visi=L[3]
 
-                        if L[4][1:3] != '//':
-                            dv1=float(L[4][1:3])
-                            dv=dv1 * 10
-                        else :
-                            dv = -9999
-                        if L[4][3:5] != '//':
-                            Uz=float(L[4][3:5])
-                            Uz=Uz*MultWind
-                        else :
-                            Uz = -9999
-                        
-                        i=5
+                    Visibility = self.parse_visibility(visi, 0)
                     
-                        section=1
-                        
-                        for i in range(5,L.__len__()):
+                    
 
-                            if L[i]=='333': section = 2
-                            if L[i]=='222': section = 9
+                    if L[4][1:3] != '//':
+                        dv1=float(L[4][1:3])
+                        dv=dv1 * 10
+                    else :
+                        dv = np.nan
+                    if L[4][3:5] != '//':
+                        Uz=float(L[4][3:5])
+                        Uz=Uz*MultWind
+                    else :
+                        Uz = np.nan
+                    
+                    i=5
+                
+                    section=1
+                    
+                    for i in range(5,L.__len__()):
+
+                        if L[i]=='333': section = 2
+                        if L[i]=='222': section = 9
+                    
+                        if section == 1:
+                            code=L[i][0]
+                            if code=='1': # Temperature
+                                Tmean = float(L[i][2:5]) / 10.
+                                
+                                if L[i][1] == 1: Tmean =- Tmean
                         
-                            if section == 1:
-                                code=L[i][0]
-                                if code=='1': # Temperature
-                                    Tmean = float(L[i][2:5]) / 10.
-                                    
-                                    if L[i][1] == 1: Tmean =- Tmean
+                            elif code=='2': # Dewpoint
+                                Tdew=float(L[i][2:5])/10.
+                                if L[i][1]==1: Tdew=-Tdew
+
+                            elif code=='3': # Station pressure in 0.1 mb
+                                P=float(L[i][2:5])*10.
                             
-                                elif code=='2': # Dewpoint
-                                    Tdew=float(L[i][2:5])/10.
-                                    if L[i][1]==1: Tdew=-Tdew
-
-                                elif code=='3': # Station pressure in 0.1 mb
-                                    P=float(L[i][2:5])*10.
+                            #elif code=='5': # Pressure
+                            #    tendanceP=int(L[i][0:1])
+                            #    hpression=float(L[i][2:5])/10.
+                            
+                            elif code=='6': # Precipitation in mm
+                                # print(str(annee+'-'+mois+'-'+jour+','+heure+'-'+minute)," L[i]:",L[i])
+                                Rainf=float(L[i][1:4])
+                                if Rainf>=900 and Rainf<989: Rainf=0.
+                                elif Rainf>=990: Rainf=(Rainf-990)/10.
                                 
-                                #elif code=='5': # Pressure
-                                #    tendanceP=int(L[i][0:1])
-                                #    hpression=float(L[i][2:5])/10.
-                                
-                                elif code=='6': # Precipitation in mm
-                                    # print(str(annee+'-'+mois+'-'+jour+','+heure+'-'+minute)," L[i]:",L[i])
-                                    Rainf=float(L[i][1:4])
-                                    if Rainf>=900 and Rainf<989: Rainf=0.
-                                    elif Rainf>=990: Rainf=(Rainf-990)/10.
-                                    
-                                    Rainf_timeacc = {
-                                        '0': 6,
-                                        '1': 6,
-                                        '2': 12,
-                                        '3': 18,
-                                        '4': 24,
-                                        '5': 1,
-                                        '6': 2,
-                                        '7': 3,
-                                        '8': 9,
-                                        '9': 15,
-                                        '/': 24
-                                        }[L[i][4:5]]                                
-                                    # print('===> SECTION 1 code 6 ',L[i],Rainf, Rainf_timeacc)
-                                elif code=='/' or code=='7': # fin
-                                    break
+                                Rainf_timeacc = {
+                                    '0': 6,
+                                    '1': 6,
+                                    '2': 12,
+                                    '3': 18,
+                                    '4': 24,
+                                    '5': 1,
+                                    '6': 2,
+                                    '7': 3,
+                                    '8': 9,
+                                    '9': 15,
+                                    '/': 24
+                                    }[L[i][4:5]]                                
+                                # print('===> SECTION 1 code 6 ',L[i],Rainf, Rainf_timeacc)
+                            elif code=='/' or code=='7': # fin
+                                break
 
-                            elif section==2:
-                                code=L[i][0]
-                                if code=='6': # Precipitation in mm for 24h
-                                    if [L[i][4:5]]=='4':
-                                        Rainf_S2=float(L[i][1:4])
-                                        if Rainf_S2>=900 and Rainf_S2<989: Rainf_S2=0.
-                                        elif Rainf_S2>=990: Rainf_S2=(Rainf_S2-990)/10.
-                                        else: Rainf_S2=Rainf_S2/10.
-
-                                        if Rainf_S2==900.90: Rainf_S2=0
-
-                                        Rainf_S2_timeacc = 24
-                                        # print("===> SECTION 2 code 6", Rainf_S2, Rainf_S2_timeacc )
-                                elif code=='7': # Precipitation in mm for 24h
-                                    Rainf_S2=float(L[i][1:5])
-                                    if Rainf_S2>=900 and Rainf_S2<990: Rainf_S2=(Rainf_S2-990)/10.
+                        elif section==2:
+                            code=L[i][0]
+                            if code=='6': # Precipitation in mm for 24h
+                                if [L[i][4:5]]=='4':
+                                    Rainf_S2=float(L[i][1:4])
+                                    if Rainf_S2>=900 and Rainf_S2<989: Rainf_S2=0.
                                     elif Rainf_S2>=990: Rainf_S2=(Rainf_S2-990)/10.
                                     else: Rainf_S2=Rainf_S2/10.
 
                                     if Rainf_S2==900.90: Rainf_S2=0
 
                                     Rainf_S2_timeacc = 24
-                                    # print("===> SECTION 2 code 7", Rainf_S2, Rainf_S2_timeacc )
+                                    # print("===> SECTION 2 code 6", Rainf_S2, Rainf_S2_timeacc )
+                            elif code=='7': # Precipitation in mm for 24h
+                                Rainf_S2=float(L[i][1:5])
+                                if Rainf_S2>=900 and Rainf_S2<990: Rainf_S2=(Rainf_S2-990)/10.
+                                elif Rainf_S2>=990: Rainf_S2=(Rainf_S2-990)/10.
+                                else: Rainf_S2=Rainf_S2/10.
 
-                        date = datetime.datetime(int(annee),int(mois),int(jour)).strftime("%Y-%m-%d")
-                        
-                        if date not in Temperature_list:
-                            
-                            Temperature_list[date] = []
-                            WindSpeed_list[date] = []
-                            Rainfall_list[date] = []
-                            Tdew_list[date] = []
-                            Visibility_list[date] = []
-                        
-                        Temperature_list[date].append(Tmean)
-                        WindSpeed_list[date].append(Uz)
-                        Tdew_list[date].append(Tdew)
-                        Visibility_list[date].append(Visibility)
-                        Rainfall_list[date].append(Rainf)
+                                if Rainf_S2==900.90: Rainf_S2=0
 
-            return Temperature_list, WindSpeed_list, Tdew_list, Rainfall_list, Visibility_list
+                                Rainf_S2_timeacc = 24
+                                # print("===> SECTION 2 code 7", Rainf_S2, Rainf_S2_timeacc )
+
+                    date = datetime.datetime(int(annee),int(mois),int(jour)).strftime("%Y-%m-%d")
+                    
+                    if date not in Temperature_list:
+                        
+                        Temperature_list[date] = []
+                        WindSpeed_list[date] = []
+                        Rainfall_list[date] = []
+                        Tdew_list[date] = []
+                        Visibility_list[date] = []
+                    
+                    Temperature_list[date].append(Tmean)
+                    WindSpeed_list[date].append(Uz)
+                    Tdew_list[date].append(Tdew)
+                    Visibility_list[date].append(Visibility)
+                    Rainfall_list[date].append(Rainf)
+
+        return Temperature_list, WindSpeed_list, Tdew_list, Rainfall_list, Visibility_list
 
     def Extraterrestrial_radiation(self, lat,jday):
         lat_rad=lat*pi/180.
@@ -267,7 +279,6 @@ class Ogimet_class:
         Rainfall_list, Visibility_list, Temperature_list, WinDir_list, WindSpeed_list, Tdew_list, Pressure_list  = [], [], [], [], [], [], []
         for Lig in self.data:
             
-
             L = str(Lig).replace("b'", '').split(" ")
             
             data1 = L[0].split(',')
@@ -295,10 +306,10 @@ class Ogimet_class:
                         Rainf=0.
                     elif codeRain=='5':
                         Rainf= -9999
-                    print('L[3] = ', L[3])
+                    # print('L[3] = ', L[3])
                     visi=L[3]
 
-                    Visibility = self.parse_visibility(visi)
+                    Visibility = self.parse_visibility(visi, 1)
                     
                     
 
@@ -433,7 +444,6 @@ class Ogimet_class:
                 try:
                     response =urllib.request.urlopen(self.url+"?block="+id+"&begin="+date_begin_format+"&end="+date_end_format+"")
                     response_body = response.readlines()
-                    # print('response : ', response.readlines())
                 except urllib.error.URLError as e:
                     return -1
                 # print(len(response_body))

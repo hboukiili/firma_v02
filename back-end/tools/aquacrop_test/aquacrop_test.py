@@ -38,11 +38,13 @@ def Extraterrestrial_radiation(lat,jday):
 
 def Solar_radiation_cloudiness(lat,jday,cF):
 
-	const_as=0.25
-	const_bs=0.5
-	ra=Extraterrestrial_radiation(lat,jday)
-	rs=(const_as+const_bs*cF/100.)*ra
-	return(rs)
+    const_as = 0.25
+    const_bs = 0.5
+    ra = Extraterrestrial_radiation(lat,jday)
+    # print('ra = ', ra, '...', jday)
+    rs = (const_as+const_bs*cF/100.)*ra
+    # print(rs)
+    return(rs)
 
 def get_elevation_open(lat, lon):
     url = f"https://api.open-elevation.com/api/v1/lookup?locations={lat},{lon}"
@@ -75,13 +77,12 @@ def get_elevation_open(lat, lon):
 Ogimet = Ogimet_class()
 
 start_date = '2018-01-01'
-end_date = '2018-01-31'
+end_date = '2018-05-31'
 print("starting...")
-data = Ogimet.download( ["60115", "60115"], start_date, end_date)
+data = Ogimet.download( ["60156", "60115"], start_date, end_date)
 print('got Data ...')
 T, Ws, Tdew, Rain, Visibility = Ogimet.decode_data()
 print("Done decoding Data ...")
-
 
 start_date_ = datetime.strptime(start_date, '%Y-%m-%d')
 end_date_ = datetime.strptime(end_date, '%Y-%m-%d')
@@ -98,21 +99,37 @@ pre = []
 dates = []
 rh = []
 x = 0
-irg = []
-alt = get_elevation_open(34.33597054747763, -4.885676122165933)
+# irg = []
+alt = 398
 while current_date <= end_date_:
+    _len = len(T[current_date.strftime("%Y-%m-%d")])
+    
+    if _len < 5:
+        T_max.append(np.nan)
+        T_min.append(np.nan)
+        pre.append(np.nan)
+        et0_.append(np.nan)
+        dates.append(current_date)
 
-    i = 0
-    while(i < len(T[current_date.strftime("%Y-%m-%d")])):
-        rh.append(calculate_relative_humidity(T[current_date.strftime("%Y-%m-%d")][i], Tdew[current_date.strftime("%Y-%m-%d")][i])) 
-        irg.append(Solar_radiation_cloudiness(34.33597054747763, current_date.timetuple().tm_yday, Visibility[current_date.strftime("%Y-%m-%d")][i]))
-        i += 1
-    et0_simple = et0_pm_simple(current_date.timetuple().tm_yday, alt, 2, 34.33597054747763, np.nanmean(T[current_date.strftime('%Y-%m-%d')]), min(T[current_date.strftime('%Y-%m-%d')]), max(T[current_date.strftime('%Y-%m-%d')]), np.nanmean(Ws[current_date.strftime("%Y-%m-%d")]), np.nanmean(rh), min(rh), max(rh), np.nanmean(irg))
-    et0_.append(et0_simple)
-    T_max.append(max(T[current_date.strftime("%Y-%m-%d")]))
-    T_min.append(min(T[current_date.strftime("%Y-%m-%d")]))
-    pre.append(np.nanmean(Rain[current_date.strftime('%Y-%m-%d')]))
-    dates.append(current_date)
+    else :
+        i = 0
+        while(i < _len):
+    
+            if T[current_date.strftime("%Y-%m-%d")][i] == np.nan or Tdew[current_date.strftime("%Y-%m-%d")][i] == np.nan:
+                rh.append(np.nan)
+            else :
+                rh.append(calculate_relative_humidity(T[current_date.strftime("%Y-%m-%d")][i], Tdew[current_date.strftime("%Y-%m-%d")][i]))
+            i += 1
+
+        irg = Solar_radiation_cloudiness(34.33597054747763, current_date.timetuple().tm_yday, np.nanmean(Visibility[current_date.strftime("%Y-%m-%d")]))
+        et0_simple = et0_pm_simple(current_date.timetuple().tm_yday, alt, 2, 34.33597054747763, np.nanmean(T[current_date.strftime('%Y-%m-%d')]), min(T[current_date.strftime('%Y-%m-%d')]), max(T[current_date.strftime('%Y-%m-%d')]), np.nanmean(Ws[current_date.strftime("%Y-%m-%d")]), np.nanmean(rh), min(rh), max(rh), irg)
+        et0_.append(et0_simple)
+
+        # print('et0 = ', et0_simple,'T ', np.nanmean(T[current_date.strftime('%Y-%m-%d')]),'T min ', min(T[current_date.strftime('%Y-%m-%d')]),'T max ',  max(T[current_date.strftime('%Y-%m-%d')]),'W ', np.nanmean(Ws[current_date.strftime("%Y-%m-%d")]),'rh min ',  min(rh),'rh max ',  max(rh),'irg ', irg)
+        T_max.append(max(T[current_date.strftime("%Y-%m-%d")]))
+        T_min.append(min(T[current_date.strftime("%Y-%m-%d")]))
+        pre.append(np.nanmean(Rain[current_date.strftime('%Y-%m-%d')]))
+        dates.append(current_date)
     current_date += timedelta(days=1)
 
 
@@ -152,15 +169,15 @@ model_os = AquaCropModel(
 
 
 model_os.run_model(till_termination=True)
-# # model_os.run_model(num_steps=30, till_termination=True, initialize_model=True, process_outputs=True)
+# model_os.run_model(num_steps=30, till_termination=True, initialize_model=True, process_outputs=True)
 
-# Water_flux = model_os.get_water_flux()[['IrrDay', 'Tr', 'DeepPerc', 'Es']]
-# water_storage = model_os.get_water_storage()[['th1', 'th2', 'th3']]
-# crop_growth = model_os.get_crop_growth()[['gdd_cum', 'canopy_cover', 'biomass', 'z_root', 'DryYield', 'FreshYield', 'harvest_index']]
+Water_flux = model_os.get_water_flux()[['IrrDay', 'Tr', 'DeepPerc', 'Es']]
+water_storage = model_os.get_water_storage()[['th1', 'th2', 'th3']]
+crop_growth = model_os.get_crop_growth()[['gdd_cum', 'canopy_cover', 'biomass', 'z_root', 'DryYield', 'FreshYield', 'harvest_index']]
 
 print(model_os.get_crop_growth())
 print(model_os.get_water_storage())
-# print(model_os.get_simulation_results())
+print(model_os.get_simulation_results())
 
 # hr_min = daily_min_max["Chichawa_M_IHr_(%)"].get('min')
 # hr_max = daily_min_max["Chichawa_M_IHr_(%)"].get('max')

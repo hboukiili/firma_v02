@@ -88,18 +88,18 @@ class aquacrop(APIView):
 			start_date = serializer.validated_data.get('start_date')
 			end_date = serializer.validated_data.get('end_date')
 
-			# try :
-			field = Field.objects.get(id=field_id)
-			point = field.boundaries[0][0]
-			stations_ids = Ogimet.get_closest_stations(point[1], point[0])
-			result = Ogimet.download(stations_ids, start_date, end_date)
-			if result:
-				T, Ws, Tdew, Rain, Visibility = Ogimet.decode_data_for_aquacrop()
-				result = aquacrop_run(point[0], point[1], T, Ws, Tdew, Rain, Visibility, datetime.strptime(start_date, '%Y-%m-%d'), datetime.strptime(end_date, '%Y-%m-%d'))
-				return Response (result, status=status.HTTP_200_OK)
-			return Response ("No Data Has been found", status=status.HTTP_404_NOT_FOUND)
+			try :
+				field = Field.objects.get(id=field_id)
+				point = field.boundaries[0][0]
+				stations_ids = Ogimet.get_closest_stations(point[1], point[0])
+				result = Ogimet.download(stations_ids, start_date, end_date)
+				if result:
+					T, Ws, Tdew, Rain, Visibility = Ogimet.decode_data_for_aquacrop()
+					result = aquacrop_run(point[0], point[1], T, Ws, Tdew, Rain, Visibility, datetime.strptime(start_date, '%Y-%m-%d'), datetime.strptime(end_date, '%Y-%m-%d'))
+					return Response (result, status=status.HTTP_200_OK)
+				return Response ("No Data Has been found", status=status.HTTP_404_NOT_FOUND)
 						
-			# except Exception as e:
-			# 	return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+			except Exception as e:
+				return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
 		return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)

@@ -88,64 +88,84 @@ def aquacrop_run(long = None, lat = None, T = None, Ws = None, Tdew = None, Rain
     albedo = 0.23
     rn = rs = n = ea =-9999    
 
-    if start_date_ is None:
+    # if start_date_ is None:
 
-        start_date_ = datetime.strptime('2019-01-01', '%Y-%m-%d')
-        end_date_ = datetime.strptime('2019-05-01', '%Y-%m-%d')
+    #     start_date_ = datetime.strptime('2019-01-01', '%Y-%m-%d')
+    #     end_date_ = datetime.strptime('2019-05-01', '%Y-%m-%d')
 
-        fichier = "/app/tools/aquacrop_test/chichaoua_Zoubair_2019-2023_N0_Unification.xlsx"
+    #     fichier = "/app/tools/aquacrop_test/chichaoua_Zoubair_2019-2023_N0_Unification.xlsx"
 
-        df = pd.read_excel(fichier)
+    #     df = pd.read_excel(fichier)
 
-        df['Date'] = pd.to_datetime(df['Date'])
+    #     df['Date'] = pd.to_datetime(df['Date'])
 
-        # Group by date and apply min and max aggregation functions
-        daily_min_max = df.groupby(df['Date'].dt.date).agg({
-            'Chichawa_M_IDv_(°)': ['min', 'max'],
-            'Chichawa_M_IHr_(%)': ['min', 'max', 'mean'],
-            'Chichawa_M_IRg_(W/m2)': ['mean'],
-            'Chichawa_M_ITair_(°C)': ['min', 'max', 'mean'],
-            'Chichawa_M_IVv_(m/s)': ['min', 'max', 'mean'],
-            'Chichawa_P_IP30m_(mm)': ['min', 'max']
-        })
+    #     # Group by date and apply min and max aggregation functions
+    #     daily_min_max = df.groupby(df['Date'].dt.date).agg({
+    #         'Chichawa_M_IDv_(°)': ['min', 'max'],
+    #         'Chichawa_M_IHr_(%)': ['min', 'max', 'mean'],
+    #         'Chichawa_M_IRg_(W/m2)': ['mean'],
+    #         'Chichawa_M_ITair_(°C)': ['min', 'max', 'mean'],
+    #         'Chichawa_M_IVv_(m/s)': ['min', 'max', 'mean'],
+    #         'Chichawa_P_IP30m_(mm)': ['min', 'max']
+    #     })
 
-        for i in range(0, 121):
+    #     for i in range(0, 121):
 
-            rh = daily_min_max.iloc[i].get("Chichawa_M_IHr_(%)")
-            T = daily_min_max.iloc[i].get("Chichawa_M_ITair_(°C)")
-            ivv = daily_min_max.iloc[i].get("Chichawa_M_IVv_(m/s)")
-            p = daily_min_max.iloc[i].get("Chichawa_P_IP30m_(mm)")
-            irg = daily_min_max.iloc[i].get("Chichawa_M_IRg_(W/m2)")
-            T_min.append(T.get('min'))
-            T_max.append(T.get('max'))
-            pre.append(p.get('min'))
-            et0_simple = et0_pm_simple(i, 509, 2, 31.4269444, T.get('mean'), T.get('min'), T.get('max'), ivv.get('mean'), rh.get('mean'), rh.get('min'), rh.get('max'), irg.get('mean'))
-            et0_.append(et0_simple)
-            dates.append(pd.Timestamp(daily_min_max.index[i]))
+    #         rh = daily_min_max.iloc[i].get("Chichawa_M_IHr_(%)")
+    #         T = daily_min_max.iloc[i].get("Chichawa_M_ITair_(°C)")
+    #         ivv = daily_min_max.iloc[i].get("Chichawa_M_IVv_(m/s)")
+    #         p = daily_min_max.iloc[i].get("Chichawa_P_IP30m_(mm)")
+    #         irg = daily_min_max.iloc[i].get("Chichawa_M_IRg_(W/m2)")
+    #         T_min.append(T.get('min'))
+    #         T_max.append(T.get('max'))
+    #         pre.append(p.get('min'))
+    #         et0_simple = et0_pm_simple(i, 509, 2, 31.4269444, T.get('mean'), T.get('min'), T.get('max'), ivv.get('mean'), rh.get('mean'), rh.get('min'), rh.get('max'), irg.get('mean'))
+    #         et0_.append(et0_simple)
+    #         dates.append(pd.Timestamp(daily_min_max.index[i]))
 
-    else : 
+    # else : 
 
-        alt = get_elevation_open(lat, long)
-        rh, irg = [], []
-        current_date = start_date_
-        while current_date <= end_date_:
+    alt = get_elevation_open(lat, long)
+    rh, irg = [], []
+    current_date = start_date_
+    while current_date <= end_date_:
 
+        _len = len(T[current_date.strftime("%Y-%m-%d")])
+        
+        if _len < 5:
+            T_max.append(np.nan)
+            T_min.append(np.nan)
+            pre.append(np.nan)
+            et0_.append(np.nan)
+            dates.append(current_date)
+
+        else :
             i = 0
-            if current_date.strftime("%Y-%m-%d") in T:
-                while(i < len(T[current_date.strftime("%Y-%m-%d")])):
-                    rh.append(calculate_relative_humidity(T[current_date.strftime("%Y-%m-%d")][i], Tdew[current_date.strftime("%Y-%m-%d")][i])) 
-                    irg.append(Solar_radiation_cloudiness(lat, current_date.timetuple().tm_yday, Visibility[current_date.strftime("%Y-%m-%d")][i]))
-                    i += 1
-                et0_simple = et0_pm_simple(current_date.timetuple().tm_yday, alt, 2, lat, np.nanmean(T[current_date.strftime('%Y-%m-%d')]), min(T[current_date.strftime('%Y-%m-%d')]), max(T[current_date.strftime('%Y-%m-%d')]), np.nanmean(Ws[current_date.strftime("%Y-%m-%d")]), np.nanmean(rh), min(rh), max(rh), np.nanmean(irg))
-                et0_.append(et0_simple)
-                T_max.append(max(T[current_date.strftime("%Y-%m-%d")]))
-                T_min.append(min(T[current_date.strftime("%Y-%m-%d")]))
-                pre.append(np.nanmean(Rain[current_date.strftime('%Y-%m-%d')]))
-                dates.append(current_date)
-            current_date += timedelta(days=1)
+            while(i < _len):
+        
+                if T[current_date.strftime("%Y-%m-%d")][i] == np.nan or Tdew[current_date.strftime("%Y-%m-%d")][i] == np.nan:
+                    rh.append(np.nan)
+                else :
+                    rh.append(calculate_relative_humidity(T[current_date.strftime("%Y-%m-%d")][i], Tdew[current_date.strftime("%Y-%m-%d")][i]))
+                i += 1
+
+            irg = Solar_radiation_cloudiness(34.33597054747763, current_date.timetuple().tm_yday, np.nanmean(Visibility[current_date.strftime("%Y-%m-%d")]))
+            et0_simple = et0_pm_simple(current_date.timetuple().tm_yday, alt, 2, 34.33597054747763, np.nanmean(T[current_date.strftime('%Y-%m-%d')]), min(T[current_date.strftime('%Y-%m-%d')]), max(T[current_date.strftime('%Y-%m-%d')]), np.nanmean(Ws[current_date.strftime("%Y-%m-%d")]), np.nanmean(rh), min(rh), max(rh), irg)
+            et0_.append(et0_simple)
+            print(et0_simple)
+            T_max.append(max(T[current_date.strftime("%Y-%m-%d")]))
+            T_min.append(min(T[current_date.strftime("%Y-%m-%d")]))
+            pre.append(np.nanmean(Rain[current_date.strftime('%Y-%m-%d')]))
+            dates.append(current_date)
+        current_date += timedelta(days=1)
+
 
     end_date_ = dates[-1]
 
+    # print(T_min)
+    # print(T_max)
+    # print(pre)
+    # print(et0_)
     data = pd.DataFrame({'MinTemp' : T_min,
             'MaxTemp' : T_max,
             'Precipitation' : pre,
@@ -153,7 +173,6 @@ def aquacrop_run(long = None, lat = None, T = None, Ws = None, Tdew = None, Rain
             'Date' : dates,
         })
     
-
     model_os = AquaCropModel(
             sim_start_time=start_date_.strftime('%Y/%m/%d'),
             sim_end_time=end_date_.strftime('%Y/%m/%d'),
