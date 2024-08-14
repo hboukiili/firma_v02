@@ -1,0 +1,18 @@
+/* .label- label {
+    color: #1E6F5C !important;
+    font-size: 12px !important;
+} */
+
+.label- span {
+    color: #1e6f5c85 !important;
+}
+
+
+.bgF {
+    background-image: url("../../../assets/plcyBg.svg");
+    background-size: cover;
+    background-color: #D3E1D1;
+    /* width: 100%; */
+    /* height: 100%; */
+    /* overflow-x: hidden; */
+}

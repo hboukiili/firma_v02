@@ -1,0 +1,37 @@
+@import url("//cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.css");
+@import url("https://unpkg.com/leaflet@1.8.0/dist/leaflet.css");
+/* @import url("//cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/leaflet.min.css/"); */
+@import url("//cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.css");
+@import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700&display=swap');
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+
+body {
+  background-image: url("./assets/plcyBg.svg");
+  background-size: cover;
+  background-color: #D3E1D1;
+  /* width: 100%; */
+  height: 100vh;
+  overflow-x: hidden;
+}
+
+::-webkit-scrollbar {
+  width: 4px;
+  /* Set the width of the scrollbar */
+}
+
+/* Apply scrollbar thumb styles to all scrollbar thumbs */
+::-webkit-scrollbar-thumb {
+  background-color: #531a09;
+  /* Set the color of the scrollbar thumb */
+  border-radius: 999px;
+  /* Set the border radius of the scrollbar thumb */
+}
+
+/* Apply scrollbar thumb hover styles to all scrollbar thumbs when hovered */
+::-webkit-scrollbar-thumb:hover {
+  background-color: #555;
+  /* Set the color of the scrollbar thumb on hover */
+}
