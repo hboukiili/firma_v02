@@ -32,16 +32,16 @@ polygon = ee.Geometry.Polygon([
 
 # List the contents of the folder to find the correct datasets
 
-image = ee.Image("projects/earthengine-public/assets/ISDASOIL/Africa/v1/clay_content")
+# image = ee.Image("projects/earthengine-public/assets/ISDASOIL/Africa/v1/clay_content")
 
 # print(image.getInfo())
 
-ph_mean = image.reduceRegion(
-    reducer=ee.Reducer.mean(),
-    geometry=polygon,
-)
+# ph_mean = image.reduceRegion(
+#     reducer=ee.Reducer.mean(),
+#     geometry=polygon,
+# )
 
-print(ph_mean.getInfo())
+# print(ph_mean.getInfo())
 
 # image = ee.Image("projects/soilgrids-isric/sand_mean")
 
@@ -61,20 +61,20 @@ print(ph_mean.getInfo())
 
 # print(sand_mean.getInfo())
 
-image = ee.Image("projects/soilgrids-isric/clay_mean")
+# image = ee.Image("projects/soilgrids-isric/clay_mean")
 
 
-sand_mean = image.reduceRegion(
-    reducer = ee.Reducer.mean(),
-    geometry= polygon
-)
+# sand_mean = image.reduceRegion(
+#     reducer = ee.Reducer.mean(),
+#     geometry= polygon
+# )
 
-print(sand_mean.getInfo())
+# print(sand_mean.getInfo())
 
 collection = ee.ImageCollection('ECMWF/ERA5_LAND/HOURLY') \
     .filterBounds(polygon) \
     .filterDate('2018-01-01', '2018-05-01') \
-    .sort('system:time_start', False)
+    .sort('system:time_start', True)
     
 
 # print(collection.getInfo())
@@ -86,6 +86,6 @@ for image in collection.toList(collection.size()).getInfo():
     
     Ta_band = image.select('temperature_2m').rename('Ta')
 
-    mean_Ta = Ta_band.reduceRegion(ee.Reducer.mean(), geometry=polygon, scale=10).get('Ta').getInfo()
+    mean_Ta = Ta_band.reduceRegion(ee.Reducer.mean()).get('Ta').getInfo()
 
     print(date_string_LANDSAT, mean_Ta)

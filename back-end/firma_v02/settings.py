@@ -12,6 +12,7 @@ https://docs.djangoproject.com/en/5.0/ref/settings/
 # from 
 from pathlib import Path
 from datetime import timedelta
+import ee
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -173,3 +174,7 @@ STATIC_URL = 'static/'
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 # SECRET_KEY = 'firma'
 # AUTH_USER_MODEL = 'models_only.Farmer'
+
+service_account = 'firma-796@trencendece.iam.gserviceaccount.com'
+credentials = ee.ServiceAccountCredentials(service_account,"cloud_credentials.json")
+ee.Initialize(credentials)
