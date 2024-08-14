@@ -78,9 +78,9 @@ class Ogimet_class:
 
     def parse_visibility(self, visi, aqua):
         if visi[3:5] == '//':
-            if aqua == 1:
+            # if aqua == 1:
                 return -9999
-            return np.nan
+            # return np.nan
         if visi[-1] != '/':
             visibility = float(visi[3:5])
         else:
@@ -90,18 +90,18 @@ class Ogimet_class:
         elif visibility < 90:
             return visibility - 50
         else:
-            if aqua == 0:
-                return {
-                    '91': 0.05,
-                    '92': 0.2,
-                    '93': 0.5,
-                    '94': 1.,
-                    '95': 2.,
-                    '96': 4.,
-                    '97': 10.,
-                    '98': 20.,
-                    '99': 50.
-                }.get(visi[3:5], -9999)
+            # if aqua == 0:
+            #     return {
+            #         '91': 0.05,
+            #         '92': 0.2,
+            #         '93': 0.5,
+            #         '94': 1.,
+            #         '95': 2.,
+            #         '96': 4.,
+            #         '97': 10.,
+            #         '98': 20.,
+            #         '99': 50.
+            #     }.get(visi[3:5], np.nan)
             return {
                     '91': 0.05,
                     '92': 0.2,
@@ -112,7 +112,7 @@ class Ogimet_class:
                     '97': 10.,
                     '98': 20.,
                     '99': 50.
-                }.get(visi[3:5], np.nan)
+                }.get(visi[3:5], -9999)
 
     def decode_data_for_aquacrop(self):
             
@@ -123,11 +123,14 @@ class Ogimet_class:
             L = str(Lig).replace("b'", '').split(" ")
             data1 = L[0].split(',') 
             Rainf = np.nan
-            Rainf_timeacc = np.nan
+            Rainf_timeacc = -9999
 
             if len(L) > 4:
                 if data1[0] == self.id and L[3] != 'NIL=':
-                    Tmean = Rainf = Tdew = Visibility = P = Uz = np.nan
+                    Tmean = Rainf = Tdew = P  = -9999
+                    Uz = np,nan
+                    Visibility = np.nan
+                    Tmean = np.nan
                     annee = data1[1]
                     mois = data1[2]
                     jour = data1[3]
@@ -145,7 +148,7 @@ class Ogimet_class:
                     if codeRain == '4':
                         Rainf = 0.
                     elif codeRain=='5':
-                        Rainf = np.nan
+                        Rainf = -9999
                     visi=L[3]
 
                     Visibility = self.parse_visibility(visi, 0)
@@ -156,12 +159,12 @@ class Ogimet_class:
                         dv1=float(L[4][1:3])
                         dv=dv1 * 10
                     else :
-                        dv = np.nan
+                        dv = -9999
                     if L[4][3:5] != '//':
                         Uz=float(L[4][3:5])
                         Uz=Uz*MultWind
                     else :
-                        Uz = np.nan
+                        Uz = -9999
                     
                     i=5
                 
@@ -454,7 +457,6 @@ class Ogimet_class:
                     
                 else:
                     self.data =  response_body
-                    # print(self.data)
                     self.id =  id
                     self.location_name = station["location_name"]
                     return True

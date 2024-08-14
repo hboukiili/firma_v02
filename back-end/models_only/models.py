@@ -193,8 +193,6 @@ class Irrigation_type(Enum):
     Drip = 'Drip irrigation'
     Rainfed = 'Rainfed irrigation'
 
-
-
 class Irrigation_system(models.Model):
 
     irrigation_type = models.CharField(max_length=20, choices=[(tag.name, tag.value) for tag in Irrigation_type])
@@ -229,3 +227,29 @@ class Maitenance_dates(models.Model):
 
     date = models.DateField()
     irrigation_system_id = models.ForeignKey(Irrigation_system, on_delete=models.CASCADE)
+
+
+class Sol_Fao_Parametre(models.Model):
+
+    sol = models.CharField(max_length=20)
+    REW_min = models.FloatField(blank=True, null=True)
+    REW_max = models.FloatField(blank=True, null=True)
+    thetaFC_min = models.FloatField(blank=True, null=True)
+    thetaFC_max = models.FloatField(blank=True, null=True)
+    thetaWP_min = models.FloatField(blank=True, null=True)
+    thetaWP_max = models.FloatField(blank=True, null=True)
+
+class Fao_Crop_Parametre(models.Model):
+
+    crop = models.CharField(max_length=20)
+    Kcbini = models.FloatField(blank=True, null=True)
+    Kcbmid = models.FloatField(blank=True, null=True)
+    Kcbend = models.FloatField(blank=True, null=True)
+    Lini = models.FloatField(blank=True, null=True)
+    Ldev = models.FloatField(blank=True, null=True)
+    Lmid = models.FloatField(blank=True, null=True)
+    Lend = models.FloatField(blank=True, null=True)
+    Zrini = models.FloatField(default=0.05)
+    zrmax = models.FloatField(blank=True, null=True)
+    pbase = models.FloatField(blank=True, null=True)
+    Ze = models.FloatField(default=0.10)

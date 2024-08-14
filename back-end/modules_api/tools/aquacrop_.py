@@ -9,6 +9,7 @@ import requests
 from  datetime import datetime, timedelta
 from math import *
 import math
+from .ogimet import *
 
 def calculate_dew_point(temperature, relative_humidity):
     """
@@ -129,36 +130,37 @@ def aquacrop_run(long = None, lat = None, T = None, Ws = None, Tdew = None, Rain
     rh, irg = [], []
     current_date = start_date_
     while current_date <= end_date_:
-
-        _len = len(T[current_date.strftime("%Y-%m-%d")])
         
-        if _len < 5:
-            T_max.append(np.nan)
-            T_min.append(np.nan)
-            pre.append(np.nan)
-            et0_.append(np.nan)
-            dates.append(current_date)
+        _len = 0
 
-        else :
-            i = 0
-            while(i < _len):
+        if current_date.strftime("%Y-%m-%d") in T :
+            _len = len(T[current_date.strftime("%Y-%m-%d")])
         
-                if T[current_date.strftime("%Y-%m-%d")][i] == np.nan or Tdew[current_date.strftime("%Y-%m-%d")][i] == np.nan:
-                    rh.append(np.nan)
-                else :
-                    rh.append(calculate_relative_humidity(T[current_date.strftime("%Y-%m-%d")][i], Tdew[current_date.strftime("%Y-%m-%d")][i]))
-                i += 1
+            if _len < 5:
+                T_max.append(np.nan)
+                T_min.append(np.nan)
+                pre.append(np.nan)
+                et0_.append(np.nan)
+                dates.append(current_date)
 
-            irg = Solar_radiation_cloudiness(34.33597054747763, current_date.timetuple().tm_yday, np.nanmean(Visibility[current_date.strftime("%Y-%m-%d")]))
-            et0_simple = et0_pm_simple(current_date.timetuple().tm_yday, alt, 2, 34.33597054747763, np.nanmean(T[current_date.strftime('%Y-%m-%d')]), min(T[current_date.strftime('%Y-%m-%d')]), max(T[current_date.strftime('%Y-%m-%d')]), np.nanmean(Ws[current_date.strftime("%Y-%m-%d")]), np.nanmean(rh), min(rh), max(rh), irg)
-            et0_.append(et0_simple)
-            print(et0_simple)
-            T_max.append(max(T[current_date.strftime("%Y-%m-%d")]))
-            T_min.append(min(T[current_date.strftime("%Y-%m-%d")]))
-            pre.append(np.nanmean(Rain[current_date.strftime('%Y-%m-%d')]))
-            dates.append(current_date)
+            else :
+                i = 0
+                while(i < _len):
+            
+                    if T[current_date.strftime("%Y-%m-%d")][i] == np.nan or Tdew[current_date.strftime("%Y-%m-%d")][i] == np.nan:
+                        rh.append(np.nan)
+                    else :
+                        rh.append(calculate_relative_humidity(T[current_date.strftime("%Y-%m-%d")][i], Tdew[current_date.strftime("%Y-%m-%d")][i]))
+                    i += 1
+
+                irg = Solar_radiation_cloudiness(34.33597054747763, current_date.timetuple().tm_yday, np.nanmean(Visibility[current_date.strftime("%Y-%m-%d")]))
+                et0_simple = et0_pm_simple(current_date.timetuple().tm_yday, alt, 2, 34.33597054747763, np.nanmean(T[current_date.strftime('%Y-%m-%d')]), min(T[current_date.strftime('%Y-%m-%d')]), max(T[current_date.strftime('%Y-%m-%d')]), np.nanmean(Ws[current_date.strftime("%Y-%m-%d")]), np.nanmean(rh), min(rh), max(rh), irg)
+                et0_.append(et0_simple)
+                T_max.append(max(T[current_date.strftime("%Y-%m-%d")]))
+                T_min.append(min(T[current_date.strftime("%Y-%m-%d")]))
+                pre.append(np.nanmean(Rain[current_date.strftime('%Y-%m-%d')]))
+                dates.append(current_date)
         current_date += timedelta(days=1)
-
 
     end_date_ = dates[-1]
 
@@ -207,3 +209,10 @@ def aquacrop_run(long = None, lat = None, T = None, Ws = None, Tdew = None, Rain
         'harvest_index' : crop_growth.harvest_index.values,
         'ET' : Water_flux.Tr.values + Water_flux.Es.values,
     }
+
+# if __name__ == '__main__':
+#     stations_ids = Ogimet.get_closest_stations(34.33597054747763, -4.885676122165933)
+#     result = Ogimet.download(stations_ids, '2018-01-01', '2018-05-31')
+#     T, Ws, Tdew, Rain, Visibility = Ogimet.decode_data_for_aquacrop()
+#     result = aquacrop_run(34.33597054747763, -4.885676122165933, T, Ws, Tdew, Rain, Visibility, datetime.strptime('2018-01-01', '%Y-%m-%d'), datetime.strptime('2018-05-31', '%Y-%m-%d'))
+    # print(result)

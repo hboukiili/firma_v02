@@ -248,7 +248,7 @@ class register_data(APIView):
 
 		}.get(soil_type, soil_type)
 
-		new_soil = Soil(soil_type=Soil_type[_type].value,
+		new_soil = Soil(soil_type=Soil_type[_type].name,
 				  		field_id=field)
 		new_soil.save()
 	
@@ -256,6 +256,7 @@ class register_data(APIView):
 		
 		irg_type = irrigation_data['system']
 		prop = irrigation_data['prop']
+
 		irg_class = {
 			'Rainfed irrigation': Irrigation_system,
 			'Surface irrigation': Surface_irrigation,
@@ -263,7 +264,7 @@ class register_data(APIView):
 			'Sprinkler irrigation' : Sprinkler_irrigation
 		}.get(irg_type)
 		
-		installation_date = irrigation_data.get('installation_date', None)
+		# installation_date = irrigation_data.get('installation_date', None)
 	
 		_type = {
 			'Sprinkler irrigation' : 'Sprinkler',
@@ -273,7 +274,7 @@ class register_data(APIView):
 		}.get(irg_type)
 	
 		irrigation_kwargs = {
-        	'irrigation_type': Irrigation_type[_type].value,
+        	'irrigation_type': Irrigation_type[_type].name,
         	'field_id': field,
     	}
 

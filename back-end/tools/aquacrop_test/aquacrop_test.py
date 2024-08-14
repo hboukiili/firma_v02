@@ -77,11 +77,16 @@ def get_elevation_open(lat, lon):
 Ogimet = Ogimet_class()
 
 start_date = '2018-01-01'
-end_date = '2018-05-31'
+end_date = '2018-05-01'
 print("starting...")
 data = Ogimet.download( ["60156", "60115"], start_date, end_date)
 print('got Data ...')
 T, Ws, Tdew, Rain, Visibility = Ogimet.decode_data()
+print(T)
+print(Ws)
+print(Tdew)
+print(Rain)
+print(Visibility)
 print("Done decoding Data ...")
 
 start_date_ = datetime.strptime(start_date, '%Y-%m-%d')
@@ -175,9 +180,9 @@ Water_flux = model_os.get_water_flux()[['IrrDay', 'Tr', 'DeepPerc', 'Es']]
 water_storage = model_os.get_water_storage()[['th1', 'th2', 'th3']]
 crop_growth = model_os.get_crop_growth()[['gdd_cum', 'canopy_cover', 'biomass', 'z_root', 'DryYield', 'FreshYield', 'harvest_index']]
 
-print(model_os.get_crop_growth())
-print(model_os.get_water_storage())
-print(model_os.get_simulation_results())
+# print(model_os.get_water_flux())
+# print(model_os.get_water_storage())
+# print(model_os.get_crop_growth())
 
 # hr_min = daily_min_max["Chichawa_M_IHr_(%)"].get('min')
 # hr_max = daily_min_max["Chichawa_M_IHr_(%)"].get('max')

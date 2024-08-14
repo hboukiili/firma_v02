@@ -79,6 +79,7 @@ class aquacrop(APIView):
 	def post(self, request):
 
 		serializer = Ogimet_Serializer(data=request.data)
+		user = request.user
 
 		if serializer.is_valid() :
 
@@ -89,6 +90,7 @@ class aquacrop(APIView):
 			end_date = serializer.validated_data.get('end_date')
 
 			try :
+
 				field = Field.objects.get(id=field_id)
 				point = field.boundaries[0][0]
 				stations_ids = Ogimet.get_closest_stations(point[1], point[0])
