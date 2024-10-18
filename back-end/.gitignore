@@ -1,2 +1,14 @@
-./tools/aquacrop_test/cloud_credentials.json
-./tools/aquacrop_test/1337.py
+tools/aquacrop_test/cloud_credentials.json
+tools/aquacrop_test/1337.py
+tools/aquacrop_test/sentinel_data/
+tools/fao_test/interpolated_ndvi/
+tools/fao_test/fao_output/
+models_only/migrations
+models_only/__pycache__
+farmer/__pycache__
+firma_v02/__pycache__
+modules_api/__pycache__
+tools/aquacrop_test/__pycache__
+tools/fao_test/__pycache__
+tools/forcast/__pycache__
+tools/PySEBS/__pycache__

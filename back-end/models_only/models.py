@@ -68,11 +68,11 @@ class Field(models.Model):
     name = models.CharField(max_length=30)
     boundaries = gis.PolygonField()
 
-class Season(models.Model):
+# class Season(models.Model):
 
-    start_date = models.DateField(blank=True, null=True)
-    # end_date = models.DateField(blank=True, null=True)
-    field_id = models.ForeignKey(Field, on_delete=models.CASCADE)
+#     start_date = models.DateField(blank=True, null=True)
+#     # end_date = models.DateField(blank=True, null=True)
+#     field_id = models.ForeignKey(Field, on_delete=models.CASCADE)
 
 # class Season(models.Model):
 #     start_date = models.DateField(blank=True, null=True)
@@ -87,11 +87,11 @@ class Season(models.Model):
 
 class Crop(models.Model):
 
-    type = models.CharField(max_length=30)
-    value = models.CharField(max_length=30)
-    variety = models.CharField(max_length=30, blank=True, null=True)
-    state = models.CharField(max_length=30, blank=True, null=True)
-    Season = models.ForeignKey(Season, on_delete=models.CASCADE)
+    Crop                = models.CharField(max_length=30, blank=True, null=True)
+    Crop_planting_date  = models.DateField(blank=True, null=True)
+    Tree                = models.CharField(max_length=30, blank=True, null=True)
+    Tree_planting_date  = models.DateField(blank=True, null=True)
+    field_id            = models.ForeignKey(Field, on_delete=models.CASCADE)
 
 class Pratique_Agricole(models.Model):
 
@@ -103,21 +103,30 @@ class Pratique_Agricole(models.Model):
 
 class Soil_type(Enum):
 
-    SILT = 'SILT'
-    LOAMY_SAND = 'LOAMY SAND'
-    SAND = 'SAND'
-    SANDY_LOAM = 'SANDY LOAM'
-    LOAM = 'LOAM'
+    SILT            = 'SILT'
+    LOAMY_SAND      = 'LOAMY SAND'
+    SAND            = 'SAND'
+    SANDY_LOAM      = 'SANDY LOAM'
+    LOAM            = 'LOAM'
     SANDY_CLAY_LOAM = 'SANDY CLAY LOAM'
-    CLAY_LOAM = 'CLAY LOAM'
-    SILTY_CLAY = 'SILTY CLAY'
-    SANDY_CLAY = 'SANDY CLAY'
-    CLAY = 'CLAY'
+    CLAY_LOAM       = 'CLAY LOAM'
+    SILTY_CLAY      = 'SILTY CLAY'
+    SANDY_CLAY      = 'SANDY CLAY'
+    CLAY            = 'CLAY'
+
+class soil_input(Enum):
+    selection   = 'Selection'
+    composition = 'Composition'
+    satellite   = 'satellite'
 
 class Soil(models.Model):
 
-    soil_type = models.CharField(max_length=20, choices=[(tag.name, tag.value) for tag in Soil_type])
-    field_id = models.ForeignKey(Field, on_delete=models.CASCADE)
+    soil_input_method   = models.CharField(max_length=20, choices=[(tag.name, tag.value) for tag in soil_input])
+    soil_type           = models.CharField(max_length=20, choices=[(tag.name, tag.value) for tag in Soil_type], blank=True, null=True)
+    sand_percentage     = models.IntegerField(blank=True, null=True)
+    silt_percentage     = models.IntegerField(blank=True, null=True)
+    clay_percentage     = models.IntegerField(blank=True, null=True)
+    field_id            = models.ForeignKey(Field, on_delete=models.CASCADE)
 
 class Soil_analysis(models.Model):
 
@@ -189,9 +198,9 @@ class Ogimet_stations(models.Model):
 class Irrigation_type(Enum):
 
     Sprinkler = 'Sprinkler irrigation'
-    Surface = 'Surface irrigation'
-    Drip = 'Drip irrigation'
-    Rainfed = 'Rainfed irrigation'
+    Surface   = 'Surface irrigation'
+    Drip      = 'Drip irrigation'
+    Rainfed   = 'Rainfed irrigation'
 
 class Irrigation_system(models.Model):
 
@@ -210,18 +219,20 @@ class Surface_irrigation(Irrigation_system):
 
 class Sprinkler_irrigation(Irrigation_system):
 
-    radius = models.IntegerField(blank=True, null=True)
     coverage_area = models.IntegerField(blank=True, null=True)
     outflow_rate = models.IntegerField(blank=True, null=True)
-    number_in_use = models.IntegerField(blank=True, null=True)
+    number_of_sprinklers = models.IntegerField(blank=True, null=True)
 
 
 class Drip_Irrigation(Irrigation_system):
     
-    Tubes_distance = models.IntegerField(blank=True, null=True)
-    Drippers_distance = models.IntegerField(blank=True, null=True)
-    drippers_area = models.IntegerField(blank=True, null=True)
-    
+    Crop_Tubes_distance     = models.IntegerField(blank=True, null=True)
+    Crop_Drippers_distance  = models.IntegerField(blank=True, null=True)
+    Tree_row_distance       = models.IntegerField(blank=True, null=True)
+    Tree_distance           = models.IntegerField(blank=True, null=True)
+    Tubes_number_by_tree    = models.IntegerField(blank=True, null=True)
+    drippers_number_by_tree = models.IntegerField(blank=True, null=True)
+    Tree_outflow_rate       = models.IntegerField(blank=True, null=True)    
 
 class Maitenance_dates(models.Model):
 

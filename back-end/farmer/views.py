@@ -2,7 +2,7 @@ from django.shortcuts import render
 from rest_framework.views import APIView
 from rest_framework import permissions, status
 from rest_framework.response import Response
-from models_only.models import Field, Soil 
+from models_only.models import Field, Soil, Crop
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from drf_yasg.utils import swagger_auto_schema
 from drf_yasg import openapi
@@ -162,10 +162,10 @@ class soil(APIView):
 	def post(self, request):
 		pass
 
-# class season(APIView):
+class season(APIView):
 
-	# authentication_classes = [FARMERJWTAuthentication]
-	# permission_classes = [IsAuthenticated]
+	authentication_classes = [FARMERJWTAuthentication]
+	permission_classes = [IsAuthenticated]
 	
 	# @swagger_auto_schema(
 	# 	manual_parameters=[
@@ -190,134 +190,146 @@ class soil(APIView):
 	# 		return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
 	# 	return Response({"detail": "No Season found for this field."}, status=status.HTTP_404_NOT_FOUND)
 
-	@swagger_auto_schema(
-		request_body=SeasonSerializer,
-		responses={201: SeasonSerializer}
-	)
-	def post(self, request):
-		serializer = SeasonSerializer(data=request.data)
-		if serializer.is_valid():
-			try:
-				serializer.save()
-				return Response({"message": "Season created successfully"}, status=status.HTTP_201_CREATED)
-			except Exception as e:
-				return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
-		return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+	# @swagger_auto_schema(
+	# 	request_body=SeasonSerializer,
+	# 	responses={201: SeasonSerializer}
+	# )
+	# def post(self, request):
+	# 	serializer = SeasonSerializer(data=request.data)
+	# 	if serializer.is_valid():
+	# 		try:
+	# 			serializer.save()
+	# 			return Response({"message": "Season created successfully"}, status=status.HTTP_201_CREATED)
+	# 		except Exception as e:
+	# 			return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+	# 	return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-	@swagger_auto_schema(
-		operation_description="Delete season",
-		request_body=openapi.Schema(
-			type=openapi.TYPE_OBJECT,
-			properties={
-				'season_id': openapi.Schema(type=openapi.TYPE_INTEGER),
-			},
-		),
-		responses={202: 'Season has been deleted successfully', 400: 'Bad request'}
-	)
-	def delete(self, request):
-		season_id = request.data.get('season_id')
-		if season_id:
-			try:
-				p = Season.objects.filter(id=season_id).delete()
-				if p[0] == 1:
-					return Response({'message': 'Season has been deleted successfully'}, status=status.HTTP_202_ACCEPTED)
-			except Exception as e:
-				return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
-		return Response({'message': 'Bad request'}, status=status.HTTP_400_BAD_REQUEST)
+	# @swagger_auto_schema(
+	# 	operation_description="Delete season",
+	# 	request_body=openapi.Schema(
+	# 		type=openapi.TYPE_OBJECT,
+	# 		properties={
+	# 			'season_id': openapi.Schema(type=openapi.TYPE_INTEGER),
+	# 		},
+	# 	),
+	# 	responses={202: 'Season has been deleted successfully', 400: 'Bad request'}
+	# )
+	# def delete(self, request):
+	# 	season_id = request.data.get('season_id')
+	# 	if season_id:
+	# 		try:
+	# 			p = Season.objects.filter(id=season_id).delete()
+	# 			if p[0] == 1:
+	# 				return Response({'message': 'Season has been deleted successfully'}, status=status.HTTP_202_ACCEPTED)
+	# 		except Exception as e:
+	# 			return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+	# 	return Response({'message': 'Bad request'}, status=status.HTTP_400_BAD_REQUEST)
 
 class register_data(APIView):
 
 	authentication_classes = [FARMERJWTAuthentication]
 	permission_classes = [IsAuthenticated]
 
-	def process_season(self, season, field):
-		new_season = Season(start_date = season.get('date'),
-							field_id=field)
-		new_season.save()
-		return new_season
 
-	def process_soil(self, soil_type, field):
+	def process_soil(self, method, value, field):
+			
+		if method == 'Selection':
+	
+			_type = {
+				'LOAMY SAND' : 'LOAMY_SAND',
+				'SANDY CLAY LOAM' : 'SANDY_CLAY_LOAM',
+				'CLAY LOAM' : 'CLAY_LOAM',
+				'SILTY CLAY' : 'SILTY_CLAY',
+				'SANDY CLAY' : 'SANDY_CLAY',
+				'SANDY LOAM' : 'SANDY_LOAM'
+			}.get(value, value)
+
+			new_soil = Soil(soil_type=Soil_type[_type].name,
+							field_id=field, soil_input_method=soil_input[method.lower()].name)
+			new_soil.save()
 		
-		_type = {
-			'LOAMY SAND' : 'LOAMY_SAND',
-			'SANDY CLAY LOAM' : 'SANDY_CLAY_LOAM',
-			'CLAY LOAM' : 'CLAY_LOAM',
-			'SILTY CLAY' : 'SILTY_CLAY',
-			'SANDY CLAY' : 'SANDY_CLAY',
-			'SANDY LOAM' : 'SANDY_LOAM'
-
-		}.get(soil_type, soil_type)
-
-		new_soil = Soil(soil_type=Soil_type[_type].name,
-				  		field_id=field)
-		new_soil.save()
+		elif method == 'Composition':
+			
+			new_soil = Soil(sand_percentage=value['sand'], 
+				   silt_percentage=value['silt'],
+				   clay_percentage=value['clay'], field_id=field,
+				   soil_input_method=soil_input[method.lower()].name)
+			new_soil.save()
 	
 	def process_irrigation_system(self, irrigation_data, field):
-		
-		irg_type = irrigation_data['system']
-		prop = irrigation_data['prop']
+
+		irg_type	= irrigation_data['system']
+		prop 		= irrigation_data['prop']
 
 		irg_class = {
-			'Rainfed irrigation': Irrigation_system,
-			'Surface irrigation': Surface_irrigation,
-			'Drip irrigation': Drip_Irrigation,
-			'Sprinkler irrigation' : Sprinkler_irrigation
+			'Rainfed irrigation'	: Irrigation_system,
+			'Surface irrigation'	: Surface_irrigation,
+			'Drip irrigation'		: Drip_Irrigation,
+			'Sprinkler irrigation'	: Sprinkler_irrigation
 		}.get(irg_type)
-		
-		# installation_date = irrigation_data.get('installation_date', None)
-	
+
 		_type = {
-			'Sprinkler irrigation' : 'Sprinkler',
-			'Surface irrigation' : 'Surface',
-			'Drip irrigation' : 'Drip',
-			'Rainfed irrigation' : 'Rainfed'
+			'Sprinkler irrigation'	: 'Sprinkler',
+			'Surface irrigation' 	: 'Surface',
+			'Drip irrigation' 		: 'Drip',
+			'Rainfed irrigation' 	: 'Rainfed'
 		}.get(irg_type)
-	
+
+
 		irrigation_kwargs = {
-        	'irrigation_type': Irrigation_type[_type].name,
-        	'field_id': field,
+        	'irrigation_type'		: Irrigation_type[_type].name,
+        	'field_id'				: field,
     	}
 
 		if irg_type == 'Drip irrigation':
 			irrigation_kwargs.update({
-				'Tubes_distance': prop.get('DistanceBetweenTubes', None),
-				'Drippers_distance': prop.get('DistanceBetweenDrippers', None),
-				'drippers_area': prop.get('CoverageAreaOfEachDrippers', None)
+				'Crop_Tubes_distance'	 : prop.get('DistanceBetweenTubes_c', None),
+				'Crop_Drippers_distance' : prop.get('DistanceBetweenDrippers_c', None),
+				'Tree_row_distance'		 : prop.get('DistanceBetweenRows_t', None),
+				'Tree_distance'			 : prop.get('DistanceBetweenTrees_t', None),
+				'Tubes_number_by_tree'	 : prop.get('NumberOfTubesPerTree_t', None),
+				'drippers_number_by_tree': prop.get('NumberOfDrippersPerTree_t', None),
+				'Tree_outflow_rate'		 : prop.get('WaterOutflowRate_t', None)
 			})
 
 		elif irg_type == 'Sprinkler irrigation':
 			irrigation_kwargs.update({
-				'radius' : prop.get('SprinklerRadius', None),
-				'coverage_area' : prop.get('sprinklerCoverage', None),
-				'outflow_rate' : prop.get('WaterOutflowRate', None),
-				'number_in_use' : prop.get('numberOfSprinklers', None)
+				'coverage_area' 		: prop.get('sprinklerCoverage_c', None),
+				'outflow_rate' 			: prop.get('WaterOutflowRate_c', None),
+				'number_of_sprinklers'	: prop.get('numberOfSprinklers_c', None)
 			})
 
 		irg_class.objects.create(**irrigation_kwargs)
 
-	def process_crop(self, crop_data, season):
-		Crop.objects.create(Season=season, type=crop_data.get('type'), value=crop_data.get('value'))
+	def process_crop(self, data, field):
+		crop = data['Crop']
+		tree = data['Tree']
 
+		new_crop = Crop(Crop=crop['value'], Crop_planting_date=crop['date'],
+	   			Tree=tree['value'], Tree_planting_date=tree['date'],
+				field_id=field)
+
+		new_crop.save()
 
 	def post(self, request):
 
+
 		if all([request.data.get('field'), request.data.get('irr'), request.data.get('soil'),
-		  	request.data.get('planting')]):
+		  	request.data.get('plant')]):
 			with transaction.atomic():
 
 				fieldSerializer = FieldSerializer(data=request.data.get('field'), context={'request': request})
 				if fieldSerializer.is_valid():
 					try :
-
 						field = fieldSerializer.save()
-						self.process_soil(request.data.get('soil'), field)
+						soil_ = request.data.get('soil')
+						self.process_soil(soil_['method'], soil_['value'], field)
 						self.process_irrigation_system(request.data.get('irr'), field)
-						new_season = self.process_season(request.data.get('planting'), field)
-						self.process_crop(request.data.get('planting'), new_season)
-	
+						self.process_crop(request.data.get('plant'), field)
+
 					except Exception as e:
-						return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
-			return Response("Data stored successfully", status=status.HTTP_201_CREATED)
+						return Response({"error": str(e)}, status=status.HTTP_403_FORBIDDEN)
+					return Response("Data stored successfully", status=status.HTTP_201_CREATED)
 		return Response("Something went wrong", status=status.HTTP_400_BAD_REQUEST)
 		
 		# season = Season()
@@ -330,3 +342,5 @@ class register_data(APIView):
 		# test = Irrigation_system.objects.select_related().filter(field_id=field)
 		# for i in test:
 		# print(i.irrigation_type)
+
+

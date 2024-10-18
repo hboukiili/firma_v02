@@ -32,7 +32,9 @@ class gee_data:
 
         wind_speed_value = wind_speed.getInfo()
 
-        return wind_speed_value
+        w_2m = wind_speed_value * (math.log(2 / 0.0002) / math.log(10 / 0.0002))
+
+        return w_2m
 
     def Ta_calculation(self, image):
         

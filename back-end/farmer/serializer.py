@@ -60,20 +60,20 @@ class SoilSerializer(serializers.Serializer):
 
     pass
 
-class SeasonSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Season
-        fields = ['start_date', 'end_date', 'field_id']
+# class SeasonSerializer(serializers.ModelSerializer):
+#     class Meta:
+#         model = Season
+#         fields = ['start_date', 'end_date', 'field_id']
 
-    def create(self, validated_data):
-        start_date = validated_data.get('start_date')
-        end_date = validated_data.get('end_date')
-        field_id = validated_data.get('field_id')
+#     def create(self, validated_data):
+#         start_date = validated_data.get('start_date')
+#         end_date = validated_data.get('end_date')
+#         field_id = validated_data.get('field_id')
 
-        new_season = Season(
-            start_date=start_date,
-            end_date=end_date,
-            field_id=field_id
-        )
-        new_season.save()
-        return new_season
+#         new_season = Season(
+#             start_date=start_date,
+#             end_date=end_date,
+#             field_id=field_id
+#         )
+#         new_season.save()
+#         return new_season

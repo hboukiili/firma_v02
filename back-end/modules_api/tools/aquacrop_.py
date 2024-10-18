@@ -77,7 +77,7 @@ def Solar_radiation_cloudiness(lat,jday,cF):
 	rs=(const_as+const_bs*cF/100.)*ra
 	return(rs)
 
-def aquacrop_run(long = None, lat = None, T = None, Ws = None, Tdew = None, Rain = None, Visibility = None, start_date_ = None, end_date_ = None):
+def aquacrop_run(start_date_, end_date_, Weather_data, lat, long):
 
     T_min = []
     T_max = []
@@ -127,45 +127,77 @@ def aquacrop_run(long = None, lat = None, T = None, Ws = None, Tdew = None, Rain
     # else : 
 
     alt = get_elevation_open(lat, long)
-    rh, irg = [], []
-    current_date = start_date_
-    while current_date <= end_date_:
+    # rh, irg = [], []
+    # current_date = start_date_
+    # while current_date <= end_date_:
         
-        _len = 0
+    #     _len = 0
 
-        if current_date.strftime("%Y-%m-%d") in T :
-            _len = len(T[current_date.strftime("%Y-%m-%d")])
+    #     if current_date.strftime("%Y-%m-%d") in T :
+    #         _len = len(T[current_date.strftime("%Y-%m-%d")])
         
-            if _len < 5:
-                T_max.append(np.nan)
-                T_min.append(np.nan)
-                pre.append(np.nan)
-                et0_.append(np.nan)
-                dates.append(current_date)
+    #         if _len < 5:
+    #             T_max.append(np.nan)
+    #             T_min.append(np.nan)
+    #             pre.append(np.nan)
+    #             et0_.append(np.nan)
+    #             dates.append(current_date)
 
-            else :
-                i = 0
-                while(i < _len):
+    #         else :
+    #             i = 0
+    #             while(i < _len):
             
-                    if T[current_date.strftime("%Y-%m-%d")][i] == np.nan or Tdew[current_date.strftime("%Y-%m-%d")][i] == np.nan:
-                        rh.append(np.nan)
-                    else :
-                        rh.append(calculate_relative_humidity(T[current_date.strftime("%Y-%m-%d")][i], Tdew[current_date.strftime("%Y-%m-%d")][i]))
-                    i += 1
+    #                 if T[current_date.strftime("%Y-%m-%d")][i] == np.nan or Tdew[current_date.strftime("%Y-%m-%d")][i] == np.nan:
+    #                     rh.append(np.nan)
+    #                 else :
+    #                     rh.append(calculate_relative_humidity(T[current_date.strftime("%Y-%m-%d")][i], Tdew[current_date.strftime("%Y-%m-%d")][i]))
+    #                 i += 1
 
-                irg = Solar_radiation_cloudiness(34.33597054747763, current_date.timetuple().tm_yday, np.nanmean(Visibility[current_date.strftime("%Y-%m-%d")]))
-                et0_simple = et0_pm_simple(current_date.timetuple().tm_yday, alt, 2, 34.33597054747763, np.nanmean(T[current_date.strftime('%Y-%m-%d')]), min(T[current_date.strftime('%Y-%m-%d')]), max(T[current_date.strftime('%Y-%m-%d')]), np.nanmean(Ws[current_date.strftime("%Y-%m-%d")]), np.nanmean(rh), min(rh), max(rh), irg)
-                et0_.append(et0_simple)
-                T_max.append(max(T[current_date.strftime("%Y-%m-%d")]))
-                T_min.append(min(T[current_date.strftime("%Y-%m-%d")]))
-                pre.append(np.nanmean(Rain[current_date.strftime('%Y-%m-%d')]))
-                dates.append(current_date)
-        current_date += timedelta(days=1)
+    #             irg = Solar_radiation_cloudiness(34.33597054747763, current_date.timetuple().tm_yday, np.nanmean(Visibility[current_date.strftime("%Y-%m-%d")]))
+    #             et0_simple = et0_pm_simple(current_date.timetuple().tm_yday, alt, 2, 34.33597054747763, np.nanmean(T[current_date.strftime('%Y-%m-%d')]), min(T[current_date.strftime('%Y-%m-%d')]), max(T[current_date.strftime('%Y-%m-%d')]), np.nanmean(Ws[current_date.strftime("%Y-%m-%d")]), np.nanmean(rh), min(rh), max(rh), irg)
+    #             et0_.append(et0_simple)
+    #             T_max.append(max(T[current_date.strftime("%Y-%m-%d")]))
+    #             T_min.append(min(T[current_date.strftime("%Y-%m-%d")]))
+    #             pre.append(np.nanmean(Rain[current_date.strftime('%Y-%m-%d')]))
+    #             dates.append(current_date)
+    #     current_date += timedelta(days=1)
 
-    end_date_ = dates[-1]
+    # end_date_ = dates[-1]
 
-    # print(T_min)
-    # print(T_max)
+    # start_date_ = datetime.strptime(start_date, '%Y-%m-%d')
+    # end_date_ = datetime.strptime(end_date, '%Y-%m-%d')
+    current_date = start_date_
+    et0_, T_min, T_max, pre, dates = [], [], [], [], []
+    # 
+    while current_date <= end_date_:
+    # 
+            current_date_str = current_date.strftime("%Y-%m-%d")
+            t_min = np.nanmin(Weather_data[current_date_str]["T2m"])
+            t_max = np.nanmax(Weather_data[current_date_str]["T2m"])
+            et0_simple = et0_pm_simple(
+                current_date.timetuple().tm_yday, 
+                alt, 
+                2, 
+                lat, 
+                np.nanmean(Weather_data[current_date_str]["T2m"]), 
+                t_min,  
+                t_max,
+                np.nanmean(Weather_data[current_date_str]["Ws"]), 
+                np.nanmean(Weather_data[current_date_str]["Rh"]), 
+                np.nanmin(Weather_data[current_date_str]["Rh"]),   
+                np.nanmax(Weather_data[current_date_str]["Rh"]),  
+                np.nanmean(Weather_data[current_date_str]["Irg"])
+            )
+            # 
+            et0_.append(et0_simple)
+            T_max.append(t_max)
+            T_min.append(t_min)
+            pre.append(np.nanmean(Weather_data[current_date_str]["Pre"]))
+            dates.append(current_date)
+            current_date += timedelta(days=1)
+    # 
+        # print(T_min)
+        # print(T_max)
     # print(pre)
     # print(et0_)
     data = pd.DataFrame({'MinTemp' : T_min,

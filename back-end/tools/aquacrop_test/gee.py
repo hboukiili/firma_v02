@@ -1,91 +1,47 @@
 import ee
+import os
+import geemap
 
 service_account = 'firma-796@trencendece.iam.gserviceaccount.com'
-credentials = ee.ServiceAccountCredentials(service_account,"cloud_credentials.json")
+credentials = ee.ServiceAccountCredentials(service_account, "cloud_credentials.json")
 ee.Initialize(credentials)
 
-# Define a polygon in Morocco (for example, around Marrakesh)
-polygon = ee.Geometry.Polygon([
-    [
-        [
-            -8.804708075796299,
-            31.524806795903544
-        ],
-        [
-            -8.80107552162903,
-            31.523757995980716
-        ],
-        [
-            -8.80089975287919,
-            31.521910081750534
-        ],
-        [
-            -8.804942434129487,
-            31.52290895884667
-        ],
-        [
-            -8.804883844546168,
-            31.52478182461371
-        ]
-    ]
-])
+# Define a point and buffer it to create a region
+lat = 31.665358
+long = -7.677980
+point = ee.Geometry.Point([long, lat])
 
-# List the contents of the folder to find the correct datasets
-
-# image = ee.Image("projects/earthengine-public/assets/ISDASOIL/Africa/v1/clay_content")
-
-# print(image.getInfo())
-
-# ph_mean = image.reduceRegion(
-#     reducer=ee.Reducer.mean(),
-#     geometry=polygon,
-# )
-
-# print(ph_mean.getInfo())
-
-# image = ee.Image("projects/soilgrids-isric/sand_mean")
-
-# sand_mean = image.reduceRegion(
-#     reducer = ee.Reducer.mean(),
-#     geometry= polygon
-# )
-
-# print(sand_mean.getInfo())
-
-# image = ee.Image("projects/soilgrids-isric/silt_mean")
-
-# sand_mean = image.reduceRegion(
-#     reducer = ee.Reducer.mean(),
-#     geometry= polygon
-# )
-
-# print(sand_mean.getInfo())
-
-# image = ee.Image("projects/soilgrids-isric/clay_mean")
-
-
-# sand_mean = image.reduceRegion(
-#     reducer = ee.Reducer.mean(),
-#     geometry= polygon
-# )
-
-# print(sand_mean.getInfo())
+# Create a buffer around the point (e.g., 1 km)
+region = point.buffer(1000)  # Buffer in meters
 
 collection = ee.ImageCollection('ECMWF/ERA5_LAND/HOURLY') \
-    .filterBounds(polygon) \
-    .filterDate('2018-01-01', '2018-05-01') \
-    .sort('system:time_start', True)
-    
+                    .filterBounds(region) \
+                    .filterDate('2024-01-10', '2024-05-31') \
+                    .sort('system:time_start', True)
 
-# print(collection.getInfo())
-for image in collection.toList(collection.size()).getInfo():
+print("weather collection of images Number : ", collection.size().getInfo())
 
-    image = ee.Image(image['id'])
+for image_info in collection.toList(collection.size()).getInfo():
+    image = ee.Image(image_info['id'])
 
-    date_string_LANDSAT = ee.Date(image.get('system:time_start')).format('YYYY-MM-dd-HH-mm').getInfo()
-    
-    Ta_band = image.select('temperature_2m').rename('Ta')
+    hour_string = ee.Date(image.get('system:time_start')).format('HH').getInfo()
+    date_string = ee.Date(image.get('system:time_start')).format('YYYY-MM-dd').getInfo()
 
-    mean_Ta = Ta_band.reduceRegion(ee.Reducer.mean()).get('Ta').getInfo()
+    base_dir = f"/home/hamza-boukili/Desktop/Lraba_blé_weather_date/{date_string}"
+    if not os.path.exists(f"{base_dir}/pre"):
+        os.makedirs(f"{base_dir}/pre")
+    # os.makedirs(f"{base_dir}/v_w")
+    # os.makedirs(f"{base_dir}/t2m")
+    # os.makedirs(f"{base_dir}/dt2m")
+    # os.makedirs(f"{base_dir}/ssrd")
 
-    print(date_string_LANDSAT, mean_Ta)
+    geemap.ee_export_image(image.select("total_precipitation_hourly").clip(region),
+                           filename=f"{base_dir}/pre/{hour_string}.tif", scale=11132)
+    # geemap.ee_export_image(image.select("dewpoint_temperature_2m").clip(region),
+    #                        filename=f"{base_dir}/dt2m/{hour_string}.tif", scale=11132)
+    # geemap.ee_export_image(image.select("temperature_2m").clip(region),
+    #                        filename=f"{base_dir}/t2m/{hour_string}.tif", scale=11132)
+    # geemap.ee_export_image(image.select("surface_solar_radiation_downwards").clip(region),
+    #                        filename=f"{base_dir}/ssrd/{hour_string}.tif", scale=11132)
+    # geemap.ee_export_image(image.select("v_component_of_wind_10m").clip(region),
+    #                        filename=f"{base_dir}/v_w/{hour_string}.tif", scale=11132)

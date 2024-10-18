@@ -117,3 +117,4 @@ widgetsnbextension==4.0.9
 xyzservices==2023.10.1
 zipp==3.16.2
 xarray
+cdsapi

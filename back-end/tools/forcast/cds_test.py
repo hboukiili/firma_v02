@@ -5,41 +5,34 @@ import tempfile
 
 
 c = cdsapi.Client(
-    url= "https://cds.climate.copernicus.eu/api/v2",
-    key= "313656:98e3f8b6-e2d6-4207-b4c0-0c96d0ca2fd1"
+    url= "https://cds-beta.climate.copernicus.eu/api",
+    key= "127b99d4-1139-4059-9b83-594dc7e264dc"
 )
 
+# Retrieve the ERA5 reanalysis data for a specific region in memory
+response = c.retrieve(
+    'reanalysis-era5-single-levels',   # Specify the dataset
+    {
+        'product_type': 'reanalysis',
+        'format': 'netcdf',             # NetCDF format for better in-memory processing
+        'variable': [
+            '2m_temperature',           # Example variable: temperature at 2 meters
+        ],
+        'year': '2023',                 # Year
+        'month': '08',                  # Month
+        'day': '01',                    # Day
+        'time': '12:00',                # Time
+        'area': [
+            32.2355, -7.9533             # Bounding box: [North, West, South, East]
+        ],
+    }
+)
 
-buffer = io.BytesIO()
+# Get the data in memory
+data_bytes = io.BytesIO(response.download(target=None))
 
-with tempfile.NamedTemporaryFile(suffix='.nc', delete=False) as tmp:
-            c.retrieve(
-                'reanalysis-era5-single-levels',
-                {
-                    'product_type': 'reanalysis',
-                    'variable': [
-                        '2m_temperature',
-                    ],
-                    'year': '2023',
-                    'month': '06',
-                    'day': '01',
-                    'time': [
-                        '11:00',
-                    ],
-                    'format': 'netcdf',
-                },
-                tmp.name
-            )
+# Open the NetCDF dataset directly in memory using xarray
+ds = xr.open_dataset(data_bytes)
 
-print("done getting data for : ", c.cdm.get_coordinates(tmp.name))
-ds = xr.open_dataset(tmp.name, engine='netcdf4')
-
-hours_data = ds.sel(time=ds['time.hour'].isin([11]))
-
-data_dict = {
-    'time': hours_data['time'].values.tolist(),
-    '2m_temperature': hours_data['t2m'].values.tolist(),
-    'total_precipitation': hours_data['tp'].values.tolist(),
-}
-
-print(data_dict['time'])
+# Now `ds` contains the dataset, and you can process it directly
+print(ds)
