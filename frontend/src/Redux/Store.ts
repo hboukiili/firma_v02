@@ -38,7 +38,7 @@ export const store = configureStore({
     getDefaultMiddleware({
       serializableCheck: {
         ignoredActions: [FLUSH, REHYDRATE, PAUSE, PERSIST, PURGE, REGISTER],
-        ignoredPaths: ['farmer.someNonSerializablePath'], // Adjust this path as necessary
+        ignoredPaths: ['farmer.Map'], // Adjust this path as necessary
 
       },
     }).concat(thunk),
@@ -54,7 +54,6 @@ export const store = configureStore({
     //   getDefaultMiddleware().concat(sagaMiddleware),
   // },
 });
-
 export const persistor = persistStore(store);
 export type RootState = ReturnType<typeof store.getState>;
 export type AppDispatch = typeof store.dispatch;

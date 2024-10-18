@@ -33,7 +33,7 @@ const tooltip = ({ point }) => {
       <div className="font-bld w-full bg-Green text-white p-2 flex justify-center">
         {point.data.y.toString()}
       </div>
-      <div className="p-2 text-[14px]">{point.data.x.toString()}</div>
+      {/* <div className="p-2 text-[14px]">{point.data.x.toString()}</div> */}
     </div>
   );
 };
@@ -179,7 +179,7 @@ export const ResponsiveLine_ = (prop: { color: string }) => {
       pointLabel="data.yFormatted"
       pointLabelYOffset={-12}
       enableTouchCrosshair={true}
-      enableCrosshair={false}
+      enableCrosshair={true}
       useMesh={true}
     />
   );
@@ -396,8 +396,7 @@ const Dashboard = () => {
               classNames={{
                 trigger: "bg-scBgGreen",
               }}
-              onChange={(e) => {
-                console.log(e);
+              onChange={(e)=> {
                 dispatch(
                   updateFarmerInfo({
                     currentField: Data.fieldInfo[e.target.value],
@@ -406,6 +405,7 @@ const Dashboard = () => {
               }}
             >
               {Data.fieldInfo.map((val, _) => {
+                 
                 return (
                   <SelectItem key={_} value={val.name}>
                     {val.name}

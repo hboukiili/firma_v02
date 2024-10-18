@@ -6,14 +6,134 @@ import set from "./../../assets/sett.svg";
 import api from "../../api/axios.js";
 import Logo from "./../../assets/logo.svg";
 import { useLocation } from "react-router-dom";
+import {
+  Button,
+  Link,
+  Navbar,
+  NavbarBrand,
+  NavbarContent,
+  NavbarItem,
+  NavbarMenu,
+  NavbarMenuItem,
+  NavbarMenuToggle,
+} from "@nextui-org/react";
 
-const Header = () => {
+function NavBar() {
+  const [isMenuOpen, setIsMenuOpen] = React.useState(false);
+
+  const menuItems = [
+    "Profile",
+    "Dashboard",
+    "Activity",
+    "Analytics",
+    "System",
+    "Deployments",
+    "My Settings",
+    "Team Settings",
+    "Help & Feedback",
+    "Log Out",
+  ];
+
+  return (
+    <Navbar
+      className="rounded-full bg-white drop-shadow-xl"
+      classNames={{ wrapper: "max-w-full" }}
+      onMenuOpenChange={setIsMenuOpen}
+    >
+      <NavbarContent>
+        <NavbarMenuToggle
+          aria-label={isMenuOpen ? "Close menu" : "Open menu"}
+          className="sm:hidden"
+        />
+        <NavbarBrand>
+          <ReactSVG className="w-[50px]" src={Logo} />
+        </NavbarBrand>
+      </NavbarContent>
+
+      <NavbarContent className="hidden sm:flex gap-10" justify="center">
+        <NavbarItem>
+          <Link className="font-smbld " color="foreground" href="/">
+            Home
+          </Link>
+        </NavbarItem>
+        <NavbarItem>
+          <Link className="font-smbld " color="foreground" href="#">
+            About
+          </Link>
+        </NavbarItem>
+        <NavbarItem>
+          <Link className="font-smbld " color="foreground" href="#">
+            Product
+          </Link>
+        </NavbarItem>
+        <NavbarItem>
+          <Link className="font-smbld " color="foreground" href="#">
+            Team
+          </Link>
+        </NavbarItem>
+        <NavbarItem>
+          <Link
+            className="font-smbld "
+            color="foreground"
+            href="/documentation"
+          >
+            Documentation
+          </Link>
+        </NavbarItem>
+        <NavbarItem>
+          <Link className="font-smbld " color="foreground" href="#">
+            Contact
+          </Link>
+        </NavbarItem>
+      </NavbarContent>
+      <NavbarContent justify="end">
+        <NavbarItem className="hidden lg:flex">
+          <Link className="text-[#4FC38F]" href="#">
+            Login
+          </Link>
+        </NavbarItem>
+        <NavbarItem>
+          <Button
+            as={Link}
+            className="rounded-full bg-[#4FC38F] text-white"
+            href="#"
+            variant="flat"
+          >
+            Sign Up
+          </Button>
+        </NavbarItem>
+      </NavbarContent>
+      <NavbarMenu>
+        {menuItems.map((item, index) => (
+          <NavbarMenuItem key={`${item}-${index}`}>
+            <Link
+              color={
+                index === 2
+                  ? "primary"
+                  : index === menuItems.length - 1
+                  ? "danger"
+                  : "foreground"
+              }
+              className="w-full"
+              href="#"
+              size="lg"
+            >
+              {item}
+            </Link>
+          </NavbarMenuItem>
+        ))}
+      </NavbarMenu>
+    </Navbar>
+  );
+}
+
+const Header_ = () => {
   const location = useLocation();
 
   return (
     <div
       className={`${
-        location.pathname == "/farmer" ? "max-w-[93%] " : "w-[99%]"
+        location.pathname == "/farmer" ? "max-w-[99%] " : "w-[99%]"
       } grow rounded-lg m-2 h-[68px] p-6 z-10  bg-gray-50 flex items-center justify-between self-end`}
     >
       <ReactSVG className="w-[50px]" src={Logo} />
@@ -39,6 +159,16 @@ const Header = () => {
         </button>
       </div>
     </div>
+  );
+};
+
+const Header = () => {
+  const location = useLocation()
+  console.log(location.pathname)
+  return (
+    <>
+    {location.pathname === "/farmer1" ? <Header_/> : <NavBar/>}
+    </>
   );
 };
 

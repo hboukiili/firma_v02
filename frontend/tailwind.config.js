@@ -31,6 +31,15 @@ theme: {
       'lightGreen' : "#43c67e",
       'scBgGreen' : '#EAF3E9',
     },
+    keyframes: {
+      fadeIn: {
+        '0%': { opacity: '0' },
+        '100%': { opacity: '1' },
+      },
+    },
+    animation: {
+      fadeIn: 'fadeIn 1s ease-in-out forwards',
+    },
   },
 },
 darkMode: "class",

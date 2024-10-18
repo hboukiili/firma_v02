@@ -16,11 +16,14 @@ export const initialState: Farmer = {
   file: [],
   polygon_: null,
   fieldName: "",
-  layer: null,
+  layer: new Map,
   Field: [],
   DrawOption: false,
   Map: undefined,
   currentField: null,
   fieldInfo: [],
-  boundaries : []
+  boundaries : [],
+  soilPr : null,
+  soilCheck : false,
+  soilMethod : ""
 };

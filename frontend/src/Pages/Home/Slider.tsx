@@ -15,7 +15,7 @@ const Slider_ = () => {
   };
   return (
 
-    <Carousel className="rounded-tl-[15px] rounded-bl-[15px] overflow-hidden" autoplay>
+    <Carousel  className="rounded-tl-[15px] rounded-bl-[15px] overflow-hidden" autoplay>
       <div className="relative">
         <h1 className="absolute bottom-4 left-7 text-[40px] font-Myfont font-bld text-Lgreen">Unlocking Agricultural Success <br />
           through Research and Insights</h1>

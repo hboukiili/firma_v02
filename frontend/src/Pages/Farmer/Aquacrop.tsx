@@ -316,9 +316,9 @@ const Aquacrop = () => {
                     Setsub(true)
                     api
                       .post("/api/aquacrop", {
-                        field_id: fID,
-                        start_date: start_date,
-                        end_date: end_date,
+                        field_id: Data_.fieldInfo[0].id,
+                        start_date: "2019-01-01",
+                        end_date: "2019-05-05",
                       })
                       .then((res) => {
                         SetData(setSeries(res.data));
@@ -330,7 +330,7 @@ const Aquacrop = () => {
                         console.log(err);
                       });
                   }}
-                  isDisabled={sub}
+                  // isDisabled={sub}
                   className="mt-2 bg-Green text-white"
                   radius="full"
                 >

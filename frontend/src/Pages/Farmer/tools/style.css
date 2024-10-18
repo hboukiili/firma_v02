@@ -9,10 +9,17 @@
 
 
 .bgF {
-    background-image: url("../../../assets/plcyBg.svg");
+    /* background-image: url("../../../assets/plcyBg.svg"); */
     background-size: cover;
     background-color: #D3E1D1;
     /* width: 100%; */
     /* height: 100%; */
     /* overflow-x: hidden; */
+}
+
+.toplevel > path{
+    fill : transparent !important;
+}
+.grids {
+    display: none !important;
 }

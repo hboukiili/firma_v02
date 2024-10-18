@@ -1,8 +1,8 @@
-import React from "react";
+import React, { useEffect } from "react";
 import { Input, Select, SelectItem } from "@nextui-org/react";
 import "./style.css";
 import { updateFarmerInfo } from "../../../Redux/Farmer/actions";
-import { useAppDispatch } from "../../../Redux/hooks";
+import { useAppDispatch, useAppSelector } from "../../../Redux/hooks";
 import { Form } from "antd";
 
 const FieldInformation = () => {
@@ -14,8 +14,14 @@ const FieldInformation = () => {
   ];
   const crops_ = ["Wheat", "Maize", "Potatoes"];
   const dispatch = useAppDispatch();
+  const Data = useAppSelector((state) => state.farmer);
+
   //   const list = ["Irrigation system", "Soil type"];
   const [form] = Form.useForm<{ name: string; age: number }>();
+  useEffect(() => {
+    if(Data.Field || Data.fieldName)
+      dispatch(updateFarmerInfo({fieldName : ""}))
+  },[])
 
   return (
     <div className="w-full h-[370px] flex gap-16 justify-center items-center flex-col">

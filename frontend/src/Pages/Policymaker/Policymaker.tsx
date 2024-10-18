@@ -10,6 +10,7 @@ import titleSvg from "../assets/titlePlcy.svg";
 import { ReactSVG } from "react-svg";
 import {
   Button,
+  DateRangePicker,
   Input,
   Modal,
   ModalBody,
@@ -57,6 +58,7 @@ import {
 } from "../../Redux/Policymaker/Slices.js";
 import PuffLoader from "react-spinners/PuffLoader";
 import * as d3 from "d3";
+import gridBg from "../../assets/gridBg.png";
 
 const SubWaterShed = lazy(
   () => import(`../../assets/Watershed/SvgSubCoordinates/Tensift/Tensift.tsx`)
@@ -158,20 +160,20 @@ export const InputsBar_ = () => {
     "Tensift",
   ];
   useEffect(() => {
-    Data.Band &&
-      Data.EndDate &&
+    // Data.Band &&
+    Data.EndDate &&
       Data.StartDate &&
       Data.WatershedId &&
       SetallDataFormed(false);
   }, [Data]);
   return (
-    <div className="min-w-[670px] rounded-[10px] b-[#134C39] h-full w-full flex justify-center items-center gap-5 ">
+    <div className="flex w-full flex-col justify-center items-center gap-5 ">
       <Select
         selectedKeys={Data.WatershedId && new Set([Data.WatershedId])}
-        size="sm"
+        size="md"
         radius={"full"}
         label={"Select Watershed"}
-        className="max-w-[18rem] select-field"
+        className="w-full select-field"
         onChange={(e) => {
           if (!e.target.value) e.target.value = WatershedNames[0];
           dispatch(SetWaterShedId(e.target.value));
@@ -185,7 +187,7 @@ export const InputsBar_ = () => {
           );
         })}
       </Select>
-      <Select
+      {/* <Select
         size="sm"
         radius={"full"}
         label="Select Band"
@@ -201,8 +203,17 @@ export const InputsBar_ = () => {
             </SelectItem>
           );
         })}
-      </Select>
-      <Input
+      </Select> */}
+      <DateRangePicker
+        label="Time range"
+        className="w-full"
+        classNames={{ inputWrapper: "bg-white rounded-full p-4" }}
+        onChange={(e) => {
+          dispatch(SetStartDate(e.start.toString()));
+          dispatch(SetEndDate(e.end.toString()));
+        }}
+      />
+      {/* <Input
         id="date"
         size="sm"
         label="Start Date"
@@ -211,7 +222,7 @@ export const InputsBar_ = () => {
         type={"date"}
         radius={"full"}
         classNames={{
-          base: "max-w-[18rem]",
+          base: "w-full",
           inputWrapper: ["bg-white", "border-none"],
         }}
         required
@@ -224,29 +235,30 @@ export const InputsBar_ = () => {
         type={"date"}
         radius={"full"}
         classNames={{
-          base: "max-w-[18rem]",
+          base: "w-full",
           inputWrapper: ["bg-white"],
         }}
         required
         onChange={(e) => dispatch(SetEndDate(e.target.value))}
-      />
+      /> */}
       <Button
         isDisabled={allDataFormed}
         onClick={() => {
           dispatch(SetLoadingMsg("Processing Your Request"));
-          dispatch(SetisLoading(true));
-          policyMakerData(Data).then((res) => {
-            Data.Band === "Weather"
-              ? dispatch(SetWeather(res))
-              : Data.Band === "Surface Variable"
-              ? dispatch(SetSurfaceVariable(res))
-              : dispatch(SetFlux(res));
-            dispatch(SetIsSubmit(true));
-            dispatch(SetisLoading(false));
-          });
+          dispatch(SetIsSubmit(true));
+
+          // policyMakerData(Data).then((res) => {
+          //   Data.Band === "Weather"
+          //     ? dispatch(SetWeather(res))
+          //     : Data.Band === "Surface Variable"
+          //     ? dispatch(SetSurfaceVariable(res))
+          //     : dispatch(SetFlux(res));
+          //   dispatch(SetIsSubmit(true));
+          //   dispatch(SetisLoading(false));
+          // });
         }}
         radius="full"
-        className="bg-[#48A788] text-white font-Myfont"
+        className="bg-[#48A788] text-white font-Myfont w-full"
       >
         Submit
       </Button>
@@ -340,9 +352,9 @@ const ImgOptions = () => {
   };
   const [ImgIndex, SetImgIndex] = useState(1);
   const [variable, SetVariable] = useState(0);
-  const defaultKey = SelectItems[Data.Band][0].toString();
+  // const defaultKey = SelectItems[Data.Band][0].toString();
   return (
-    <div className="w-full h-full flex flex-col items-center justify-between">
+    <div className="w-full h-full  flex flex-col items-center gap-10">
       <div className="flex w-full justify-between items-center gap-2">
         <Select
           size="sm"
@@ -360,7 +372,7 @@ const ImgOptions = () => {
             if (v === "NDVI" || v === "LE" || v === "Humidity") SetVariable(0);
           }}
         >
-          {SelectItems[Data.Band].map((val, _) => {
+          {SelectItems["Surface Variable"].map((val, _) => {
             return (
               <SelectItem key={val} value={val}>
                 {val}
@@ -411,7 +423,14 @@ const ImgOptions = () => {
             <RaseterAndLegend vr={variable} ImgIndex={ImgIndex} />
           </div>
         ) : (
-          <SubWaterShed />
+          <div className="w-full relative flex overflow-hidden pt-10 mt-10 justify-center items-center">
+            <img
+              className="absolute opacity-[20%] w-full"
+              src={gridBg}
+              alt=""
+            />
+            {!Data.WatershedId ? <MrMap /> : <SubWaterShed />}
+          </div>
         )}
       </Suspense>
       <div className="w-full  flex flex-col gap-4 text-DarkGreen justify-center items-center">
@@ -484,180 +503,279 @@ const Loading = () => {
   );
 };
 
-const Policymaker = () => {
+// const Policymaker = () => {
+//   const dispatch = useAppDispatch();
+//   const Data = useAppSelector((state) => state.policyMaker);
+//   const { isOpen, onOpen, onOpenChange } = useDisclosure();
+//   let CurrentData: SurfaceVariable[] | Weather_[] = GetData();
+//   const bands = [
+//     { name: "Weather", icon: sun },
+//     { name: "Surface Variable", icon: plain },
+//     { name: "Flux", icon: "" },
+//     // { name: "Digital Elevation Model", icon: "" }
+//   ];
+//   if (!isOpen) dispatch(SetChartData(null));
+//   useEffect(() => {
+//     if (
+//       !Data.IsAllDataReceived &&
+//       Data.isSubmit &&
+//       Data.WatershedId &&
+//       Data.IsBaseMap
+//     ) {
+//       policyMakerData(Data).then((res) => {
+//         if (Data.Band === "Weather" && !Data.Weather.length)
+//           dispatch(SetWeather(res));
+//         else if (
+//           Data.Band === "Surface Variable" &&
+//           !Data.SurfaceVariable.length
+//         ) {
+//           dispatch(SetSurfaceVariable(res));
+//         } else if (Data.Band === "Flux" && !Data.Flux.length)
+//           dispatch(SetFlux(res));
+//         if (Data.Band === "Weather" && Data.IsBaseMap)
+//           dispatch(SetWeather(res));
+//         else if (Data.Band === "Surface Variable" && Data.IsBaseMap) {
+//           dispatch(SetSurfaceVariable(res));
+//         } else if (Data.Band === "Flux" && Data.IsBaseMap)
+//           dispatch(SetFlux(res));
+//         dispatch(SetisLoading(false));
+//         dispatch(SetIsBaseMap(false));
+//       });
+//     } else dispatch(SetisLoading(false));
+//   }, [Data.WatershedId, Data.Band]);
+
+//   return Data.isLoading ? (
+//     <Loading />
+//   ) : !Data.ChartData ? (
+//     <div
+//       className={`w-[99%] flex justify-center overflow-hidden h-screen pt-4  ${
+//         !Data.isSubmit
+//           ? "flex-col gap-14 items-center justify-center pt-7"
+//           : " items-center flex-row justify-center grow pb-3 "
+//       }`}
+//     >
+//       <div
+//         className={` z-10 flex flex-col justify-center gap-4 pt-6 ${
+//           Data.isSubmit
+//             ? "relative w-[50%] order-2 bg-[#EAF3E9] rounded-[10px] h-full overflow-y-scroll justify-start"
+//             : "w-[75%] "
+//         }`}
+//       >
+//         {!Data.isSubmit ? (
+//           <div className="w-full flex flex-col justify-center items-center gap-4 ">
+//             <p className="font-Myfont font-md text-[#194233] text-[14px]">
+//               Select a watershed, band, and date range to effectively analyze
+//               and visualize your data.
+//             </p>
+//             <div className="flex  items-center gap-4 w-full max-w-[900px] justify-center">
+//               <InputsBar_ />
+//             </div>
+//           </div>
+//         ) : Data.WatershedId && !Data.IsBaseMap ? (
+//           <div className="flex flex-col justify-start items-center gap-12 w-full p-4 h-[1000px] absolute top-0">
+//             {CurrentData.map((item, _) => {
+//               return <MainChart band={Data.Band} item={item} onOpen={onOpen} />;
+//             })}
+//           </div>
+//         ) : (
+//           <Loading />
+//         )}
+//       </div>
+//       <div
+//         className={`z-10 flex justify-start  order-1  ${
+//           !Data.isSubmit
+//             ? "w-[100%] items-center justify-center"
+//             : "w-[50%] h-full justify-start gap-4 pr-4 "
+//         }`}
+//       >
+//         <div
+//           className={
+//             !Data.isSubmit
+//               ? "w-[60%] flex justify-center items-center transition-all pr-8 "
+//               : "transition-all grow  h-full bg-[#EAF3E9] rounded-[10px] flex flex-col justify-center gap-16 items-center p-3"
+//           }
+//         >
+//           {(!Data.isSubmit || !Data.WatershedId) && !Data.isLoading ? (
+//             !Data.isSubmit ? (
+//               <MrMap />
+//             ) : (
+//               <MrMapOption />
+//             )
+//           ) : (
+//             <ImgOptions />
+//           )}
+//         </div>
+//         {Data.isSubmit && (
+//           <div
+//             className={`${
+//               Data.IsGeoRaster
+//                 ? "w-[0%] h-full transition-all overflow-hidden"
+//                 : " transition-all h-full w-[15%] bg-white flex flex-col gap-2 justify-start items-center p-2 rounded-[10px]"
+//             }`}
+//           >
+//             {!Data.IsGeoRaster &&
+//               bands.map((value, _) => {
+//                 return (
+//                   <Button
+//                     isDisabled={Data.isLoading}
+//                     onClick={() => {
+//                       // the req sent twice
+//                       dispatch(SetLoadingMsg("Processing Your Request"));
+//                       if (Data.Band != value.name) {
+//                         dispatch(SetBand(value.name));
+//                         if (!Data.IsAllDataReceived)
+//                           dispatch(SetIsBaseMap(true));
+//                       }
+//                     }}
+//                     className={`hover:bg-[#EAF3E9] w-full h-20
+//                                     flex justify-center p-1 gap-2 items-center text-[#0c4e27] flex-col border-[3px] border-[#EAF3E9] rounded-lg
+//                                     ${
+//                                       Data.Band === value.name
+//                                         ? "bg-[#EAF3E9] text-[#0c4e27]"
+//                                         : "bg-transparent"
+//                                     }`}
+//                   >
+//                     <ReactSVG
+//                       className={`${
+//                         value.name === "Weather" ? "w-[30%]" : "w-[25%]"
+//                       } fill-[#0c4e27]`}
+//                       src={value.icon}
+//                     />
+//                     <p className="font-bld text-[10px] ">{value.name}</p>
+//                   </Button>
+//                 );
+//               })}
+//           </div>
+//         )}
+//       </div>
+//     </div>
+//   ) : (
+//     <Modal className="left-10" isOpen={isOpen} onOpenChange={onOpenChange}>
+//       <ModalContent className="max-w-[88%] font-Myfont font-bld">
+//         {(onClose) => (
+//           <>
+//             <ModalHeader className="flex flex-col gap-1">
+//               {Data.ChartData!.type}
+//             </ModalHeader>
+//             <ModalBody className="flex justify-center items-end p-3">
+//               <div
+//                 className={`font-Myfont font-bld w-[98%] h-[190px] flex justify-center items-center`}
+//               >
+//                 <TimeSeries
+//                   dates={Data.ChartData!.dates}
+//                   values={Data.ChartData!.values}
+//                 />
+//               </div>
+//             </ModalBody>
+//             <ModalFooter>
+//               <Button className="bg-[#48A788] text-white" radius="full">
+//                 Download as csv
+//               </Button>
+//             </ModalFooter>
+//           </>
+//         )}
+//       </ModalContent>
+//     </Modal>
+//   );
+// };
+
+const Pform = () => {
+  return (
+    <div className="flex bg-[#EAF3E9] rounded-2xl h-[635px] w-[1500px] justify-between mt-12">
+      <div className="w-[580px] font-Myfont flex flex-col ml-16 p-20 items-start justify-center gap-9">
+        <div className="flex flex-col items-start">
+          <p className="text-[32px] font-bld text-[#58726C]">Welcome Back,</p>
+          <p className="text-[#58726C] text-[14px]">
+            Use the map of Morocco to choose a watershed or select its name
+            manually. Set the start and end dates to refine your data selection.
+          </p>
+        </div>
+        <InputsBar_ />
+      </div>
+      <div className="relative h-full w-[670px] flex justify-center items-center">
+        <img
+          className="absolute top-0 right-0 w-full opacity-[50%]"
+          src={gridBg}
+          alt=""
+        />
+        <MrMap />
+      </div>
+    </div>
+  );
+};
+
+const Bands_ = () => {
   const dispatch = useAppDispatch();
   const Data = useAppSelector((state) => state.policyMaker);
-  const { isOpen, onOpen, onOpenChange } = useDisclosure();
-  let CurrentData: SurfaceVariable[] | Weather_[] = GetData();
   const bands = [
     { name: "Weather", icon: sun },
+    { name: "Indices", icon: plain },
+    { name: "Evapotranspiration", icon: plain },
     { name: "Surface Variable", icon: plain },
-    { name: "Flux", icon: "" },
+    { name: "Land cover", icon: plain },
+    { name: "Soil", icon: plain },
     // { name: "Digital Elevation Model", icon: "" }
   ];
-  if (!isOpen) dispatch(SetChartData(null));
-  useEffect(() => {
-    if (
-      !Data.IsAllDataReceived &&
-      Data.isSubmit &&
-      Data.WatershedId &&
-      Data.IsBaseMap
-    ) {
-      policyMakerData(Data).then((res) => {
-        if (Data.Band === "Weather" && !Data.Weather.length)
-          dispatch(SetWeather(res));
-        else if (
-          Data.Band === "Surface Variable" &&
-          !Data.SurfaceVariable.length
-        ) {
-          dispatch(SetSurfaceVariable(res));
-        } else if (Data.Band === "Flux" && !Data.Flux.length)
-          dispatch(SetFlux(res));
-        if (Data.Band === "Weather" && Data.IsBaseMap)
-          dispatch(SetWeather(res));
-        else if (Data.Band === "Surface Variable" && Data.IsBaseMap) {
-          dispatch(SetSurfaceVariable(res));
-        } else if (Data.Band === "Flux" && Data.IsBaseMap)
-          dispatch(SetFlux(res));
-        dispatch(SetisLoading(false));
-        dispatch(SetIsBaseMap(false));
-      });
-    } else dispatch(SetisLoading(false));
-  }, [Data.WatershedId, Data.Band]);
-
-  return Data.isLoading ? (
-    <Loading />
-  ) : !Data.ChartData ? (
-    <div
-      className={`w-[98%] flex justify-center overflow-hidden ${
-        !Data.isSubmit
-          ? "flex-col gap-14 items-center justify-center pt-10"
-          : " items-start flex-row justify-start grow pb-3"
-      }`}
-    >
-      <div
-        className={` z-10 flex flex-col justify-center gap-4 pt-6 ${
-          Data.isSubmit
-            ? "relative w-[50%] order-2 bg-[#EAF3E9] rounded-[10px] h-full overflow-y-scroll justify-start"
-            : "w-[75%]"
-        }`}
-      >
-        {!Data.isSubmit ? (
-          <div className="w-full flex flex-col justify-center items-center gap-4 ">
-            <p className="font-Myfont font-md text-[#194233] text-[14px]">
-              Select a watershed, band, and date range to effectively analyze
-              and visualize your data.
-            </p>
-            <div className="flex  items-center gap-4 w-full max-w-[900px] justify-center">
-              <InputsBar_ />
-            </div>
-          </div>
-        ) : Data.WatershedId && !Data.IsBaseMap ? (
-          <div className="flex flex-col justify-start items-center gap-12 w-full p-4 h-[1000px] absolute top-0">
-            {CurrentData.map((item, _) => {
-              return <MainChart band={Data.Band} item={item} onOpen={onOpen} />;
-            })}
-          </div>
-        ) : (
-          <Loading />
-        )}
-      </div>
-      <div
-        className={`z-10 flex justify-start  order-1  ${
-          !Data.isSubmit
-            ? "w-[100%] items-center justify-center"
-            : "w-[50%] h-full items-start gap-4 pr-4"
-        }`}
-      >
-        <div className=""></div>
-        <div
-          className={
-            !Data.isSubmit
-              ? "w-[60%] flex justify-center items-center transition-all pr-8"
-              : "transition-all grow  h-full bg-[#EAF3E9] rounded-[10px] flex flex-col justify-center gap-16 items-center p-3"
-          }
-        >
-          {(!Data.isSubmit || !Data.WatershedId) && !Data.isLoading ? (
-            !Data.isSubmit ? (
-              <MrMap />
-            ) : (
-              <MrMapOption />
-            )
-          ) : (
-            <ImgOptions />
-          )}
-        </div>
-        {Data.isSubmit && (
-          <div
-            className={`${
-              Data.IsGeoRaster
-                ? "w-[0%] h-full transition-all overflow-hidden"
-                : " transition-all h-full w-[15%] bg-white flex flex-col gap-2 justify-start items-center p-2 rounded-[10px]"
-            }`}
-          >
-            {!Data.IsGeoRaster &&
-              bands.map((value, _) => {
-                return (
-                  <Button
-                    isDisabled={Data.isLoading}
-                    onClick={() => {
-                      // the req sent twice
-                      dispatch(SetLoadingMsg("Processing Your Request"));
-                      if (Data.Band != value.name) {
-                        dispatch(SetBand(value.name));
-                        if (!Data.IsAllDataReceived)
-                          dispatch(SetIsBaseMap(true));
-                      }
-                    }}
-                    className={`hover:bg-[#EAF3E9] w-full h-20
-                                    flex justify-center p-1 gap-2 items-center text-[#0c4e27] flex-col border-[3px] border-[#EAF3E9] rounded-lg
+  return (
+    <>
+      {!Data.IsGeoRaster &&
+        bands.map((value, _) => {
+          return (
+            <Button
+              isDisabled={Data.isLoading}
+              onClick={() => {
+                // the req sent twice
+                dispatch(SetLoadingMsg("Processing Your Request"));
+                if (Data.Band != value.name) {
+                  dispatch(SetBand(value.name));
+                  if (!Data.IsAllDataReceived) dispatch(SetIsBaseMap(true));
+                }
+              }}
+              className={`hover:bg-[#EAF3E9] w-full h-20
+                                    flex justify-center p-1 gap-2 items-center text-[#0c4e27] flex-col border-[3px] border-[#EAF3E9] rounded-2xl
                                     ${
                                       Data.Band === value.name
                                         ? "bg-[#EAF3E9] text-[#0c4e27]"
                                         : "bg-transparent"
                                     }`}
-                  >
-                    <ReactSVG
-                      className={`${
-                        value.name === "Weather" ? "w-[30%]" : "w-[25%]"
-                      } fill-[#0c4e27]`}
-                      src={value.icon}
-                    />
-                    <p className="font-bld text-[10px] ">{value.name}</p>
-                  </Button>
-                );
-              })}
-          </div>
-        )}
+            >
+              <ReactSVG
+                className={`${
+                  value.name === "Weather" ? "w-[20%]" : "w-[15%]"
+                } fill-[#0c4e27]`}
+                src={value.icon}
+              />
+              <p className="font-bld text-[10px] ">{value.name}</p>
+            </Button>
+          );
+        })}
+    </>
+  );
+};
+
+const DataView_ = () => {
+  return (
+    <div className="w-full pb-28 flex  gap-2 flex-wrap">
+      <div className="grow rounded-3xl p-2  max-w-[850px] min-w-[650px] flex flex-col">
+        <ImgOptions />
       </div>
+      <div className="grow rounded-3xl max-w-[130px] h-[820px] bg-white flex flex-col gap-2 p-2">
+        <Bands_ />
+      </div>
+      <div className="grow rounded-3xl bg-[#EAF3E9] min-w-[650px] h-[820px]"></div>
     </div>
-  ) : (
-    <Modal className="left-10" isOpen={isOpen} onOpenChange={onOpenChange}>
-      <ModalContent className="max-w-[88%] font-Myfont font-bld">
-        {(onClose) => (
-          <>
-            <ModalHeader className="flex flex-col gap-1">
-              {Data.ChartData!.type}
-            </ModalHeader>
-            <ModalBody className="flex justify-center items-end p-3">
-              <div
-                className={`font-Myfont font-bld w-[98%] h-[190px] flex justify-center items-center`}
-              >
-                <TimeSeries
-                  dates={Data.ChartData!.dates}
-                  values={Data.ChartData!.values}
-                />
-              </div>
-            </ModalBody>
-            <ModalFooter>
-              <Button className="bg-[#48A788] text-white" radius="full">
-                Download as csv
-              </Button>
-            </ModalFooter>
-          </>
-        )}
-      </ModalContent>
-    </Modal>
+  );
+};
+
+
+
+const Policymaker = () => {
+  const Data = useAppSelector((state) => state.policyMaker);
+
+  return (
+    <div className="w-full p-2 flex flex-col justify-center items-center ">
+      {Data.isSubmit ? <DataView_ /> : <Pform />}
+    </div>
   );
 };
 

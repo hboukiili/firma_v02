@@ -90,9 +90,9 @@ export const initialSubW: SubWatershedType = {
             { name: "Souss", d: Souss },
         ]
     },
-    // "Loukkous": {
-    // },
     // "Oum Er Rbia": {
+    // },
+    // "Loukkous": {
     // },
     // "Sahara": {
     // },

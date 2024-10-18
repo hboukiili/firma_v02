@@ -9,6 +9,8 @@ const Login = lazy(() => import(`./Pages/Login`));
 const Register = lazy(() => import(`./Pages/Register`));
 const Content = lazy(() => import(`./Pages/Content`));
 const Usertypes = lazy(() => import(`./Pages/usertypes`));
+const Documentation = lazy(() => import("./Pages/Home/Documentation"));
+
 
 function App() {
   return (
@@ -23,10 +25,11 @@ function App() {
         <BrowserRouter>
           <Routes>
             <Route path="/login" element={<Login />} />
-            <Route path="/home" element={<Home />} />
+            <Route path="/" element={<Home />} />
             <Route path="/register" element={<Register />} />
             <Route path="/usertypes" element={<Usertypes />} />
             <Route path="/farmer" element={<Content />} />
+            <Route path="/farmer1" element={<Content />} />
             <Route path="/addfield" element={<Content />} />
             <Route path="/cropgrowth" element={<Content />} />
             <Route path="/policyMaker" element={<Content />} />
@@ -36,6 +39,7 @@ function App() {
             <Route path="/newseason" element={<Content/>}/>
             <Route path="/climate" element={<Content/>}/>
             <Route path="/aquacrop" element={<Content/>}/>
+            <Route path="/documentation" element={<Documentation/>}/>
           </Routes>
         </BrowserRouter>
       </Suspense>

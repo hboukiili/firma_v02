@@ -28,11 +28,15 @@ import uplIcon from "../../../assets/uploadIcon.svg";
 import drIcon from "../../../assets/polygonIcon.svg";
 import { updateFarmerInfo } from "../../../Redux/Farmer/actions";
 import { green, yellow } from "@mui/material/colors";
-import L from "leaflet";
+import L, { Layer } from "leaflet";
 import { FileCard, FileUploader } from "evergreen-ui";
 import { message } from "antd";
 import Dragger_ from "./Dragger";
 import { useLocation } from "react-router-dom";
+import { DrawFieldTools } from "../Dashboard_V1";
+
+export let MapRef_: L.Map = null;
+export const drawnItems = new L.FeatureGroup();
 
 export const CreateFieldOptions = (prop: { map: L.Map }) => {
   const { isOpen, onOpen, onOpenChange } = useDisclosure();
@@ -137,7 +141,7 @@ export const CreateFieldOptions = (prop: { map: L.Map }) => {
 
 const AddField = (prop: { options_: boolean }) => {
   const path = useLocation();
-
+  const [zoomened, isZoomEnded] = useState(false);
   const MapRef = useRef<L.Map>();
   const [isDraw, setIsDraw] = useState(false);
   const dispatch = useAppDispatch();
@@ -154,21 +158,43 @@ const AddField = (prop: { options_: boolean }) => {
   };
   const flyToField = () => {
     if (MapRef.current && Data.currentField) {
-      console.log("tetstst")
       const boundaries = Data.currentField?.boundaries.coordinates[0];
       const bounds = boundaries!.map((coord) => [coord[1], coord[0]]);
-      MapRef.current.flyToBounds(bounds);
+      MapRef.current.flyToBounds(bounds, {
+        duration: 3,
+      });
+      MapRef.current.on("zoomend", function () {
+        isZoomEnded(true);
+      });
+      MapRef.current.on("zoomstart", function () {
+        isZoomEnded(false);
+      });
+      dispatch(updateFarmerInfo({ boundaries: bounds }));
+    } else if (MapRef.current && Data.fieldInfo[0]) {
+      console.log(Data.fieldInfo[0]);
+      const boundaries = Data.fieldInfo[0].boundaries.coordinates[0];
+      const bounds = boundaries!.map((coord) => [coord[1], coord[0]]);
+      MapRef.current.flyToBounds(bounds, {
+        duration: 3,
+      });
       dispatch(updateFarmerInfo({ boundaries: bounds }));
     }
   };
   useEffect(() => {
-    dispatch(updateFarmerInfo({ Map: MapRef.current }));
-    flyToField();
-  }, [Data.currentField, path.pathname]);
+    if (MapRef.current) {
+      MapRef_ = MapRef.current;
+      MapRef_.addLayer(drawnItems);
+    }
+    dispatch(updateFarmerInfo({ boundaries: null }));
+    if (document.location.pathname === "/farmer1") flyToField();
+  }, [Data.currentField?.name, path.pathname, MapRef.current]);
   return (
     <div className="w-full h-full relative map-c">
+      <div className={`absolute z-40 p-4 ${location.pathname === "/farmer1" ? "bottom-0 left-0" : "top-0 right-0"} ` }>
+        <DrawFieldTools />
+      </div>
       <MapContainer
-        center={[30, -8]}
+        center={[29, -6]}
         zoom={6}
         ref={MapRef}
         style={{ width: "100%", height: "100%" }}
@@ -189,52 +215,20 @@ const AddField = (prop: { options_: boolean }) => {
           </LayersControl.BaseLayer>
         </LayersControl>
         <ZoomControl position="bottomright" />
-        {Data.boundaries && (
+        {Data.boundaries && zoomened && !Data.DrawOption && (
           <Polygon
             positions={Data.boundaries}
-            pathOptions={{ color: "yellow" }}
+            pathOptions={{ color: "#F5D152" }}
           />
         )}
-        <FeatureGroup>
-          {Data.DrawOption && (
-            <EditControl
-              position="bottomright"
-              onCreated={_onCreate}
-              // onEdited={_onEdited}
-              // onDeleted={_onDeleted}
-              draw={{
-                polygon: {
-                  isDraw,
-                  shapeOptions: {
-                    color: yellow[900],
-                    weight: 4,
-                  },
-                },
-                polyline: false,
-                circle: false,
-                marker: false,
-                circlemarker: false,
-                rectangle: false,
-              }}
-            />
-          )}
-        </FeatureGroup>
+
         {<Shapefile removeLayer={false} />}
       </MapContainer>
-
-      {/* <div className="w-full absolute top-0 z-5 flex justify-center p-2">
-                <Input onChange={(e) => {
-                    dispatch(setFieldName(e.target.value))
-                    console.log(e.target.value)
-                }} radius="full" size="sm" classNames={{ inputWrapper: 'bg-scBgGreen' }} className="absolute z-10 w-[30%] " placeholder="Field name" type="text">
-
-                </Input>
-            </div> */}
-      {prop.options_ && (
+      {/* {prop.options_ && (
         <div className="w-full absolute top-0 z-5 flex justify-center p-2 pt-6 gap-4 font-Myfont font-md ">
           <CreateFieldOptions map={MapRef.current} />
         </div>
-      )}
+      )} */}
     </div>
   );
 };

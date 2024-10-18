@@ -29,6 +29,7 @@ import {
   RadioGroup,
   Select,
   SelectItem,
+  SelectSection,
   useDisclosure,
 } from "@nextui-org/react";
 import locIcon from "../../assets/locationIcon.svg";
@@ -39,7 +40,7 @@ import Steps from "./tools/Steps";
 import api from "../../api/axios.js";
 import SoilInfo_ from "./tools/Soilinforamtion.js";
 import Irrigationsystem_ from "./tools/Irrigationsystem_.js";
-import { Progress } from "antd";
+import { Divider, Progress } from "antd";
 import canld from "../../assets/canld.png";
 import { updateFarmerInfo } from "../../Redux/Farmer/actions.js";
 import { redirect } from "react-router-dom";
@@ -118,20 +119,91 @@ const DeleteField = () => {
   );
 };
 
-const CropInfo = () => {
-  const crops_ = ["Wheat", "Maize", "Potatoes"];
+export const CropInfo = () => {
+  const trees = [
+    "Olive Tree",
+    "Argan Tree",
+    "Orange Tree",
+    "Lemon Tree",
+    "Mandarin Tree",
+    "Almond Tree",
+    "Date Palm",
+    "Carob Tree",
+    "Fig Tree",
+  ];
+
+  const crops_ = [
+    "Broccoli",
+    "Cabbage",
+    "Carrots",
+    "Cauliflower",
+    "Lettuce",
+    "Dry Onions",
+    "Green Onions",
+    "Seed Onions",
+    "Spinach",
+    "Radishes",
+    "Eggplant",
+    "Sweet Peppers",
+    "Tomato",
+    "Cantaloupe",
+    "Cucumber",
+    "Pumpkin",
+    "Sweet Melons",
+    "Watermelon",
+    "Beets",
+    "Potato",
+    "Sugar Beet",
+    "Green Beans",
+    "Faba Bean",
+    "Green Gram",
+    "Cowpeas",
+    "Groundnut",
+    "Lentil",
+    "Peas",
+    "Soybeans",
+    "Artichokes",
+    "Asparagus",
+    "Cotton",
+    "Flax",
+    "Sunflower",
+    "Barley",
+    "Oats",
+    "Spring Wheat",
+    "Winter Wheat",
+    "Field Corn",
+    "Sweet Corn",
+    "Millet",
+    "Rice",
+    "Alfalfa Hay",
+    "Bermuda Hay",
+    "Banana First Year",
+    "Banana Second Year",
+    "Pineapple",
+    "Olives",
+    "Pistachios",
+  ];
+
   const [plantType, SetPlantType] = useState("Crop");
   const [date, setDate] = useState("");
   const [value, Setvalue] = useState("");
+  const [tree, Settree] = useState("");
   const dispatch = useAppDispatch();
 
+  const list = plantType === "Crop" ? crops_ : trees;
   useEffect(() => {
     dispatch(
       updateFarmerInfo({
         PlantingDetails: {
-          type: plantType,
-          date: date,
-          value: value,
+          type : plantType,
+          Tree: {
+            value: tree,
+            date: date,
+          },
+          Crop : {
+            value : value,
+            date : date,
+          }
         },
       })
     );
@@ -146,7 +218,7 @@ const CropInfo = () => {
           and resources for your planting activities.
         </p>
       </div>
-      <div className="w-[50%] flex gap-6">
+      <div className="w-[60%] flex justify-center items-center">
         <RadioGroup
           onValueChange={SetPlantType}
           defaultValue="Crop"
@@ -159,11 +231,21 @@ const CropInfo = () => {
                 {"Tree"}
               </div>
             </Radio>
+            <Divider type="vertical" />
 
             <Radio color="success" value="Crop">
               <div className="flex gap-1">
                 <ReactSVG src={plantIcon} />
                 {"Crop"}
+              </div>
+            </Radio>
+            <Divider type="vertical" />
+
+            <Radio color="success" value="Crop and tree">
+              <div className="flex gap-1">
+                <ReactSVG src={plantIcon} />
+                <ReactSVG src={treeIcon} />
+                {"Crop and tree"}
               </div>
             </Radio>
           </div>
@@ -184,11 +266,11 @@ const CropInfo = () => {
         className="w-[50%]"
         placeholder={`${plantType === "Tree" ? "Tree" : "Crop"} type`}
         onChange={(e) => {
-          Setvalue(e.target.value);
-          // dispatch(updateFarmerInfo({ SoilType: e.target.value }));
+          if (plantType === "Tree") Settree(e.target.value);
+          else Setvalue(e.target.value);
         }}
       >
-        {crops_.map((val, _) => {
+        {list.map((val, _) => {
           return (
             <SelectItem key={val} value={val}>
               {val}
@@ -196,6 +278,32 @@ const CropInfo = () => {
           );
         })}
       </Select>
+      {plantType == "Crop and tree" && (
+        <Select
+          classNames={{
+            trigger: "bg-white  text-[#1E6F5C] ",
+            label: "text-[#1E6F5C]",
+          }}
+          variant="faded"
+          labelPlacement="outside"
+          size="md"
+          radius={"full"}
+          label={`Please select your tree type`}
+          className="w-[50%]"
+          placeholder={`Tree type`}
+          onChange={(e) => {
+            Settree(e.target.value);
+          }}
+        >
+          {list.map((val, _) => {
+            return (
+              <SelectItem key={val} value={val}>
+                {val}
+              </SelectItem>
+            );
+          })}
+        </Select>
+      )}
       <DateInput
         label="Please enter planting date."
         variant="faded"
@@ -268,7 +376,7 @@ const FieldManagment = () => {
           <AddField options_={false} />
         </div>
         <div className="rounded-[10px] min-w-[500px] w-[47%] h-[98%]  absolute top-2 left-2 z-40 flex flex-col gap-2">
-          <div className="flex w-full gap-2 p-2 bg-scBgGreen rounded-[10px]">
+          {/* <div className="flex w-full gap-2 p-2 bg-scBgGreen rounded-[10px]">
             {content.map((v, _) => {
               return (
                 <button
@@ -282,11 +390,11 @@ const FieldManagment = () => {
                 >
                   <p className="font-bld ">{v.option}</p>
                   {/* <p className="text-[11px] ">{v.dsc}</p> */}
-                  <ReactSVG className=" " src={v.icn} />
+          {/* <ReactSVG className=" " src={v.icn} />
                 </button>
               );
             })}
-          </div>
+          </div> */}
 
           <div className="w-full grow bg-scBgGreen rounded-[10px] flex flex-col items-center ">
             <Progress
@@ -335,13 +443,11 @@ const FieldManagment = () => {
                           })
                           .then((e) => {
                             console.log(e.data);
-                            document.location.href = "/farmer"
+                            document.location.href = "/farmer";
                           })
                           .catch((e) => {
-                            console.log(e);
+                            console.log(e.data);
                           });
-                          
-                      
                       else {
                         setStep(step + 1);
                         setOption(steps[step + 1]);
