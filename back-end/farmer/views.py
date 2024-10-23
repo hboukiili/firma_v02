@@ -14,6 +14,13 @@ from .tools.FarmerAUTH import FARMERJWTAuthentication
 from django.contrib.gis.geos import GEOSGeometry
 import json
 from django.db import transaction
+from django.utils.html import escape
+import logging
+# from ratelimit.decorators import ratelimit
+
+
+logger = logging.getLogger(__name__)
+
 
 
 class register(APIView):
@@ -302,15 +309,18 @@ class register_data(APIView):
 		irg_class.objects.create(**irrigation_kwargs)
 
 	def process_crop(self, data, field):
-		crop = data['Crop']
-		tree = data['Tree']
+		crop		= data['Crop']
+		tree 		= data['Tree']
+		crop_name	= crop['value']
+		tree_name	= tree['value']
 
-		new_crop = Crop(Crop=crop['value'], Crop_planting_date=crop['date'],
-	   			Tree=tree['value'], Tree_planting_date=tree['date'],
+		new_crop = Crop(Crop=crop_name, Crop_planting_date=crop['date'],
+	   			Tree=tree_name, Tree_planting_date=tree['date'],
 				field_id=field)
 
 		new_crop.save()
 
+	# @ratelimit(key='user', rate='5/m', method='POST', block=True)
 	def post(self, request):
 
 
@@ -326,10 +336,10 @@ class register_data(APIView):
 						self.process_soil(soil_['method'], soil_['value'], field)
 						self.process_irrigation_system(request.data.get('irr'), field)
 						self.process_crop(request.data.get('plant'), field)
-
+						return Response("Data stored successfully", status=status.HTTP_201_CREATED)
 					except Exception as e:
-						return Response({"error": str(e)}, status=status.HTTP_403_FORBIDDEN)
-					return Response("Data stored successfully", status=status.HTTP_201_CREATED)
+						logger.error(f"Error occurred during data processing: {str(e)}")  # Log error
+						return Response({"error": "An error occurred while processing your request"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 		return Response("Something went wrong", status=status.HTTP_400_BAD_REQUEST)
 		
 		# season = Season()

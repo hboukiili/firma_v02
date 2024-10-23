@@ -51,6 +51,7 @@ INSTALLED_APPS = [
     'drf_yasg',
     'farmer',
     'corsheaders',
+    # 'ratelimit',
 ]
 
 SIMPLE_JWT = {
@@ -175,6 +176,6 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 # SECRET_KEY = 'firma'
 # AUTH_USER_MODEL = 'models_only.Farmer'
 
-service_account = 'firma-796@trencendece.iam.gserviceaccount.com'
-credentials = ee.ServiceAccountCredentials(service_account,"cloud_credentials.json")
-ee.Initialize(credentials)
+# service_account = 'firma-796@trencendece.iam.gserviceaccount.com'
+# credentials = ee.ServiceAccountCredentials(service_account,"cloud_credentials.json")
+# ee.Initialize(credentials)
