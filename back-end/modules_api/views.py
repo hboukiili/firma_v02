@@ -162,41 +162,104 @@ class current_weather(APIView):
 	authentication_classes = [FARMERJWTAuthentication]
 	permission_classes = [IsAuthenticated]
 
-	def post(self, request):
+	def get(self, request):
 
-		if request.data.get("field_id"):
+		field_id = request.query_params.get('field_id')
 
-			API_key = "85461dddb7698ac03b2bf4c5b22f5369"
-			field_id = request.data.get(field_id)
-			field = Field.objects.get(id=field_id)
-			point = field.boundaries[0][0]
-			lat = point[1]
-			lon = point[0]
-			params = {
-			    "lat": lat,           
-			    "lon": lon,         
-			    "appid": API_key,      
-			    "units": "metric"       # Units of measurement ('metric' for °C, 'imperial' for °F)
-			}
+		if field_id != None:
 
-			url = "https://api.openweathermap.org/data/2.5/weather"
-
-			response = requests.get(url, params=params)
-
-			if response.status_code == 200:
-				data = response.json()
-				main = data.get("main", {})
-				wind = data.get("wind", {})
-				clouds = data.get("clouds", {})
-				rain = data.get("rain", {})
-
-				final_result = {
-					"temperature" : main.get("temp"),
-					"humidity" : main.get("humidity"),
-					"wind_speed" : wind.get("speed"),
-					"cloud_cover" : clouds.get("all"),
-					"rain_volume" : rain.get("1h", 0),
+			try : 
+				API_key = "85461dddb7698ac03b2bf4c5b22f5369"
+				field = Field.objects.get(id=field_id)
+				point = field.boundaries[0][0]
+				lat = point[1]
+				lon = point[0]
+				params = {
+					"lat": lat,           
+					"lon": lon,         
+					"appid": API_key,      
+					"units": "metric"       # Units of measurement ('metric' for °C, 'imperial' for °F)
 				}
-				return Response(final_result, status=status.HTTP_200_OK)
-			return Response("Error in APi", status=status.HTTP_404_NOT_FOUND)
 
+				url = "https://api.openweathermap.org/data/2.5/weather"
+
+				response = requests.get(url, params=params)
+
+				if response.status_code == 200:
+					data = response.json()
+					main = data.get("main", {})
+					wind = data.get("wind", {})
+					clouds = data.get("clouds", {})
+					rain = data.get("rain", {})
+
+					final_result = {
+						"temperature" : main.get("temp"),
+						"humidity" : main.get("humidity"),
+						"wind_speed" : wind.get("speed"),
+						# "cloud_cover" : clouds.get("all"),
+						"rain" : rain.get("1h", 0),
+					}
+					return Response(final_result, status=status.HTTP_200_OK)
+			except Exception as e:
+				return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+		return Response("Error in APi", status=status.HTTP_404_NOT_FOUND)
+
+
+class weather(APIView):
+
+	# authentication_classes = [FARMERJWTAuthentication]
+	# permission_classes = [IsAuthenticated]
+
+	def get(self, request):
+		
+		field_id = request.query_params.get('field_id')
+		start_date = request.query_params.get('start_date')
+		end_date = request.query_params.get('end_date')
+		
+		print(field_id)
+		if field_id != None:
+
+			try :
+	
+				field = Field.objects.get(id=field_id)
+				point = field.boundaries[0][0]
+				lat = point[1]
+				lon = point[0]
+				url = "https://archive-api.open-meteo.com/v1/archive"
+
+				# Define parameters for the API request
+				params = {
+					"latitude": lat,  
+					"longitude": lon,  
+					"start_date": start_date,  
+					"end_date": end_date,  # End date for historical data
+					# "hourly": "temperature_2m,precipitation,wind_speed_10m,relative_humidity_2m,shortwave_radiation",  # Request hourly data for temperature, precipitation, wind speed, RH, and shortwave radiation
+					"daily" : "rain_sum,shortwave_radiation_sum,et0_fao_evapotranspiration,temperature_2m_max,temperature_2m_min,relative_humidity_2m_max,relative_humidity_2m_min,wind_speed_10m_max",
+					"timezone": "Africa/Casablanca", 
+					"windspeed_unit": "ms",        # kmh, ms, mph, kn
+				}
+
+
+				# Send the request to the Open-Meteo API
+				response = requests.get(url, params=params)
+
+				# Check if the request was successful
+				if response.status_code == 200:
+					data = response.json()
+
+					final_result = {
+						"dates"	: data.get('daily')["time"],
+						"T2m"	:  data.get('daily')["temperature_2m_max"],
+						"rain" 	: data.get('daily')["rain_sum"],
+						"irg" 	: data.get('daily')["shortwave_radiation_sum"],
+						"Et0" 	: data.get("daily")["et0_fao_evapotranspiration"],
+						"Rh" 	:  data.get("daily")["relative_humidity_2m_max"],
+						"Ws" 	: data.get("daily")["wind_speed_10m_max"]
+					}
+
+					return Response(final_result, status=status.HTTP_200_OK)
+			except Exception as e:
+				return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+		return Response("Error in APi", status=status.HTTP_404_NOT_FOUND)
