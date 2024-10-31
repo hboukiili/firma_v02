@@ -39,7 +39,7 @@ def fao_test():
 
     Kcb, FC, E, Zr, Ks, Kcadj, ETcadj, T, DP, Irrig, Rain, Runoff = {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}
 
-    ndvi_folder = "/app/tools/fao_test/interpolated_ndvi"
+    ndvi_folder = "/app/tools/fao_test/fao_output/ndvi"
     files = [f for f in os.listdir(ndvi_folder) if os.path.isfile(os.path.join(ndvi_folder, f))]
     NDVIS = []
     raster_crs = None

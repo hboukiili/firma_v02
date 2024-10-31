@@ -17,6 +17,8 @@ from .tools.gee import aquacrop_
 from .tools.Open_meteo import Open_meteo
 import os
 import rasterio
+import numpy as np
+import requests
 
 class ogimet(APIView):
     
@@ -111,6 +113,10 @@ class aquacrop(APIView):
 
 class fao_test(APIView):
 
+
+	authentication_classes = [FARMERJWTAuthentication]
+	permission_classes = [IsAuthenticated]
+
 	def extract_date(file_name):
 		return datetime.strptime(file_name.split('.')[0], '%Y-%m-%d')
 
@@ -140,16 +146,57 @@ class fao_test(APIView):
 						min_values.append(min), mean_values.append(mean), max_values.append(max)
 						break 
 				
-				final_data.append({
-					folder : {
-					'min' :  min_values,
-					'max'  : max_values,
-					'mean' : mean_values
+				final_data[folder] = {
+						'min' :  min_values,
+						'max'  : max_values,
+						'mean' : mean_values
 					}
-				})
 
 		except Exception as e:
 			return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
 		
-		return Response(data, status=status.HTTP_202_ACCEPTED)
+		return Response(final_data, status=status.HTTP_202_ACCEPTED)
+
+class current_weather(APIView):
+
+	authentication_classes = [FARMERJWTAuthentication]
+	permission_classes = [IsAuthenticated]
+
+	def post(self, request):
+
+		if request.data.get("field_id"):
+
+			API_key = "85461dddb7698ac03b2bf4c5b22f5369"
+			field_id = request.data.get(field_id)
+			field = Field.objects.get(id=field_id)
+			point = field.boundaries[0][0]
+			lat = point[1]
+			lon = point[0]
+			params = {
+			    "lat": lat,           
+			    "lon": lon,         
+			    "appid": API_key,      
+			    "units": "metric"       # Units of measurement ('metric' for °C, 'imperial' for °F)
+			}
+
+			url = "https://api.openweathermap.org/data/2.5/weather"
+
+			response = requests.get(url, params=params)
+
+			if response.status_code == 200:
+				data = response.json()
+				main = data.get("main", {})
+				wind = data.get("wind", {})
+				clouds = data.get("clouds", {})
+				rain = data.get("rain", {})
+
+				final_result = {
+					"temperature" : main.get("temp"),
+					"humidity" : main.get("humidity"),
+					"wind_speed" : wind.get("speed"),
+					"cloud_cover" : clouds.get("all"),
+					"rain_volume" : rain.get("1h", 0),
+				}
+				return Response(final_result, status=status.HTTP_200_OK)
+			return Response("Error in APi", status=status.HTTP_404_NOT_FOUND)
 
