@@ -151,10 +151,10 @@ class field(APIView):
 			except Exception as e:
 					return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
 	
-class soil(APIView):
+# class soil(APIView):
 
-	authentication_classes = [FARMERJWTAuthentication]
-	permission_classes = [IsAuthenticated]
+# 	authentication_classes = [FARMERJWTAuthentication]
+# 	permission_classes = [IsAuthenticated]
 
 	# def get(self, request):
 
@@ -166,13 +166,13 @@ class soil(APIView):
 	# 	else:
 	# 		return Response({"detail": "No soil found for this user."}, status=status.HTTP_404_NOT_FOUND)
 
-	def post(self, request):
-		pass
+	# def post(self, request):
+	# 	pass
 
-class season(APIView):
+# class season(APIView):
 
-	authentication_classes = [FARMERJWTAuthentication]
-	permission_classes = [IsAuthenticated]
+# 	authentication_classes = [FARMERJWTAuthentication]
+# 	permission_classes = [IsAuthenticated]
 	
 	# @swagger_auto_schema(
 	# 	manual_parameters=[
@@ -353,4 +353,28 @@ class register_data(APIView):
 		# for i in test:
 		# print(i.irrigation_type)
 
+class Irrigation(APIView):
+
+	authentication_classes = [FARMERJWTAuthentication]
+	permission_classes = [IsAuthenticated]
+
+	def post(self, request):
+
+		field_id	= request.data.get('field_id')
+		amount 		= request.data.get('amount')
+		date		= request.data.get('date')
+		
+		if field_id and amount and date:
+			try :
+				field = Field.objects.get(id=field_id)
+				irrigation = Irrigation_system.objects.get(field_id=field)
+				if irrigation != None:
+					new_irr = Irrigation_amount(amount=amount, date=date,irrigation_system_id=irrigation)
+					new_irr.save()
+				return Response("Done !", status=status.HTTP_201_CREATED)
+			
+			except Exception as e:
+				logger.error(f"Error occurred during data processing: {str(e)}")  # Log error
+				return Response({f"error": "An error occurred while processing your request : {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+		return Response("Error in Data", status=status.HTTP_400_BAD_REQUEST)
 

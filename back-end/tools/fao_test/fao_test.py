@@ -42,9 +42,9 @@ def Open_meteo(start_date, end_date, lat, long):
         "longitude": long,  # Replace with the longitude of your location
         "start_date": start_date,  # Start date for historical data
         "end_date": end_date,  # End date for historical data
-        # "daily" : "rain_sum,shortwave_radiation_sum,et0_fao_evapotranspiration,temperature_2m_max,temperature_2m_min,relative_humidity_2m_max,relative_humidity_2m_min,wind_speed_10m_max",
-        # "hourly": "dewpoint_2m",
-        'current': 'temperature_2m, et0_fao_evapotranspiration',
+        "daily" : "rain_sum,shortwave_radiation_sum,et0_fao_evapotranspiration,temperature_2m_max,temperature_2m_min,relative_humidity_2m_max,relative_humidity_2m_min,wind_speed_10m_max",
+        "hourly": "dewpoint_2m",
+        # 'current': 'temperature_2m, et0_fao_evapotranspiration',
         "timezone": "Africa/Casablanca"  # Set your timezone
     }
 
@@ -55,8 +55,6 @@ def Open_meteo(start_date, end_date, lat, long):
     # Check if the request was successful
     if response.status_code == 200:
         data = response.json()
-        print(data)
-        exit()
         daily_data = data.get('daily', {})
         rain_sum = daily_data.get('rain_sum', [])
         shortwave_radiation_sum = daily_data.get('shortwave_radiation_sum', [])
@@ -138,10 +136,11 @@ def fao_test():
     fc_values = []
     h = []
     kcb_values = []
-
+    ndvi_values = []
     # Loop over each day in the date range
     for current_date in date_range:
         if current_date in file_date_map:
+            print(current_date)
             file_path = os.path.join(ndvi_folder, file_date_map[current_date])
             
             # Open and read the NDVI file
@@ -262,6 +261,7 @@ def run_fao(fc_values, kcb_values, h, index, start_date, end_date):
     print(mdl)
 
 if __name__ == '__main__':
-    weather_data = Open_meteo("2024-01-15", "2024-05-30", 31.66600208716224, -7.678419088737144)
+    # weather_data = Open_meteo("2024-01-15", "2024-05-30", 31.66600208716224, -7.678419088737144)
 
-    desired_length = len(weather_data["ETref"])
+    # desired_length = len(weather_data["ETref"])
+    fao_test()

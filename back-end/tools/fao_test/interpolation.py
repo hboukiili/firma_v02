@@ -77,25 +77,6 @@ for current_date in date_range:
         with rasterio.open(file_path) as src:
 
             raster_crs = src.crs  # Get the raster's CRS
-
-            # print(f"Raster CRS: {raster_crs}")
-
-            # # Get the affine transform (used to calculate coordinates from pixel indices)
-            # transform = src.transform
-            # print(f"Affine Transform: {transform}")
-
-            # # Get the bounding box of the raster (in the CRS of the raster)
-            # bounds = src.bounds
-            # print(f"Bounding Box: {bounds}")
-
-            # # Print the coordinates of the corners of the raster (in the raster CRS)
-            # print("Top-left corner:", (bounds.left, bounds.top))
-            # print("Top-right corner:", (bounds.right, bounds.top))
-            # print("Bottom-left corner:", (bounds.left, bounds.bottom))
-            # print("Bottom-right corner:", (bounds.right, bounds.bottom))
-
-            # exit()
-
             transformer = Transformer.from_crs("EPSG:4326", raster_crs, always_xy=True)
 
             transformed_coords = [
@@ -111,23 +92,22 @@ for current_date in date_range:
 
             polygon_geojson = [mapping(aligned_polygon)]
 
-            exit()
 
-#             try:
-#                 out_image, out_transform = rasterio.mask.mask(src, polygon_geojson, crop=True)
+            try:
+                out_image, out_transform = rasterio.mask.mask(src, polygon_geojson, crop=True)
 
-#                 if len_ndvi == None:
-#                     len_ndvi = out_image[0].shape
-#                 if np.nanmean(out_image[0]) != 0.0:
-#                     ndvi_data.append(out_image[0])
-#                 else:
-#                     ndvi_data.append(np.full((len_ndvi[0], len_ndvi[1]), np.nan))
+                if len_ndvi == None:
+                    len_ndvi = out_image[0].shape
+                if np.nanmean(out_image[0]) != 0.0:
+                    ndvi_data.append(out_image[0])
+                else:
+                    ndvi_data.append(np.full((len_ndvi[0], len_ndvi[1]), np.nan))
 
-#             except ValueError as e:
-#                 print(f"Error during clipping: {e}")
+            except ValueError as e:
+                print(f"Error during clipping: {e}")
     
-#     else:
-#         ndvi_data.append(np.full((len_ndvi[0], len_ndvi[1]), np.nan))
+    else:
+        ndvi_data.append(np.full((len_ndvi[0], len_ndvi[1]), np.nan))
 
 # i = 0
 # while i < ndvi_data[0].shape[0]:  # Loop over rows

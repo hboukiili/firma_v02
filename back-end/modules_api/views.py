@@ -19,6 +19,7 @@ import os
 import rasterio
 import numpy as np
 import requests
+import matplotlib.pyplot as plt
 
 class ogimet(APIView):
     
@@ -117,17 +118,17 @@ class fao_test(APIView):
 	authentication_classes = [FARMERJWTAuthentication]
 	permission_classes = [IsAuthenticated]
 
-	def extract_date(file_name):
+	def extract_date(self, file_name):
 		return datetime.strptime(file_name.split('.')[0], '%Y-%m-%d')
 
 	def post(self, request):
 
-		start_date	= request.data.get('start_date')
-		end_date	= request.data.get('end_date')
-		path		= "/app/tools/fao_test/fao_output"
-		folders		= os.listdir(path)
+		start_date = request.data.get('start_date')
+		end_date = request.data.get('end_date')
+		path  = "/app/tools/fao_test/fao_output"
+		folders  = os.listdir(path)
 
-		final_data = []
+		final_data = {}
 		try : 
 			for folder in folders:
 				min_values, max_values, mean_values = [], [], []
@@ -140,22 +141,20 @@ class fao_test(APIView):
 				for file in files:
 					tif = f"{var}/{file}"
 					with rasterio.open(tif) as src:
-						
+					
 						data = src.read(1)
 						mean, min, max = np.nanmean(data), np.nanmin(data), np.nanmax(data)
 						min_values.append(min), mean_values.append(mean), max_values.append(max)
-						break 
-				
-				final_data[folder] = {
-						'min' :  min_values,
-						'max'  : max_values,
-						'mean' : mean_values
-					}
 
+				final_data[folder] = {
+					'min' :  min_values,
+					'max'  : max_values,
+					'mean' : mean_values
+				}
+
+			return Response(final_data, status=status.HTTP_202_ACCEPTED)		
 		except Exception as e:
 			return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
-		
-		return Response(final_data, status=status.HTTP_202_ACCEPTED)
 
 class current_weather(APIView):
 
@@ -191,13 +190,17 @@ class current_weather(APIView):
 					wind = data.get("wind", {})
 					clouds = data.get("clouds", {})
 					rain = data.get("rain", {})
-
+					
+					temp = main.get("temp")
+					rh = main.get("humidity")
+					ws = wind.get("speed")
+					r = rain.get("1h", 0)
 					final_result = {
-						"temperature" : main.get("temp"),
-						"humidity" : main.get("humidity"),
-						"wind_speed" : wind.get("speed"),
+						"temperature" : f"{temp} °C",
+						"humidity" : f"{rh} %",
+						"wind_speed" : f"{ws} km/h",
+						"rain" : f"{r} %",
 						# "cloud_cover" : clouds.get("all"),
-						"rain" : rain.get("1h", 0),
 					}
 					return Response(final_result, status=status.HTTP_200_OK)
 			except Exception as e:
@@ -208,8 +211,8 @@ class current_weather(APIView):
 
 class weather(APIView):
 
-	# authentication_classes = [FARMERJWTAuthentication]
-	# permission_classes = [IsAuthenticated]
+	authentication_classes = [FARMERJWTAuthentication]
+	permission_classes = [IsAuthenticated]
 
 	def get(self, request):
 		
@@ -217,8 +220,7 @@ class weather(APIView):
 		start_date = request.query_params.get('start_date')
 		end_date = request.query_params.get('end_date')
 		
-		print(field_id)
-		if field_id != None:
+		if field_id != None and start_date != None and end_date != None:
 
 			try :
 	
@@ -263,3 +265,68 @@ class weather(APIView):
 				return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
 		return Response("Error in APi", status=status.HTTP_404_NOT_FOUND)
+	
+
+class gdd(APIView):
+	
+	# authentication_classes = [FARMERJWTAuthentication]
+	# permission_classes = [IsAuthenticated]
+
+	def get(self, request):
+
+		start_date = request.query_params.get('start_date')
+		end_date = request.query_params.get('end_date')
+		field_id = request.query_params.get('field_id')
+		Tbase = 0
+
+		if field_id != None and start_date != None and end_date != None:
+
+			try :
+
+				yesterday = datetime.strptime(start_date, "%Y-%m-%d") - timedelta(days=1)
+				new_start_date = yesterday.strftime("%Y-%m-%d")
+
+				field = Field.objects.get(id=field_id)
+				point = field.boundaries[0][0]
+				lat = point[1]
+				lon = point[0]
+				url = "https://archive-api.open-meteo.com/v1/archive"
+
+				# Define parameters for the API request
+				params = {
+					"latitude": lat,  
+					"longitude": lon,  
+					"start_date": start_date,  
+					"end_date": end_date,  # End date for historical data
+					# "hourly": "temperature_2m,precipitation,wind_speed_10m,relative_humidity_2m,shortwave_radiation",  # Request hourly data for temperature, precipitation, wind speed, RH, and shortwave radiation
+					"daily" : "temperature_2m_max,temperature_2m_min",
+					"timezone": "Africa/Casablanca", 
+					"windspeed_unit": "ms",        # kmh, ms, mph, kn
+				}
+
+				response = requests.get(url, params=params)
+				if response.status_code == 200:
+				
+					data = response.json()
+
+					Tmax = data.get('daily')["temperature_2m_max"]
+					Tmin = data.get('daily')["temperature_2m_min"]
+
+					i = 0
+					gdd = []
+					while(i < len(Tmax)):
+						daily_gdd = max(((Tmax[i] + Tmin[i]) / 2) - Tbase, 0)
+						gdd.append(daily_gdd)
+						i += 1
+
+					gdd_cum = []
+					cumulative = 0
+					for value in gdd:
+						cumulative += value
+						gdd_cum.append(cumulative)
+					
+					return Response(gdd_cum, status=status.HTTP_200_OK)
+			except Exception as e:
+				return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+		return Response("Error in data", status=status.HTTP_404_NOT_FOUND)
