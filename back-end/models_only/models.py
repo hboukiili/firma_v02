@@ -68,23 +68,6 @@ class Field(models.Model):
     name = models.CharField(max_length=30)
     boundaries = gis.PolygonField()
 
-# class Season(models.Model):
-
-#     start_date = models.DateField(blank=True, null=True)
-#     # end_date = models.DateField(blank=True, null=True)
-#     field_id = models.ForeignKey(Field, on_delete=models.CASCADE)
-
-# class Season(models.Model):
-#     start_date = models.DateField(blank=True, null=True)
-#     end_date = models.DateField(blank=True, null=True)
-
-# class Field(models.Model):
-
-#     user_id = models.ForeignKey(Farmer, on_delete=models.CASCADE)
-#     name = models.CharField(max_length=30)
-#     boundaries = gis.PolygonField()
-#     saison_id = models.ForeignKey(Season, on_delete=models.CASCADE)
-
 class Crop(models.Model):
 
     Crop                = models.CharField(max_length=30, blank=True, null=True)
@@ -93,13 +76,6 @@ class Crop(models.Model):
     Tree_planting_date  = models.DateField(blank=True, null=True)
     field_id            = models.ForeignKey(Field, on_delete=models.CASCADE)
 
-class Pratique_Agricole(models.Model):
-
-    types = models.CharField(max_length=50)
-    date_debut = models.DateField()
-    date_fin = models.DateField()
-    quantite = models.IntegerField()
-    crop_id = models.ForeignKey(Crop, on_delete=models.CASCADE)
 
 class Soil_type(Enum):
 
@@ -182,11 +158,11 @@ class Station(Data_source):
 
 class Lidar(Data_source):
 
-    test = models.CharField(max_length=20)
+    pass
 
 class Drone (Data_source):
 
-    test = models.CharField(max_length=20)
+    pass
 
 class Ogimet_stations(models.Model):
 
@@ -228,6 +204,7 @@ class Drip_Irrigation(Irrigation_system):
     
     Crop_Tubes_distance     = models.IntegerField(blank=True, null=True)
     Crop_Drippers_distance  = models.IntegerField(blank=True, null=True)
+    Crop_outflow_rate       = models.IntegerField(blank=True, null=True)    
     Tree_row_distance       = models.IntegerField(blank=True, null=True)
     Tree_distance           = models.IntegerField(blank=True, null=True)
     Tubes_number_by_tree    = models.IntegerField(blank=True, null=True)
@@ -264,3 +241,21 @@ class Fao_Crop_Parametre(models.Model):
     zrmax = models.FloatField(blank=True, null=True)
     pbase = models.FloatField(blank=True, null=True)
     Ze = models.FloatField(default=0.10)
+
+class fao_output(models.Model):
+
+    field   = models.ForeignKey(Field, on_delete=models.CASCADE)
+    date    = models.DateField(blank=True, null=True)
+    kcb     = gis.RasterField()
+    fc      = gis.RasterField()
+    DB      = gis.RasterField()
+    E       = gis.RasterField()
+    ETcadj  = gis.RasterField()
+    ETref   = gis.RasterField()
+    Irrig   = gis.RasterField()
+    Kcadj   = gis.RasterField()
+    Ks      = gis.RasterField()
+    Rain    = gis.RasterField()
+    Runoff  = gis.RasterField()
+    T       = gis.RasterField()
+    Zr      = gis.RasterField()

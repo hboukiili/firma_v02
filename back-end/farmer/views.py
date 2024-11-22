@@ -366,12 +366,15 @@ class Irrigation(APIView):
 		
 		if field_id and amount and date:
 			try :
-				field = Field.objects.get(id=field_id)
-				irrigation = Irrigation_system.objects.get(field_id=field)
+				user = request.user
+				irrigation = Irrigation_system.objects. \
+								select_related('field_id').get(field_id=field_id,
+								field_id__user_id=user.id)
+
 				if irrigation != None:
 					new_irr = Irrigation_amount(amount=amount, date=date,irrigation_system_id=irrigation)
 					new_irr.save()
-				return Response("Done !", status=status.HTTP_201_CREATED)
+					return Response("Done !", status=status.HTTP_201_CREATED)
 			
 			except Exception as e:
 				logger.error(f"Error occurred during data processing: {str(e)}")  # Log error

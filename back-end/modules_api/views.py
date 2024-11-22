@@ -20,6 +20,11 @@ import rasterio
 import numpy as np
 import requests
 import matplotlib.pyplot as plt
+import logging
+from .tools.weather import *
+
+
+logger = logging.getLogger(__name__)
 
 class ogimet(APIView):
     
@@ -56,6 +61,7 @@ class ogimet(APIView):
 				return Response ("No Data Has been found", status=status.HTTP_404_NOT_FOUND)
 					
 			except Exception as e:
+				logger.error(f"Error occurred during data processing: {str(e)}")  # Log error	
 				return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
 		return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
@@ -90,13 +96,14 @@ class aquacrop(APIView):
 		if serializer.is_valid() :
 
 			# Ogimet = Ogimet_class()
+			user = request.user
 			field_id = serializer.validated_data.get("field_id")
 			start_date = serializer.validated_data.get('start_date')
 			end_date = serializer.validated_data.get('end_date')
 
 			try :
 
-				field = Field.objects.get(id=field_id)
+				field = Field.objects.get(id=field_id, user_id=user.id)
 				point = field.boundaries[0][0]
 				weather = Open_meteo(start_date,end_date,point[1], point[0])
 				# stations_ids = Ogimet.get_closest_stations(point[1], point[0])
@@ -108,12 +115,12 @@ class aquacrop(APIView):
 				# return Response ("No Data Has been found", status=status.HTTP_404_NOT_FOUND)
 						
 			except Exception as e:
+				logger.error(f"Error occurred during data processing: {str(e)}")  # Log error	
 				return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
 		return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 class fao_test(APIView):
-
 
 	authentication_classes = [FARMERJWTAuthentication]
 	permission_classes = [IsAuthenticated]
@@ -121,10 +128,10 @@ class fao_test(APIView):
 	def extract_date(self, file_name):
 		return datetime.strptime(file_name.split('.')[0], '%Y-%m-%d')
 
-	def post(self, request):
+	def get(self, request):
 
-		start_date = request.data.get('start_date')
-		end_date = request.data.get('end_date')
+		start_date = request.query_params.get('start_date')
+		end_date = request.query_params.get('end_date')
 		path  = "/app/tools/fao_test/fao_output"
 		folders  = os.listdir(path)
 
@@ -152,8 +159,11 @@ class fao_test(APIView):
 					'mean' : mean_values
 				}
 
+			final_data.update(calcul_aquacrop(31.665795547539773, -7.678333386926454, start_date, end_date))
+
 			return Response(final_data, status=status.HTTP_202_ACCEPTED)		
 		except Exception as e:
+			logger.error(f"Error occurred during data processing: {str(e)}")  # Log error	
 			return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
 class current_weather(APIView):
@@ -167,9 +177,10 @@ class current_weather(APIView):
 
 		if field_id != None:
 
-			try : 
+			try :
+				user = request.user
 				API_key = "85461dddb7698ac03b2bf4c5b22f5369"
-				field = Field.objects.get(id=field_id)
+				field = Field.objects.get(id=field_id, user_id=user.id)
 				point = field.boundaries[0][0]
 				lat = point[1]
 				lon = point[0]
@@ -199,11 +210,12 @@ class current_weather(APIView):
 						"temperature" : f"{temp} °C",
 						"humidity" : f"{rh} %",
 						"wind_speed" : f"{ws} km/h",
-						"rain" : f"{r} %",
+						"rain" : f"{r} mm",
 						# "cloud_cover" : clouds.get("all"),
 					}
 					return Response(final_result, status=status.HTTP_200_OK)
 			except Exception as e:
+				logger.error(f"Error occurred during data processing: {str(e)}")  # Log error	
 				return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
 		return Response("Error in APi", status=status.HTTP_404_NOT_FOUND)
@@ -223,110 +235,71 @@ class weather(APIView):
 		if field_id != None and start_date != None and end_date != None:
 
 			try :
-	
-				field = Field.objects.get(id=field_id)
+				user = request.user
+				field = Field.objects.get(id=field_id, user_id=user.id) # 
 				point = field.boundaries[0][0]
 				lat = point[1]
 				lon = point[0]
-				url = "https://archive-api.open-meteo.com/v1/archive"
-
-				# Define parameters for the API request
-				params = {
-					"latitude": lat,  
-					"longitude": lon,  
-					"start_date": start_date,  
-					"end_date": end_date,  # End date for historical data
-					# "hourly": "temperature_2m,precipitation,wind_speed_10m,relative_humidity_2m,shortwave_radiation",  # Request hourly data for temperature, precipitation, wind speed, RH, and shortwave radiation
-					"daily" : "rain_sum,shortwave_radiation_sum,et0_fao_evapotranspiration,temperature_2m_max,temperature_2m_min,relative_humidity_2m_max,relative_humidity_2m_min,wind_speed_10m_max",
-					"timezone": "Africa/Casablanca", 
-					"windspeed_unit": "ms",        # kmh, ms, mph, kn
-				}
-
-
-				# Send the request to the Open-Meteo API
-				response = requests.get(url, params=params)
-
-				# Check if the request was successful
-				if response.status_code == 200:
-					data = response.json()
-
-					final_result = {
-						"dates"	: data.get('daily')["time"],
-						"T2m"	:  data.get('daily')["temperature_2m_max"],
-						"rain" 	: data.get('daily')["rain_sum"],
-						"irg" 	: data.get('daily')["shortwave_radiation_sum"],
-						"Et0" 	: data.get("daily")["et0_fao_evapotranspiration"],
-						"Rh" 	:  data.get("daily")["relative_humidity_2m_max"],
-						"Ws" 	: data.get("daily")["wind_speed_10m_max"]
-					}
-
-					return Response(final_result, status=status.HTTP_200_OK)
+				
+				final_result = historic_weather(lat, lon, start_date, end_date)
+				return Response(final_result, status=status.HTTP_200_OK)
 			except Exception as e:
+				logger.error(f"Error occurred during data processing: {str(e)}")  # Log error	
 				return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
 		return Response("Error in APi", status=status.HTTP_404_NOT_FOUND)
 	
+class Forcast(APIView):
+
+	authentication_classes = [FARMERJWTAuthentication]
+	permission_classes = [IsAuthenticated]
+
+	def get(self, request):
+		
+		field_id = request.query_params.get('field_id')
+		
+		if field_id != None:
+
+			try :
+				user = request.user
+				field = Field.objects.get(id=field_id, user_id=user.id) # 
+				point = field.boundaries[0][0]
+				lat = point[1]
+				lon = point[0]
+				final_result = forcast(lat, lon)
+				return Response(final_result, status=status.HTTP_200_OK)
+			except Exception as e:
+				logger.error(f"Error occurred during data processing: {str(e)}")  # Log error	
+				return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+		return Response("Error in APi", status=status.HTTP_404_NOT_FOUND)
+
 
 class gdd(APIView):
 	
-	# authentication_classes = [FARMERJWTAuthentication]
-	# permission_classes = [IsAuthenticated]
+	authentication_classes = [FARMERJWTAuthentication]
+	permission_classes = [IsAuthenticated]
 
 	def get(self, request):
 
 		start_date = request.query_params.get('start_date')
 		end_date = request.query_params.get('end_date')
 		field_id = request.query_params.get('field_id')
-		Tbase = 0
 
 		if field_id != None and start_date != None and end_date != None:
 
 			try :
 
-				yesterday = datetime.strptime(start_date, "%Y-%m-%d") - timedelta(days=1)
-				new_start_date = yesterday.strftime("%Y-%m-%d")
-
-				field = Field.objects.get(id=field_id)
+				user = request.user
+				field = Field.objects.get(id=field_id, user_id=user.id) # 
 				point = field.boundaries[0][0]
 				lat = point[1]
 				lon = point[0]
-				url = "https://archive-api.open-meteo.com/v1/archive"
-
-				# Define parameters for the API request
-				params = {
-					"latitude": lat,  
-					"longitude": lon,  
-					"start_date": start_date,  
-					"end_date": end_date,  # End date for historical data
-					# "hourly": "temperature_2m,precipitation,wind_speed_10m,relative_humidity_2m,shortwave_radiation",  # Request hourly data for temperature, precipitation, wind speed, RH, and shortwave radiation
-					"daily" : "temperature_2m_max,temperature_2m_min",
-					"timezone": "Africa/Casablanca", 
-					"windspeed_unit": "ms",        # kmh, ms, mph, kn
-				}
-
-				response = requests.get(url, params=params)
-				if response.status_code == 200:
+				final_data = gdd_weather(lat, lon, start_date, end_date)
 				
-					data = response.json()
-
-					Tmax = data.get('daily')["temperature_2m_max"]
-					Tmin = data.get('daily')["temperature_2m_min"]
-
-					i = 0
-					gdd = []
-					while(i < len(Tmax)):
-						daily_gdd = max(((Tmax[i] + Tmin[i]) / 2) - Tbase, 0)
-						gdd.append(daily_gdd)
-						i += 1
-
-					gdd_cum = []
-					cumulative = 0
-					for value in gdd:
-						cumulative += value
-						gdd_cum.append(cumulative)
-					
-					return Response(gdd_cum, status=status.HTTP_200_OK)
+				return Response(final_data, status=status.HTTP_200_OK)
 			except Exception as e:
+				logger.error(f"Error occurred during data processing: {str(e)}")  # Log error	
 				return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
 		return Response("Error in data", status=status.HTTP_404_NOT_FOUND)

@@ -7,5 +7,6 @@ urlpatterns = [
     path('fao_test', fao_test.as_view()),
     path('current_weather', current_weather.as_view()),
     path('weather', weather.as_view()),
+    path('forcast', Forcast.as_view()),
     path('gdd', gdd.as_view()),
 ]
