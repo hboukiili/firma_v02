@@ -259,3 +259,51 @@ class fao_output(models.Model):
     Runoff  = gis.RasterField()
     T       = gis.RasterField()
     Zr      = gis.RasterField()
+
+class Sentinel2(models.Model):
+
+    path = models.CharField(max_length=50)
+    date = models.DateField(blank=True, null=True)
+
+class Weather_date(models.Model):
+
+    Date        = models.DateTimeField(blank=True, null=True)
+    Field_id    = models.ForeignKey(Field, on_delete=models.CASCADE)
+    T2m         = models.FloatField(blank=True, null=True)
+    Ws          = models.FloatField(blank=True, null=True)
+    Et0         = models.FloatField(blank=True, null=True)
+    Rain        = models.FloatField(blank=True, null=True)
+    Rh          = models.FloatField(blank=True, null=True)
+    D2m         = models.FloatField(blank=True, null=True)
+
+
+class forcast_Weather_date(models.Model):
+
+    Date        = models.DateTimeField(blank=True, null=True)
+    Field_id    = models.ForeignKey(Field, on_delete=models.CASCADE)
+    T2m         = models.FloatField(blank=True, null=True)
+    Ws          = models.FloatField(blank=True, null=True)
+    Et0         = models.FloatField(blank=True, null=True)
+    Rain        = models.FloatField(blank=True, null=True)
+    Rh          = models.FloatField(blank=True, null=True)
+    D2m         = models.FloatField(blank=True, null=True)
+
+class aquacrop_output(models.Model):
+    
+    date = models.DateField(blank=True, null=True)
+    field_id = models.ForeignKey(Field, on_delete=models.CASCADE)
+    IrrDay     = models.FloatField()
+    Tr =        models.FloatField()
+    DeepPerc =  models.FloatField()
+    Es  =       models.FloatField()
+    Th1 =       models.FloatField()
+    Th2 =       models.FloatField()
+    th3 =       models.FloatField()
+    gdd_cum = models.FloatField()
+    canopy_cover = models.FloatField()
+    biomass =models.FloatField()
+    z_root =models.FloatField()
+    DryYield =models.FloatField()
+    FreshYield =models.FloatField()
+    harvest_index = models.FloatField()
+    ET = models.FloatField()

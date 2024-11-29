@@ -50,6 +50,7 @@ INSTALLED_APPS = [
     'models_only',
     'drf_yasg',
     'farmer',
+    'django_extensions',
     'corsheaders',
     # 'ratelimit',
 ]

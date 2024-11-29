@@ -14,8 +14,8 @@ def historic_weather(lat, lon, start_date, end_date):
         "longitude": lon,  
         "start_date": start_date,  
         "end_date": end_date,  # End date for historical data
-        "hourly": "temperature_2m,wind_speed_10m,et0_fao_evapotranspiration,rain,relative_humidity_2m,dew_point_2m",  # Variables you need
-        # "daily" : "rain_sum,shortwave_radiation_sum,et0_fao_evapotranspiration,temperature_2m_max,temperature_2m_min,relative_humidity_2m_max,relative_humidity_2m_min,wind_speed_10m_max",
+        # "hourly": "temperature_2m,wind_speed_10m,et0_fao_evapotranspiration,rain,relative_humidity_2m,dew_point_2m",  # Variables you need
+        "daily" : "rain_sum,shortwave_radiation_sum,et0_fao_evapotranspiration,temperature_2m_max,temperature_2m_min,relative_humidity_2m_max,relative_humidity_2m_min,wind_speed_10m_max",
         "timezone": "Africa/Casablanca", 
         "windspeed_unit": "ms",        # kmh, ms, mph, kn
     }
@@ -28,18 +28,19 @@ def historic_weather(lat, lon, start_date, end_date):
     # Check if the request was successful
     data = response.json()
 
-    hourly_data = data['hourly']
+    daily = data['daily']
 
-    timestamps = [int(datetime.strptime(date, "%Y-%m-%dT%H:%M").timestamp()) for date in hourly_data['time']]
 
     return {
-        "Time"	: timestamps,
-        "T2m"	:  hourly_data["temperature_2m"],
-        "Ws" 	: hourly_data["wind_speed_10m"],
-        "Et0" 	: hourly_data["et0_fao_evapotranspiration"],
-        "Rain" 	: hourly_data["rain"],
-        "Rh" 	:  hourly_data["relative_humidity_2m"],
-        "D2m" 	: hourly_data["dew_point_2m"],
+            "Dates"     : daily['time'],
+            "Rain"      : daily["rain_sum"],
+            "irg"       : daily["shortwave_radiation_sum"],
+            "Et0"       : daily["et0_fao_evapotranspiration"],
+            "T2m_max"   : daily["temperature_2m_max"],
+            "T2m_min"   : daily["temperature_2m_min"],
+            "Rh_min"    : daily["relative_humidity_2m_min"],
+            "Rh_max"    : daily["relative_humidity_2m_max"],
+            "Ws"        : daily["wind_speed_10m_max"],
     }
 
 def forcast(lat, lon):
@@ -49,8 +50,8 @@ def forcast(lat, lon):
     params = {
         "latitude": lat,  
         "longitude": lon,  
-        "hourly": "temperature_2m,wind_speed_10m,et0_fao_evapotranspiration,rain,relative_humidity_2m,dew_point_2m,visibility",  # Variables you need
-        # "daily" : "rain_sum,shortwave_radiation_sum,et0_fao_evapotranspiration,temperature_2m_max,temperature_2m_min,relative_humidity_2m_max,relative_humidity_2m_min,wind_speed_10m_max",
+        "hourly": "temperature_2m,wind_speed_10m,et0_fao_evapotranspiration,rain,relative_humidity_2m,dew_point_2m,visibility,wind_speed_10m,precipitation_probability",
+        "daily" : "rain_sum,shortwave_radiation_sum,et0_fao_evapotranspiration,temperature_2m_max,temperature_2m_min,relative_humidity_2m_max,relative_humidity_2m_min,wind_speed_10m_max,precipitation_probability_mean",
         "timezone": "Africa/Casablanca", 
         "windspeed_unit": "ms",        # kmh, ms, mph, kn
     }
@@ -65,18 +66,33 @@ def forcast(lat, lon):
 
     hourly_data = data['hourly']
 
-    timestamps = [int(datetime.strptime(date, "%Y-%m-%dT%H:%M").timestamp()) for date in hourly_data['time']]
+    daily = data['daily']
 
     return  {
-        "Time"			: timestamps,
-        "T2m"			: hourly_data["temperature_2m"],
-        "Ws" 			: hourly_data["wind_speed_10m"],
-        "Et0" 			: hourly_data["et0_fao_evapotranspiration"],
-        "Rain" 			: hourly_data["rain"],
-        "Rh" 			: hourly_data["relative_humidity_2m"],
-        "D2m" 			: hourly_data["dew_point_2m"],
-        "visibility" 	: hourly_data["visibility"]
+        "Today" : { 
+            "T2m"			: hourly_data["temperature_2m"][:24],
+            "Ws" 			: hourly_data["wind_speed_10m"][:24],
+            "Et0" 			: hourly_data["et0_fao_evapotranspiration"][:24],
+            "Rain" 			: hourly_data["rain"][:24],
+            "Rh" 			: hourly_data["relative_humidity_2m"][:24],
+            "visibility" 	: hourly_data["visibility"][:24],
+            "Pro"           : hourly_data["precipitation_probability"][:24]
+        },
+        "forcast" : {
+            "Dates"      : daily['time'][1:],
+            "Rain"      : daily["rain_sum"][1:],
+            "irg"       : daily["shortwave_radiation_sum"][1:],
+            "Et0"       : daily["et0_fao_evapotranspiration"][1:],
+            "T2m_max"   : daily["temperature_2m_max"][1:],
+            "T2m_min"   : daily["temperature_2m_min"][1:],
+            "Rh_min"    : daily["relative_humidity_2m_min"][1:],
+            "Rh_max"    : daily["relative_humidity_2m_max"][1:],
+            "Ws"        : daily["wind_speed_10m_max"][1:],
+            "Pro"       : daily["precipitation_probability_mean"][1:]
+        }
+
     }
+
 
 def gdd_weather(lat, lon, start_date, end_date):
 
@@ -217,4 +233,6 @@ def calcul_aquacrop(lat, lon, start_date, end_date):
     # }
 
 if __name__ == '__main__':
-    calcul_aquacrop(31.665795547539773, -7.678333386926454, '2024-01-01', '2024-05-05')
+    # calcul_aquacrop(31.665795547539773, -7.678333386926454, '2024-01-01', '2024-05-05')
+    # print(forcast(31.665795547539773, -7.678333386926454))
+    print(historic_weather(31.665795547539773, -7.678333386926454, '2024-11-01', '2024-11-28'))

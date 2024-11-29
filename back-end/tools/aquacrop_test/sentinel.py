@@ -17,7 +17,7 @@ ft = "POLYGON((-7.678419088737144 31.66600208716224, -7.677561484332273 31.66593
 data_collection = "SENTINEL-2" # Sentinel satellite
 
 # today =  "2018-02-01"
-today_string = "2024-05-31"
+today_string = "2024-01-15"
 # yesterday 
 yesterday_string = "2024-01-10"
 
@@ -145,40 +145,44 @@ json_ = requests.get(
 p = pd.DataFrame.from_dict(json_["value"]) # Fetch available dataset
 if p.shape[0] > 0 :
     p["geometry"] = p["GeoFootprint"].apply(shape)
+    Tile_ID = p["Name"].str.extract(r"(T\d{2}[A-Z]{3})").values[0]
+
+    print(Tile_ID)  # Tile names and IDs
     productDF = gpd.GeoDataFrame(p).set_geometry("geometry") # Convert PD to GPD
     productDF = productDF[~productDF["Name"].str.contains("L1C")] # Remove L1C dataset
     print(f" total L2A tiles found {len(productDF)}")
     productDF["identifier"] = productDF["Name"].str.split(".").str[0]
     allfeat = len(productDF) 
+    # print(productDF)
+    # print('done')
+    # if allfeat == 0:
+    #     print("No tiles found for today")
+    # else:
+    #     ## download all tiles from server
+    #     for index,feat in enumerate(productDF.iterfeatures()):
+    #         # print(index, feat['properties']['OriginDate'].split('T')[0])
+    #         # break 
+    #         try:
+    #             session = requests.Session()
+    #             keycloak_token = get_keycloak(copernicus_user,copernicus_password)
+    #             session.headers.update({"Authorization": f"Bearer {keycloak_token}"})
+    #             url = f"https://catalogue.dataspace.copernicus.eu/odata/v1/Products({feat['properties']['Id']})/$value"
+    #             response = session.get(url, allow_redirects=False)
+    #             print('got Response ...')
+    #             while response.status_code in (301, 302, 303, 307):
+    #                 print('redirected ...')
+    #                 url = response.headers["Location"]
+    #                 response = session.get(url, allow_redirects=False)
+    #             print('start downlaoding : ', feat['properties']['OriginDate'].split('T')[0])
+    #             file = session.get(url, verify=False, allow_redirects=True)
 
-    if allfeat == 0:
-        print("No tiles found for today")
-    else:
-        ## download all tiles from server
-        for index,feat in enumerate(productDF.iterfeatures()):
-            # print(index, feat['properties']['OriginDate'].split('T')[0])
-            # break 
-            try:
-                session = requests.Session()
-                keycloak_token = get_keycloak(copernicus_user,copernicus_password)
-                session.headers.update({"Authorization": f"Bearer {keycloak_token}"})
-                url = f"https://catalogue.dataspace.copernicus.eu/odata/v1/Products({feat['properties']['Id']})/$value"
-                response = session.get(url, allow_redirects=False)
-                print('got Response ...')
-                while response.status_code in (301, 302, 303, 307):
-                    print('redirected ...')
-                    url = response.headers["Location"]
-                    response = session.get(url, allow_redirects=False)
-                print('start downlaoding : ', feat['properties']['OriginDate'].split('T')[0])
-                file = session.get(url, verify=False, allow_redirects=True)
-
-                with open(
-                    f"{base_dir}{feat['properties']['OriginDate'].split('T')[0]}.zip", #location to save zip from copernicus 
-                    "wb",
-                ) as p:
-                    print(feat['properties']['OriginDate'].split('T')[0])
-                    p.write(file.content)
-            except:
-                print("problem with server")
+    #             with open(
+    #                 f"{base_dir}{feat['properties']['OriginDate'].split('T')[0]}.zip", #location to save zip from copernicus 
+    #                 "wb",
+    #             ) as p:
+    #                 print(feat['properties']['OriginDate'].split('T')[0])
+    #                 p.write(file.content)
+    #         except:
+    #             print("problem with server")
 else :
     print('no data found')
