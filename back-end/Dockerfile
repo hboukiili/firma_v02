@@ -2,6 +2,7 @@ FROM continuumio/miniconda3
 
 RUN apt-get update && apt-get install -y \
     build-essential \
+    redis-server \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
@@ -20,11 +21,13 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 RUN pip install aquacrop==3.0.7 pyfao56
 
+RUN export DJANGO_SETTINGS_MODULE=firma_v02.settings
+
 # RUN pip install xarray
 
-# COPY ./script.sh /app/
+COPY ./script.sh /app/
 
-# RUN chmod +x /app/script.sh
+RUN chmod +x /app/script.sh
 
 # ENTRYPOINT [ "/app/script.sh" ]
 
@@ -50,4 +53,4 @@ RUN pip install aquacrop==3.0.7 pyfao56
 
 # WORKDIR /app
 
-CMD ["tail", "-f"]
+CMD ["/app/script.sh"]

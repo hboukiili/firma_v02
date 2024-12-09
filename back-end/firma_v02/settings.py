@@ -52,8 +52,26 @@ INSTALLED_APPS = [
     'farmer',
     'django_extensions',
     'corsheaders',
+    'django_celery_beat',
+    'django_celery_results',
+    'modules_api',
     # 'ratelimit',
 ]
+
+# settings.py
+
+# Redis configuration for Celery
+CELERY_BROKER_URL = 'redis://localhost:6379/0'  # Redis broker URL
+
+# Celery result backend (optional, for tracking task results)
+CELERY_RESULT_BACKEND = 'redis://localhost:6379/0'
+
+# Celery settings (optional)
+CELERY_ACCEPT_CONTENT = ['json']  # Content types Celery will accept
+CELERY_TASK_SERIALIZER = 'json'  # Serialization format for tasks
+CELERY_BEAT_SCHEDULER = 'django_celery_beat.schedulers:DatabaseScheduler'
+CELERY_BEAT_SCHEDULE_MAX_INTERVAL = 1800  # Set the interval to 10 seconds
+
 
 SIMPLE_JWT = {
     'ACCESS_TOKEN_LIFETIME': timedelta(days=60),

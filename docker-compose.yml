@@ -12,18 +12,18 @@ services:
     depends_on:
       - postgres
 
-  frontend:
-    build: ./frontend/
-    volumes:
-      - ./frontend/src:/app/src
-    ports:
-      - "5173:5173"
-    restart : always
-    depends_on:
-      - backend
+  # frontend:
+  #   build: ./frontend/
+  #   volumes:
+  #     - ./frontend/src:/app/src
+  #   ports:
+  #     - "5173:5173"
+  #   restart : always
+  #   depends_on:
+  #     - backend
 
   postgres:
-    image: postgis/postgis
+    image: postgis/postgis:16-3.4
     environment:
       POSTGRES_DB: firma
       POSTGRES_USER: admin
@@ -33,16 +33,15 @@ services:
       - ./db_tools/Ogimet_stations.sql:/Ogimet_stations.sql
       - ./db_tools/script.sh:/script.sh
     # command: chmod +x /script.sh && /script.sh
-  geoserver:
-    image: kartoza/geoserver
-    ports:
-      - "8080:8080"
-    depends_on:
-      - postgres
-    environment:
-      GEOSERVER_ADMIN_PASSWORD : 123
-      GEOSERVER_ADMIN_USER: test
-    volumes:
-      - ./geoserver_data:/var/lib/geoserver_data
-      - /home/hamza-boukili/Desktop/firma_v02/back-end/tools/fao_test/fao_output:/data
-      - /home/hamza-boukili/Desktop/firma_v02/back-end/tools/fao_test/interpolated_ndvi:/data
+  # geoserver:
+  #   image: kartoza/geoserver
+  #   ports:
+  #     - "8080:8080"
+  #   depends_on:
+  #     - postgres
+  #   environment:
+  #     GEOSERVER_ADMIN_PASSWORD : 123
+  #     GEOSERVER_ADMIN_USER: test
+  #   volumes:
+  #     # - ./geoserver_data:/var/lib/geoserver_data
+  #     - /home/hamza-boukili/Desktop/firma_v02/back-end/tools/fao_test/fao_output:/data

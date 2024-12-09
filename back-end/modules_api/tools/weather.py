@@ -48,7 +48,8 @@ def forcast(lat, lon):
 
     # Define parameters for the API request
     params = {
-        "latitude": lat,  
+        "latitude": lat,
+        'forecast_days' : '16',
         "longitude": lon,  
         "hourly": "temperature_2m,wind_speed_10m,et0_fao_evapotranspiration,rain,relative_humidity_2m,dew_point_2m,visibility,wind_speed_10m,precipitation_probability",
         "daily" : "rain_sum,shortwave_radiation_sum,et0_fao_evapotranspiration,temperature_2m_max,temperature_2m_min,relative_humidity_2m_max,relative_humidity_2m_min,wind_speed_10m_max,precipitation_probability_mean",
@@ -234,5 +235,5 @@ def calcul_aquacrop(lat, lon, start_date, end_date):
 
 if __name__ == '__main__':
     # calcul_aquacrop(31.665795547539773, -7.678333386926454, '2024-01-01', '2024-05-05')
-    # print(forcast(31.665795547539773, -7.678333386926454))
-    print(historic_weather(31.665795547539773, -7.678333386926454, '2024-11-01', '2024-11-28'))
+    print(forcast(31.665795547539773, -7.678333386926454))
+    # print(historic_weather(31.665795547539773, -7.678333386926454, '2024-11-01', '2024-11-28'))

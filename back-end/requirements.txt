@@ -119,3 +119,10 @@ zipp==3.16.2
 xarray
 cdsapi
 django-ratelimit
+django-celery-results
+django-celery-beat
+redis>=4.0,<5.0
+django-extensions
+kombu
+geopandas
+# flower
