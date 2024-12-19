@@ -12,15 +12,15 @@ services:
     depends_on:
       - postgres
 
-  # frontend:
-  #   build: ./frontend/
-  #   volumes:
-  #     - ./frontend/src:/app/src
-  #   ports:
-  #     - "5173:5173"
-  #   restart : always
-  #   depends_on:
-  #     - backend
+  frontend:
+    build: ./frontend/
+    volumes:
+      - ./frontend/src:/app/src
+    ports:
+      - "5173:5173"
+    restart : always
+    depends_on:
+      - backend
 
   postgres:
     image: postgis/postgis:16-3.4

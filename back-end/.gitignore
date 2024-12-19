@@ -14,3 +14,4 @@ tools/forcast/__pycache__
 tools/PySEBS/__pycache__
 __pycache__
 /tools/sentinel_downloads
+./Data

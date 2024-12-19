@@ -14,7 +14,7 @@ from farmer.tools.FarmerAUTH import FARMERJWTAuthentication
 from .tools.aquacrop_ import aquacrop_run
 from  datetime import datetime, timedelta
 from .tools.gee import aquacrop_
-from .tools.Open_meteo import Open_meteo
+from .tools.Open_meteo import fao_Open_meteo
 import os
 import rasterio
 import numpy as np
@@ -105,7 +105,7 @@ class aquacrop(APIView):
 
 				field = Field.objects.get(id=field_id, user_id=user.id)
 				point = field.boundaries[0][0]
-				weather = Open_meteo(start_date,end_date,point[1], point[0])
+				weather = fao_Open_meteo(start_date,end_date,point[1], point[0])
 				# stations_ids = Ogimet.get_closest_stations(point[1], point[0])
 # 				result = Ogimet.download(stations_ids, start_date, end_date)
 # 				if result:
@@ -228,10 +228,10 @@ class weather(APIView):
 
 	def get(self, request):
 		
-		field_id = request.query_params.get('field_id')
-		start_date = request.query_params.get('start_date')
-		end_date = request.query_params.get('end_date')
-		
+		field_id 	= request.query_params.get('field_id')
+		end_date 	= (datetime.now() - timedelta(days=1)).strftime('%Y-%m-%d')
+		start_date	= (datetime.now() - timedelta(weeks=8)).strftime('%Y-%m-%d')
+
 		if field_id != None and start_date != None and end_date != None:
 
 			try :
@@ -241,7 +241,10 @@ class weather(APIView):
 				lat = point[1]
 				lon = point[0]
 				
-				final_result = historic_weather(lat, lon, start_date, end_date)
+				final_result = {
+					'historic' : historic_weather(lat, lon, start_date, end_date),
+					'forcast'	: forcast(lat, lon)
+				}
 				return Response(final_result, status=status.HTTP_200_OK)
 			except Exception as e:
 				logger.error(f"Error occurred during data processing: {str(e)}")  # Log error	

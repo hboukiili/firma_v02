@@ -176,7 +176,6 @@ def fao_test():
         
         i = i + 1
 
-    print('done')
     for date_str in FC:
             parsed_date = datetime.strptime(date_str, '%Y-%j')
 

@@ -14,8 +14,7 @@ def historic_weather(lat, lon, start_date, end_date):
         "longitude": lon,  
         "start_date": start_date,  
         "end_date": end_date,  # End date for historical data
-        # "hourly": "temperature_2m,wind_speed_10m,et0_fao_evapotranspiration,rain,relative_humidity_2m,dew_point_2m",  # Variables you need
-        "daily" : "rain_sum,shortwave_radiation_sum,et0_fao_evapotranspiration,temperature_2m_max,temperature_2m_min,relative_humidity_2m_max,relative_humidity_2m_min,wind_speed_10m_max",
+        "daily" : "rain_sum,shortwave_radiation_sum,et0_fao_evapotranspiration,temperature_2m_max,relative_humidity_2m_max,wind_speed_10m_max,wind_direction_10m_dominant,precipitation_probability_mean",
         "timezone": "Africa/Casablanca", 
         "windspeed_unit": "ms",        # kmh, ms, mph, kn
     }
@@ -32,27 +31,27 @@ def historic_weather(lat, lon, start_date, end_date):
 
 
     return {
-            "Dates"     : daily['time'],
-            "Rain"      : daily["rain_sum"],
-            "irg"       : daily["shortwave_radiation_sum"],
-            "Et0"       : daily["et0_fao_evapotranspiration"],
-            "T2m_max"   : daily["temperature_2m_max"],
-            "T2m_min"   : daily["temperature_2m_min"],
-            "Rh_min"    : daily["relative_humidity_2m_min"],
-            "Rh_max"    : daily["relative_humidity_2m_max"],
-            "Ws"        : daily["wind_speed_10m_max"],
+            "Dates"             : daily['time'],
+            "Rain"              : daily["rain_sum"],
+            "irg"               : daily["shortwave_radiation_sum"],
+            "Et0"               : daily["et0_fao_evapotranspiration"],
+            "T2m_max"           : daily["temperature_2m_max"],
+            "Rh_max"            : daily["relative_humidity_2m_max"],
+            "Ws"                : daily["wind_speed_10m_max"],
+            "Wd"                : daily["wind_direction_10m_dominant"],
+            "Rain_pro"          : daily["precipitation_probability_mean"],
     }
 
 def forcast(lat, lon):
+
     url = "https://api.open-meteo.com/v1/forecast"
 
     # Define parameters for the API request
     params = {
         "latitude": lat,
-        'forecast_days' : '16',
+        'forecast_days' : '7',
         "longitude": lon,  
-        "hourly": "temperature_2m,wind_speed_10m,et0_fao_evapotranspiration,rain,relative_humidity_2m,dew_point_2m,visibility,wind_speed_10m,precipitation_probability",
-        "daily" : "rain_sum,shortwave_radiation_sum,et0_fao_evapotranspiration,temperature_2m_max,temperature_2m_min,relative_humidity_2m_max,relative_humidity_2m_min,wind_speed_10m_max,precipitation_probability_mean",
+        "daily" : "rain_sum,shortwave_radiation_sum,et0_fao_evapotranspiration,temperature_2m_max,relative_humidity_2m_max,wind_speed_10m_max,wind_direction_10m_dominant,precipitation_probability_mean",
         "timezone": "Africa/Casablanca", 
         "windspeed_unit": "ms",        # kmh, ms, mph, kn
     }
@@ -65,35 +64,20 @@ def forcast(lat, lon):
     # Check if the request was successful
     data = response.json()
 
-    hourly_data = data['hourly']
 
     daily = data['daily']
 
-    return  {
-        "Today" : { 
-            "T2m"			: hourly_data["temperature_2m"][:24],
-            "Ws" 			: hourly_data["wind_speed_10m"][:24],
-            "Et0" 			: hourly_data["et0_fao_evapotranspiration"][:24],
-            "Rain" 			: hourly_data["rain"][:24],
-            "Rh" 			: hourly_data["relative_humidity_2m"][:24],
-            "visibility" 	: hourly_data["visibility"][:24],
-            "Pro"           : hourly_data["precipitation_probability"][:24]
-        },
-        "forcast" : {
-            "Dates"      : daily['time'][1:],
-            "Rain"      : daily["rain_sum"][1:],
-            "irg"       : daily["shortwave_radiation_sum"][1:],
-            "Et0"       : daily["et0_fao_evapotranspiration"][1:],
-            "T2m_max"   : daily["temperature_2m_max"][1:],
-            "T2m_min"   : daily["temperature_2m_min"][1:],
-            "Rh_min"    : daily["relative_humidity_2m_min"][1:],
-            "Rh_max"    : daily["relative_humidity_2m_max"][1:],
-            "Ws"        : daily["wind_speed_10m_max"][1:],
-            "Pro"       : daily["precipitation_probability_mean"][1:]
-        }
-
+    return {
+            "Dates"             : daily['time'],
+            "Rain"              : daily["rain_sum"],
+            "irg"               : daily["shortwave_radiation_sum"],
+            "Et0"               : daily["et0_fao_evapotranspiration"],
+            "T2m_max"           : daily["temperature_2m_max"],
+            "Rh_max"            : daily["relative_humidity_2m_max"],
+            "Ws"                : daily["wind_speed_10m_max"],
+            "Wd"                : daily["wind_direction_10m_dominant"],
+            "Rain_pro"          : daily["precipitation_probability_mean"],
     }
-
 
 def gdd_weather(lat, lon, start_date, end_date):
 

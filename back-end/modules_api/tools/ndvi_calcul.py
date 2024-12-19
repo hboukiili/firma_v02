@@ -92,7 +92,7 @@ def GetExtent(gt,cols,rows):
 
 
 
-def S2_ndvi(fname_L2A,dir_NDVI,flocal='./flocal'):
+def S2_ndvi(fname_L2A,dir_NDVI,specefic_date,flocal='./flocal'):
 	"""
 		Calculate the ndvi of the granule in the given directory. The granule must have been processed with sen2cor before.
 
@@ -114,13 +114,9 @@ def S2_ndvi(fname_L2A,dir_NDVI,flocal='./flocal'):
 	nameBand8 =  glob.glob(os.path.join(subdir , "IMG_DATA","R10m")+os.sep+"*B08*.jp2")[0]
 	nameBandCLD = nameBand8[:-11] + "CLD.tif"
 	fname=fname_L2A.split(os.sep)[-1]
-	nameNdvi = fname+'_ndvi.tif'
+	nameNdvi = f'{specefic_date}_ndvi.tif'
 	nameNdvi = os.path.join(dir_NDVI, nameNdvi)
-	# read_tif(nameNdvi)
-	# exit()
-	# print(fname_L2A,nameNdvi)
-	# print(nameBand4)
-	# print(nameBand8)
+
 	if os.path.exists(nameBand4) is True and  os.path.exists(nameBand8) is True :
 		print("calcul")
 	
@@ -139,41 +135,6 @@ def S2_ndvi(fname_L2A,dir_NDVI,flocal='./flocal'):
 			yres=-GT[5]	
 			ref_img=None
 			
-			# Cloud Mask  from L1C
-			# if Cloud_mask_L1C is True:
-		
-			# 	gml_fn_cld = glob.glob(os.path.join(subdir , "QI_DATA")+os.sep+"MSK_CLOUDS_B00.gml")[0]
-			# 	(gmlshortnamecld, extension) = os.path.splitext(gml_fn_cld)
-			# 	shp_fn_cld = gml_fn_cld.replace("MSK_CLOUDS_B00.gml","MSK_CLOUDS_B00.shp")
-			# 	(shpshortnamecld, extension) = os.path.splitext(shp_fn_cld)
-		
-			# 	#convert the .GML cloud mask in shapefile with ogr2ogr
-		
-			# 	commande ='ogr2ogr '+ gmlshortnamecld + '.shp ' + gml_fn_cld
-			# 	print("\n" + commande)
-			# 	os.system(commande)
-				
-			# 	#rasterize the cloud mask
-				
-			# 	burnvalue = 1
-			# 	shp_attrib='maskType'
-			# 	#shp_attrib=shpshortnamecld
-			# 	#os.system('gdal_rasterize -a ICE_TYPE -where \"ICE_TYPE=\'Open Water\'\" -burn 2 -l ' + shapefileshortname +' -tr 1000 -1000 ' +  shapefile + ' ' + outraster) 
-	
-			# 	commande="/usr/local/bin/gdal_rasterize "+' -te '+str(xmin)+' '+str(ymax)+' '+str(xmax)+' '+str(ymin)+' -tr '+str(xres)+' '+str(yres)+' -a '+shp_attrib+' -where \"'+'maskType'+'=\''+'OPAQUE'+'\'\" -burn '+str(burnvalue)+' -l ' + os.path.basename(gmlshortnamecld) + ' "' + gmlshortnamecld + '.shp' + '" "' + nameBandCLD+'"'
-			# 	print("\n" + commande)
-			# 	os.system(commande)			
-			# 	commande="/usr/local/bin/gdal_rasterize "+' -a '+shp_attrib+' -where \"'+'maskType'+'=\''+'CIRRUS'+'\'\" -b 1 -burn '+str(burnvalue)+' -l ' + os.path.basename(gmlshortnamecld) + ' "' + gmlshortnamecld + '.shp' + '" "' + nameBandCLD+'"'
-			# 	print("\n" + commande)
-			# 	os.system(commande)	
-			# 	#commande='gdal_rasterize -l ' + os.path.basename(shpshortnamecld) +' -burn '+str(burnvalue) + ' ' + shp_fn_cld + ' ' + nameBandCLD
-			# 	#print("\n" + commande)
-			# 	#os.system(commande)
-				
-			# 	fileBandCLD = gdal.Open(nameBandCLD)
-			# 	bandCLD = fileBandCLD.GetRasterBand(1)
-			# 	LCLD=bandCLD.ReadAsArray()
-			# 	fileBandCLD = None
 
 			# Cloud Mask from Sen2cor
 			if Cloud_mask_sen2cor is True:
@@ -226,24 +187,21 @@ def S2_ndvi(fname_L2A,dir_NDVI,flocal='./flocal'):
 				# Apply emprise mask to exclude no-data pixels (where L4 is 0)
 				tt = tt * emprise
 				
-				# print("Min NDVI:", tt.min())
-				# print("Max NDVI:", tt.max())
-				# print("Mean NDVI:", tt.mean())
 
 				# Write array to output TIFF here
 
 				bandOut.WriteArray(np.float32(tt), 0, int(j * jr))
 							
-			# del driverOut
+			del driverOut
 			
 			print ('OK')
 
-			#bandOut.WriteArray(ndvi)
-			# flocal.write(nameNdvi+'\n')
+			# bandOut.WriteArray(ndvi)
+			flocal.write(nameNdvi+'\n')
 
 			fileBand4=None
 			fileBand8=None
-			# shutil.rmtree(fname_L2A)
+			shutil.rmtree(fname_L2A)
 			print ('Fini')
 			
 		except Exception as e:
