@@ -59,16 +59,17 @@ def save_raster(data_dict, output_folder, meta, shape):
     """Save computed rasters to disk."""
     for date_str, data in data_dict.items():
         parsed_date = datetime.strptime(date_str, '%Y-%j')
-        date = parsed_date.strftime('%Y-%m-%d')
-
+        date = parsed_date.strftime('%Y%m%d')
+        timestamp = parsed_date.strftime('%Y%m%d')  # ISO8601 format
         output_path = os.path.join(output_folder, f"{date}.tif")
-        os.makedirs(output_folder, exist_ok=True)
+        os.makedirs(output_folder, mode=0o777, exist_ok=True)
 
         with rasterio.open(output_path, "w", **{**meta, "height": shape[0], "width": shape[1]}) as dest:
-            dest.write(data, 1)  # Write the first band
-
+            dest.write(data, 1)
+            dest.update_tags(TIFFTAG_DATETIME=timestamp,Time=timestamp)
+            os.chmod(output_path, 0o777)
 @shared_task
-def process_field(ndvi_folder, output_folder, weather_data, index, par, airr, len_result):
+def process_field(ndvi_folder, output_folder, weather_data, index, par, airr):
     """Process NDVI rasters and run the FAO model."""
     logger.info("Starting field processing...")
 
@@ -91,7 +92,7 @@ def process_field(ndvi_folder, output_folder, weather_data, index, par, airr, le
     
     for i in range(fc.shape[1]):  # Loop over rows
         for x in range(fc.shape[2]):  # Loop over columns
-            try:
+            # try:
                 # Extract pixel values over time
                 fc_pixel = fc[:, i, x]
                 kcb_pixel = kcb[:, i, x]
@@ -104,8 +105,8 @@ def process_field(ndvi_folder, output_folder, weather_data, index, par, airr, le
                             if date not in results[param]:
                                 results[param][date] = np.full((fc.shape[1], fc.shape[2]), np.nan)
                             results[param][date][i, x] = value
-            except Exception as e:
-                logger.error(f"Error processing pixel ({i}, {x}): {e}")
+            # except Exception as e:
+            #     logger.error(f"Error processing pixel ({i}, {x}): {e}")
         logger.info(f"processing pixel ({i}, {x}): Done")    
 
     # Save all results as rasters
@@ -116,7 +117,7 @@ def process_field(ndvi_folder, output_folder, weather_data, index, par, airr, le
     logger.info("Field processing completed.")
 
 @shared_task
-def fao_model(point, field_id, result_len):
+def fao_model(point, field_id):
 
     ndvi_folder = f"/app/Data/fao_output/{field_id}/ndvi"
     output_folder = f"/app/Data/fao_output/{field_id}"
@@ -127,13 +128,11 @@ def fao_model(point, field_id, result_len):
     date_range      = pd.date_range(start=files[0].split('.')[0], end=dates[-1], freq='D')
     index           = date_range.strftime('%Y-%j')
     Weather_Data    = fao_Open_meteo(forcast,files[0].split('.')[0], date_range[date_range.get_loc(pd.Timestamp(dates[0])) - 1].strftime('%Y-%m-%d'), point[1], point[0])
-
     weather_data    = Weather(Weather_Data, index)
     par             = Parameters()
     airr            = AutoIrrigate()
-    airr.addset(index[0], index[-10], ksc=0.7, imax=20)
 
-    process_field(ndvi_folder, output_folder, weather_data, index, par, airr, result_len)
+    process_field(ndvi_folder, output_folder, weather_data, index, par, airr)
 
 if __name__ == '__main__':
-    fao_model([-7.678321344603916, 31.66580238055144], 118, 0)
+    fao_model([-7.678321344603916, 31.66580238055144], 119)

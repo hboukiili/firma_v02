@@ -16,8 +16,9 @@ import json
 from django.db import transaction
 from django.utils.html import escape
 import logging
+from celery.result import AsyncResult
 # from ratelimit.decorators import ratelimit
-
+from modules_api.tasks import process_new_field
 
 logger = logging.getLogger(__name__)
 
@@ -307,6 +308,7 @@ class register_data(APIView):
 			})
 
 		irg_class.objects.create(**irrigation_kwargs)
+		# process_new_field.delay(field.id, field.boundaries.wkt, field.boundaries[0][0])
 
 	def process_crop(self, data, field):
 		crop		= data['Crop']
@@ -336,7 +338,9 @@ class register_data(APIView):
 						self.process_soil(soil_['method'], soil_['value'], field)
 						self.process_irrigation_system(request.data.get('irr'), field)
 						self.process_crop(request.data.get('plant'), field)
-						return Response("Data stored successfully", status=status.HTTP_201_CREATED)
+						logging.info('starting the process ....')
+						task_id = process_new_field.delay(field.id, field.boundaries.wkt, field.boundaries[0][0])
+						return Response(task_id, status=status.HTTP_201_CREATED)
 					except Exception as e:
 						logger.error(f"Error occurred during data processing: {str(e)}")  # Log error
 						return Response({"error": "An error occurred while processing your request"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
@@ -380,4 +384,22 @@ class Irrigation(APIView):
 				logger.error(f"Error occurred during data processing: {str(e)}")  # Log error
 				return Response({f"error": "An error occurred while processing your request : {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 		return Response("Error in Data", status=status.HTTP_400_BAD_REQUEST)
+
+class check_pro(APIView):
+
+	authentication_classes = [FARMERJWTAuthentication]
+	permission_classes = [IsAuthenticated]
+	
+	def get(self, request):
+		task_id = request.query_params.get('task_id')
+
+		result = AsyncResult(task_id)
+
+		if result.ready():
+			if result.successful():
+				Response("Ok", status=status.HTTP_200_OK)
+			else:
+				Response(f"Error : {result.result}",status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+		else :
+			Response("Task is still running")
 

@@ -3,6 +3,7 @@ services:
     build : ./back-end
     volumes:
       - ./back-end:/app
+      - ./back-end/tools/pyfao56:/opt/conda/lib/python3.10/site-packages/pyfao56
       # - ./firma-backend/requirements.txt:/app/requirements.txt
       # - /mnt/EXTERNAL_USB/Data:/Data
       # - ./firma-backend/tools:/tools
@@ -33,15 +34,16 @@ services:
       - ./db_tools/Ogimet_stations.sql:/Ogimet_stations.sql
       - ./db_tools/script.sh:/script.sh
     # command: chmod +x /script.sh && /script.sh
-  # geoserver:
-  #   image: kartoza/geoserver
-  #   ports:
-  #     - "8080:8080"
-  #   depends_on:
-  #     - postgres
-  #   environment:
-  #     GEOSERVER_ADMIN_PASSWORD : 123
-  #     GEOSERVER_ADMIN_USER: test
-  #   volumes:
-  #     # - ./geoserver_data:/var/lib/geoserver_data
-  #     - /home/hamza-boukili/Desktop/firma_v02/back-end/tools/fao_test/fao_output:/data
+  geoserver:
+    image: kartoza/geoserver:latest
+    ports:
+      - "8080:8080"
+    depends_on:
+      - postgres
+    environment:
+      GEOSERVER_ADMIN_PASSWORD : 123
+      GEOSERVER_ADMIN_USER: test
+      JAVA_OPTS: "-Duser.timezone=GMT"
+    volumes:
+      - ./geoserver_data:/var/lib/geoserver_data
+      - ./back-end/Data/fao_output:/data

@@ -28,7 +28,7 @@ import requests
 from shapely.wkt import loads
 import rasterio
 import rasterio.mask as msk
-# from scipy.interpolate import interp1d
+from scipy.interpolate import interp1d
 from pyproj import Transformer
 from shapely.geometry import mapping
 from affine import Affine
@@ -36,8 +36,11 @@ import math
 from shapely.geometry import box
 from celery import group
 from .tools.fao_raster import fao_model
+from .tools.geoserver_tools import *
 
 logger = logging.getLogger(__name__)
+
+
 
 def align_polygon_to_pixel(polygon, transform):
     """
@@ -107,9 +110,10 @@ def interpolate_ndvi(ndvi_data, meta, date_range, field_folder):
     
     # Write the interpolated NDVI rasters to files
     for i, date in enumerate(date_range):
-        output_file = f"{field_folder}/{date.strftime('%Y-%m-%d')}.tif"
+        output_file = f"{field_folder}/{date.strftime('%Y%m%d')}.tif"
         with rasterio.open(output_file, "w", **meta) as dest:
             dest.write(interpolated_ndvi[i], 1)  # Write the data to the first band
+            dest.update_tags(TIFFTAG_DATETIME=date.strftime('%Y%m%d'),Time=date.strftime('%Y%m%d'))
             logging.info(f"{date.strftime('%Y-%m-%d')} Done")
 
             
@@ -118,8 +122,9 @@ def process_field(boundaries, id, date):
 
     folder = f"/app/Data/fao_output"
     polygon = loads(boundaries)
-    field_folder = f"{folder}/{id}/ndvi"
+    field_folder = f"{folder}/{str(id)}/ndvi"
 
+    logger.info(f"id = {id}")
     try:
         with rasterio.open(f'/app/Data/ndvi/{date}_ndvi.tif') as src:
     
@@ -150,13 +155,11 @@ def process_field(boundaries, id, date):
     
             if not os.path.exists(field_folder):
                 os.makedirs(field_folder)
-
     
             with rasterio.open(output_path, "w", **meta) as dest:
                 dest.write(out_image[0], 1)
 
             logger.info(f"Processed field {id} successfully. Output saved at {output_path}")
-
 
             files = [f for f in os.listdir(field_folder) if os.path.isfile(os.path.join(field_folder, f))]
             
@@ -180,6 +183,7 @@ def process_field(boundaries, id, date):
                     ndvi_data.append(np.full((ndvi.shape[0], ndvi.shape[1]), np.nan))
 
             interpolate_ndvi(ndvi_data, meta, date_range, field_folder)
+
 
 
     except rasterio.errors.RasterioIOError as e:
@@ -256,25 +260,24 @@ def run_model():
 
     ndvi_folder = '/app/Data/ndvi'
     response, specific_date, specific_tile, session, base_dir = check_data()
-
     if response.status_code == 200:
         results = response.json()["value"]
         len_result = len(results)
         if len_result:
-    
+            
             folder = download_data(results, session, specific_date, specific_tile, base_dir)
             
             #start calculatigng ndvi
             S2_ndvi(folder, ndvi_folder, specific_date)
     
             All_fields = Field.objects.all()
-            
+
             # start processing the field
             group_tasks = group(process_field.s(field.boundaries.wkt, field.id, specific_date) for field in All_fields)
             group_tasks.apply_async()
 
-        # model_taks = group(fao_model.s(field.boundaries[0][0], field.id, len_result) for field in All_fields)
-        # model_taks.apply_async()
+        model_taks = group(fao_model.s(field.boundaries[0][0], field.id) for field in All_fields)
+        model_taks.apply_async()
 
     else:
         logger.info(f"Error fetching data: {response.status_code} - {response.text}")
@@ -300,16 +303,32 @@ def process_new_field(field_id, boundaries_wkt, point):
 
                 
                 folder = download_data(results, session, specific_date, specific_tile, base_dir)
-                #start calculatigng ndvi
+                
+                session.close()
+
                 S2_ndvi(folder, ndvi_folder, specific_date)
     
                 process_field.delay(boundaries_wkt, field_id, specific_date)
 
                 fao_model.delay(point, field_id)
-            
+
+                path = f'/app/Data/fao_output/{str(field_id)}'
+                create_workspace(str(field_id))
+
+                fodlers = [f for f in os.listdir(path) if os.path.isdir(os.path.join(path, f))]
+
+                for folder in fodlers:
+                    create_store(field_id, folder, f"/data/{str(field_id)}/{folder}")
+                    create_indexer_and_timeregex(f"{path}/{folder}")
+                    publish_layer(str(field_id), folder, folder)
+                    enable_time_dimension(str(field_id), folder)
             else:
     
                 logger.info(f'no data has been found for {specific_date}')
                 specific_date = (datetime.now() - timedelta(days=1)).strftime("%Y-%m-%d")
     else:
         logger.info(f"Error fetching data: {response.status_code} - {response.text}")
+
+
+if __name__ == '__main__':
+    process_new_field(119, '', '')

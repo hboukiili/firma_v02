@@ -17,7 +17,10 @@ import math
 def convert_wind_speed(wind_speed_10m):
     ws_2m = []
     for i in wind_speed_10m:
-        ws_2m.append(i * (math.log(2 / 0.0002) / math.log(10 / 0.0002)) / 3600)
+        if i != None:
+            ws_2m.append(i * (math.log(2 / 0.0002) / math.log(10 / 0.0002)) / 3600)
+        else:
+            ws_2m.append(None)
     return ws_2m
 
 def calculate_vapor_pressure_dew_point(T_dew):
@@ -39,7 +42,7 @@ def get_final_date(response):
     Tdew = []
     Vapr = []
     i  = 0
-    tdew = np.array(tdew, dtype=float)  # Convert to numpy array, invalid values become np.nan
+    tdew = np.array(tdew, dtype=float)  
 
     while i < (len(tdew)):
         daily_mean = float(np.nanmean(tdew[i:i + 24]))  # Averaging every 24 hours
@@ -103,7 +106,7 @@ def forcast_fao_Open_meteo(lat, long):
     # Define parameters for the API request
     params = {
         "latitude": lat,  # Replace with the latitude of your location
-        'forecast_days' : '15',
+        'forecast_days' : '5',
         "longitude": long,  # Replace with the longitude of your location
         "daily" : "rain_sum,shortwave_radiation_sum,et0_fao_evapotranspiration,temperature_2m_max,temperature_2m_min,relative_humidity_2m_max,relative_humidity_2m_min,wind_speed_10m_max,wind_direction_10m_dominant",
         "hourly": "dewpoint_2m",
