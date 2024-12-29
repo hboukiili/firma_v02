@@ -110,7 +110,7 @@ Schema=*the_geom:Polygon,location:String,time:java.util.Date
 PropertyCollectors=TimestampFileNameExtractorSPI[timeregex](time)
 """
 
-    timeregex_content = r"\d{8}"
+    timeregex_content = r"\d{4}-\d{2}-\d{2}"
     indexer_path = os.path.join(path, "indexer.properties")
     timeregex_path = os.path.join(path, "timeregex.properties")
 

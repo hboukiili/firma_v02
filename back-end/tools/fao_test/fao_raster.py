@@ -34,6 +34,43 @@ from datetime import datetime
 #                  Zrmax=1.2, pbase=0.50, Ze=0.10, REW=8.0, CN2=70,
 #                  comment='')
 
+import matplotlib.pyplot as plt
+import pandas as pd
+from datetime import datetime
+
+
+def plot_values_with_date_range(values, date_range, variable, output_path='./chart'):
+    """
+    Plots values against a date range and saves the plot as a PNG file.
+
+    Parameters:
+        values (list or iterable): A list of values to plot.
+        start_date (str): The start date in the format 'YYYY-MM-DD'.
+        end_date (str): The end date in the format 'YYYY-MM-DD'.
+        output_path (str): Path to save the output PNG file.
+
+    Returns:
+        None
+    """
+    # Plot values against the date range
+    plt.figure(figsize=(15, 4))
+    plt.plot(date_range, values, marker='o', linestyle='-', label='Values')
+
+    # Formatting the plot
+    plt.xlabel('Date')
+    plt.ylabel(variable)
+    plt.title(f'Canopy cover fraction')
+    plt.grid(True)
+    plt.legend()
+    plt.tight_layout()
+
+    # Save the plot as PNG
+    plt.savefig(f"{output_path}/{variable}.png", format='png')
+    plt.close()
+
+    print(f"Plot saved as {output_path}")
+
+
 def extract_date(file_name):
     return datetime.strptime(file_name.split('.')[0], '%Y-%m-%d')
 
@@ -101,7 +138,8 @@ def fao_test():
 
             mdl.run()
 
-            print(mdl.odata['Kcb'])
+            plot_values_with_date_range(mdl.odata.fc.values, date_range, 'fc')
+            exit()
 
             for llk, value in mdl.odata['fc'].items():
                 if llk not in FC:

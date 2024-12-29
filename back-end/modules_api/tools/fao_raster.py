@@ -11,7 +11,7 @@ from pyproj import Transformer
 from shapely.geometry import mapping
 from shapely.ops import transform
 from rasterio.mask import mask
-from Open_meteo import fao_Open_meteo, forcast_fao_Open_meteo
+from .Open_meteo import fao_Open_meteo, forcast_fao_Open_meteo
 
 pd.set_option('display.max_rows', None)  # This will display all rows
 pd.set_option('display.max_columns', None)  # This will display all columns
@@ -59,10 +59,11 @@ def save_raster(data_dict, output_folder, meta, shape):
     """Save computed rasters to disk."""
     for date_str, data in data_dict.items():
         parsed_date = datetime.strptime(date_str, '%Y-%j')
-        date = parsed_date.strftime('%Y%m%d')
+        date = parsed_date.strftime('%Y-%m-%d')
         timestamp = parsed_date.strftime('%Y%m%d')  # ISO8601 format
         output_path = os.path.join(output_folder, f"{date}.tif")
         os.makedirs(output_folder, mode=0o777, exist_ok=True)
+        os.chmod(output_folder, 0o777)
 
         with rasterio.open(output_path, "w", **{**meta, "height": shape[0], "width": shape[1]}) as dest:
             dest.write(data, 1)
@@ -117,7 +118,7 @@ def process_field(ndvi_folder, output_folder, weather_data, index, par, airr):
     logger.info("Field processing completed.")
 
 @shared_task
-def fao_model(point, field_id):
+def fao_model(result, point, field_id):
 
     ndvi_folder = f"/app/Data/fao_output/{field_id}/ndvi"
     output_folder = f"/app/Data/fao_output/{field_id}"

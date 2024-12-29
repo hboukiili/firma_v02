@@ -37,6 +37,8 @@ from shapely.geometry import box
 from celery import group
 from .tools.fao_raster import fao_model
 from .tools.geoserver_tools import *
+from celery import chain
+
 
 logger = logging.getLogger(__name__)
 
@@ -110,7 +112,7 @@ def interpolate_ndvi(ndvi_data, meta, date_range, field_folder):
     
     # Write the interpolated NDVI rasters to files
     for i, date in enumerate(date_range):
-        output_file = f"{field_folder}/{date.strftime('%Y%m%d')}.tif"
+        output_file = f"{field_folder}/{date.strftime('%Y-%m-%d')}.tif"
         with rasterio.open(output_file, "w", **meta) as dest:
             dest.write(interpolated_ndvi[i], 1)  # Write the data to the first band
             dest.update_tags(TIFFTAG_DATETIME=date.strftime('%Y%m%d'),Time=date.strftime('%Y%m%d'))
@@ -124,7 +126,6 @@ def process_field(boundaries, id, date):
     polygon = loads(boundaries)
     field_folder = f"{folder}/{str(id)}/ndvi"
 
-    logger.info(f"id = {id}")
     try:
         with rasterio.open(f'/app/Data/ndvi/{date}_ndvi.tif') as src:
     
@@ -155,6 +156,7 @@ def process_field(boundaries, id, date):
     
             if not os.path.exists(field_folder):
                 os.makedirs(field_folder)
+                os.chmod(field_folder, 0o777)
     
             with rasterio.open(output_path, "w", **meta) as dest:
                 dest.write(out_image[0], 1)
@@ -163,26 +165,28 @@ def process_field(boundaries, id, date):
 
             files = [f for f in os.listdir(field_folder) if os.path.isfile(os.path.join(field_folder, f))]
             
-            files = sorted(files, key=lambda x: x.split('.')[0])
-            
-        
-            date_range = pd.date_range(start=files[0].split('.')[0], end=files[-1].split('.')[0], freq='D')  # All days in the range
-            
-            ndvi_data = []
+            if len(files) > 1:
 
-            for day in date_range:
-    
-                day = day.strftime('%Y-%m-%d')
-                tif_path = f"{field_folder}/{day}.tif"
+                files = sorted(files, key=lambda x: x.split('.')[0])
 
-                if os.path.exists(tif_path):
-                    with rasterio.open(tif_path) as tif:
-                        ndvi = tif.read(1)
-                        ndvi_data.append(ndvi)
-                else :
-                    ndvi_data.append(np.full((ndvi.shape[0], ndvi.shape[1]), np.nan))
 
-            interpolate_ndvi(ndvi_data, meta, date_range, field_folder)
+                date_range = pd.date_range(start=files[0].split('.')[0], end=files[-1].split('.')[0], freq='D')  # All days in the range
+
+                ndvi_data = []
+
+                for day in date_range:
+                
+                    day = day.strftime('%Y-%m-%d')
+                    tif_path = f"{field_folder}/{day}.tif"
+
+                    if os.path.exists(tif_path):
+                        with rasterio.open(tif_path) as tif:
+                            ndvi = tif.read(1)
+                            ndvi_data.append(ndvi)
+                    else :
+                        ndvi_data.append(np.full((ndvi.shape[0], ndvi.shape[1]), np.nan))
+
+                interpolate_ndvi(ndvi_data, meta, date_range, field_folder)
 
 
 
@@ -264,25 +268,50 @@ def run_model():
         results = response.json()["value"]
         len_result = len(results)
         if len_result:
-            
+
+            # If the condition is met, process fields and then run fao_model
             folder = download_data(results, session, specific_date, specific_tile, base_dir)
-            
-            #start calculatigng ndvi
+
+            # Start calculating NDVI
             S2_ndvi(folder, ndvi_folder, specific_date)
-    
+
             All_fields = Field.objects.all()
 
-            # start processing the field
-            group_tasks = group(process_field.s(field.boundaries.wkt, field.id, specific_date) for field in All_fields)
+            # Create a group of chains for `process_field` and `fao_model`
+            group_tasks = group(
+                chain(
+                    process_field.s(field.boundaries.wkt, field.id, specific_date),
+                    fao_model.s(field.boundaries[0][0], field.id)
+                ) for field in All_fields
+            )
+
             group_tasks.apply_async()
 
-        model_taks = group(fao_model.s(field.boundaries[0][0], field.id) for field in All_fields)
-        model_taks.apply_async()
+        else:
+
+            All_fields = Field.objects.all()
+
+            model_tasks = group(fao_model.s('', field.boundaries[0][0], field.id) for field in All_fields)
+            model_tasks.apply_async()
+
 
     else:
         logger.info(f"Error fetching data: {response.status_code} - {response.text}")
     return "Model completed successfully"
 
+@shared_task
+def run_geoserver(r, field_id):
+
+    path = f'/app/Data/fao_output/{str(field_id)}'
+    create_workspace(str(field_id))
+
+    fodlers = [f for f in os.listdir(path) if os.path.isdir(os.path.join(path, f))]
+
+    for folder in fodlers:
+        create_store(field_id, folder, f"/data/{str(field_id)}/{folder}")
+        create_indexer_and_timeregex(f"{path}/{folder}")
+        publish_layer(str(field_id), folder, folder)
+        enable_time_dimension(str(field_id), folder)
 
 @shared_task
 def process_new_field(field_id, boundaries_wkt, point):
@@ -308,20 +337,11 @@ def process_new_field(field_id, boundaries_wkt, point):
 
                 S2_ndvi(folder, ndvi_folder, specific_date)
     
-                process_field.delay(boundaries_wkt, field_id, specific_date)
-
-                fao_model.delay(point, field_id)
-
-                path = f'/app/Data/fao_output/{str(field_id)}'
-                create_workspace(str(field_id))
-
-                fodlers = [f for f in os.listdir(path) if os.path.isdir(os.path.join(path, f))]
-
-                for folder in fodlers:
-                    create_store(field_id, folder, f"/data/{str(field_id)}/{folder}")
-                    create_indexer_and_timeregex(f"{path}/{folder}")
-                    publish_layer(str(field_id), folder, folder)
-                    enable_time_dimension(str(field_id), folder)
+                chain(
+                    process_field.s(boundaries_wkt, field_id, specific_date),
+                    fao_model.s(point, field_id),
+                    run_geoserver.s(field_id)
+                )()
             else:
     
                 logger.info(f'no data has been found for {specific_date}')
