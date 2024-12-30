@@ -103,26 +103,42 @@ def enable_time_dimension(WORKSPACE, LAYER_NAME):
         print(f"Failed to configure time dimension: {response.status_code}")
         print(f"Response: {response.content}")
 
+
 def create_indexer_and_timeregex(path):
-    
-    indexer_content = """TimeAttribute=time
-Schema=*the_geom:Polygon,location:String,time:java.util.Date
-PropertyCollectors=TimestampFileNameExtractorSPI[timeregex](time)
+    """
+    Create indexer.properties and timeregex.properties for an ImageMosaic in the specified path.
+
+    Args:
+        path (str): The directory where the files should be created.
+
+    Raises:
+        Exception: If any error occurs during file creation.
+    """
+    indexer_content = """TimeAttribute=ingestion
+Schema=*the_geom:Polygon,location:String,ingestion:Date
+PropertyCollectors=TimestampFileNameExtractorSPI[timeregex](ingestion)
 """
 
-    timeregex_content = r"\d{4}-\d{2}-\d{2}"
+    # Updated timeregex content
+    timeregex_content = """\\d{4}-\\d{2}-\\d{2}"""
+
     indexer_path = os.path.join(path, "indexer.properties")
     timeregex_path = os.path.join(path, "timeregex.properties")
 
     try:
+        # Create and write the indexer.properties file
         with open(indexer_path, "w") as indexer_file:
-            os.chmod(indexer_path, 0o777)
             indexer_file.write(indexer_content)
+        os.chmod(indexer_path, 0o777)
         print(f"Created 'indexer.properties' at {indexer_path}")
 
+        # Create and write the timeregex.properties file
         with open(timeregex_path, "w") as timeregex_file:
-            os.chmod(timeregex_path, 0o777)
             timeregex_file.write(timeregex_content)
+        os.chmod(timeregex_path, 0o777)
         print(f"Created 'timeregex.properties' at {timeregex_path}")
+
     except Exception as e:
         print(f"Failed to create indexer or timeregex file: {e}")
+
+

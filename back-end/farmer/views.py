@@ -340,7 +340,8 @@ class register_data(APIView):
 						self.process_crop(request.data.get('plant'), field)
 						logging.info('starting the process ....')
 						task_id = process_new_field.delay(field.id, field.boundaries.wkt, field.boundaries[0][0])
-						return Response(task_id, status=status.HTTP_201_CREATED)
+						logger.info(task_id)
+						return Response(task_id.id, status=status.HTTP_201_CREATED)
 					except Exception as e:
 						logger.error(f"Error occurred during data processing: {str(e)}")  # Log error
 						return Response({"error": "An error occurred while processing your request"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
@@ -390,11 +391,12 @@ class check_pro(APIView):
 	authentication_classes = [FARMERJWTAuthentication]
 	permission_classes = [IsAuthenticated]
 	
-	def get(self, request):
-		task_id = request.query_params.get('task_id')
+	def post(self, request):
 
+		task_id = request.query_params.get('task_id')
 		result = AsyncResult(task_id)
 
+		logger.info('heeey somttt')
 		if result.ready():
 			if result.successful():
 				Response("Ok", status=status.HTTP_200_OK)

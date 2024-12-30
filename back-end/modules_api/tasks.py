@@ -196,7 +196,7 @@ def process_field(boundaries, id, date):
         logger.error(f"Unexpected Error for field {id}: {e}")
  
 
-def check_data():
+def check_data(specific_date):
 
     try:
 
@@ -204,8 +204,6 @@ def check_data():
         copernicus_password = "Mas123456789@"
 
         specific_tile = "T29SPR"  # Replace with your desired tile ID
-        specific_date = (datetime.now() - timedelta(days=1)).strftime('%Y-%m-%d')
-
         base_dir = "/app/Data"
 
         session = requests.Session()
@@ -221,7 +219,7 @@ def check_data():
         )
 
         response = session.get(query_url)
-        return response, specific_date, specific_tile, session, base_dir
+        return response, specific_tile, session, base_dir
 
     except requests.exceptions.RequestException as e:
         logger.error(f"Error in check_data: {e}")
@@ -263,7 +261,8 @@ def download_data(results, session, specific_date, specific_tile, base_dir):
 def run_model():
 
     ndvi_folder = '/app/Data/ndvi'
-    response, specific_date, specific_tile, session, base_dir = check_data()
+    specific_date = (datetime.now() - timedelta(days=1)).strftime('%Y-%m-%d')
+    response, specific_tile, session, base_dir = check_data(specific_date)
     if response.status_code == 200:
         results = response.json()["value"]
         len_result = len(results)
@@ -317,37 +316,39 @@ def run_geoserver(r, field_id):
 def process_new_field(field_id, boundaries_wkt, point):
 
     ndvi_folder = '/app/Data/ndvi'
-    response, specific_date, specific_tile, session, base_dir = check_data()
+    result_len = 0
+    max_retries = 10
+    retry_count = 0
+    specific_date = (datetime.now()).strftime('%Y-%m-%d')
 
-    if response.status_code == 200:
+    while result_len == 0 and retry_count < max_retries:
 
-        result_len = 0
+        response, specific_tile, session, base_dir = check_data(specific_date)
+        if response.status_code != 200:
+            logger.error(f"Failed to fetch data: {response.status_code}")
+            session.close()
+            break
 
-        while result_len == 0:
+        results = response.json()["value"]
+        result_len = len(results)
+        if result_len:
 
-            results = response.json()["value"]
-            result_len = len(results)
+            # folder = download_data(results, session, specific_date, specific_tile, base_dir)
+            
+            # S2_ndvi(folder, ndvi_folder, specific_date)
 
-            if result_len:
+            chain(
+                process_field.s(boundaries_wkt, field_id, specific_date),
+                fao_model.s(point, field_id),
+                run_geoserver.s(field_id)
+            )()
+            break
+        else:
 
-                
-                folder = download_data(results, session, specific_date, specific_tile, base_dir)
-                
-                session.close()
-
-                S2_ndvi(folder, ndvi_folder, specific_date)
-    
-                chain(
-                    process_field.s(boundaries_wkt, field_id, specific_date),
-                    fao_model.s(point, field_id),
-                    run_geoserver.s(field_id)
-                )()
-            else:
-    
-                logger.info(f'no data has been found for {specific_date}')
-                specific_date = (datetime.now() - timedelta(days=1)).strftime("%Y-%m-%d")
-    else:
-        logger.info(f"Error fetching data: {response.status_code} - {response.text}")
+            logger.info(f'no data has been found for {specific_date}')
+            specific_date = (datetime.strptime(specific_date, "%Y-%m-%d") - timedelta(days=1)).strftime("%Y-%m-%d")
+            retry_count += 1
+    session.close()
 
 
 if __name__ == '__main__':
