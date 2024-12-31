@@ -340,7 +340,7 @@ class register_data(APIView):
 						self.process_crop(request.data.get('plant'), field)
 						logging.info('starting the process ....')
 						task_id = process_new_field.delay(field.id, field.boundaries.wkt, field.boundaries[0][0])
-						logger.info(task_id)
+						logger.info(task_id.id)
 						return Response(task_id.id, status=status.HTTP_201_CREATED)
 					except Exception as e:
 						logger.error(f"Error occurred during data processing: {str(e)}")  # Log error
@@ -360,8 +360,8 @@ class register_data(APIView):
 
 class Irrigation(APIView):
 
-	authentication_classes = [FARMERJWTAuthentication]
-	permission_classes = [IsAuthenticated]
+	# authentication_classes = [FARMERJWTAuthentication]
+	# permission_classes = [IsAuthenticated]
 
 	def post(self, request):
 
@@ -391,17 +391,17 @@ class check_pro(APIView):
 	authentication_classes = [FARMERJWTAuthentication]
 	permission_classes = [IsAuthenticated]
 	
-	def post(self, request):
+	def get(self, request):
+
 
 		task_id = request.query_params.get('task_id')
 		result = AsyncResult(task_id)
 
-		logger.info('heeey somttt')
 		if result.ready():
 			if result.successful():
-				Response("Ok", status=status.HTTP_200_OK)
+				return Response("Done", status=status.HTTP_200_OK)
 			else:
-				Response(f"Error : {result.result}",status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+				return Response(f"Error : {result.result}",status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 		else :
-			Response("Task is still running")
+			return Response("Task is still running")
 

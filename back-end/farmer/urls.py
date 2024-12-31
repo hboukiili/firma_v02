@@ -8,5 +8,5 @@ urlpatterns = [
     # path('seasons/', season.as_view(), name='seasons_list'),
     path('register_data', register_data.as_view()),
     path('irr', Irrigation.as_view()),
-    path('check_pro', Irrigation.as_view())
+    path('check_pro', check_pro.as_view())
 ]
