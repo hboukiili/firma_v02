@@ -12,6 +12,7 @@ from shapely.geometry import mapping
 from shapely.ops import transform
 from rasterio.mask import mask
 from .Open_meteo import fao_Open_meteo, forcast_fao_Open_meteo
+from .geoserver_tools import publish_single_layer, create_workspace
 
 pd.set_option('display.max_rows', None)  # This will display all rows
 pd.set_option('display.max_columns', None)  # This will display all columns
@@ -60,8 +61,8 @@ def save_raster(data_dict, output_folder, meta, shape):
     for date_str, data in data_dict.items():
         parsed_date = datetime.strptime(date_str, '%Y-%j')
         date = parsed_date.strftime('%Y-%m-%d')
-        timestamp = parsed_date.strftime('%Y%m%d')  # ISO8601 format
-        output_path = os.path.join(output_folder, f"{date}.tif")
+        timestamp = parsed_date.strftime('%Y-%m-%d')  # ISO8601 format
+        output_path = os.path.join(output_folder, f"{output_folder.split('/')[-1]}_{date}.tif")
         os.makedirs(output_folder, mode=0o777, exist_ok=True)
         os.chmod(output_folder, 0o777)
 
@@ -69,6 +70,11 @@ def save_raster(data_dict, output_folder, meta, shape):
             dest.write(data, 1)
             dest.update_tags(TIFFTAG_DATETIME=timestamp,Time=timestamp)
             os.chmod(output_path, 0o777)
+        
+        publish_single_layer(output_folder.split('/')[-2], 
+                                output_path.split('/')[-1], 
+                                output_folder.split('/')[-1])
+    
 @shared_task
 def process_field(ndvi_folder, output_folder, weather_data, index, par, airr):
     """Process NDVI rasters and run the FAO model."""
@@ -93,7 +99,7 @@ def process_field(ndvi_folder, output_folder, weather_data, index, par, airr):
     
     for i in range(fc.shape[1]):  # Loop over rows
         for x in range(fc.shape[2]):  # Loop over columns
-            # try:
+            try:
                 # Extract pixel values over time
                 fc_pixel = fc[:, i, x]
                 kcb_pixel = kcb[:, i, x]
@@ -106,8 +112,8 @@ def process_field(ndvi_folder, output_folder, weather_data, index, par, airr):
                             if date not in results[param]:
                                 results[param][date] = np.full((fc.shape[1], fc.shape[2]), np.nan)
                             results[param][date][i, x] = value
-            # except Exception as e:
-            #     logger.error(f"Error processing pixel ({i}, {x}): {e}")
+            except Exception as e:
+                logger.error(f"Error processing pixel ({i}, {x}): {e}")
         logger.info(f"processing pixel ({i}, {x}): Done")    
 
     # Save all results as rasters
@@ -119,6 +125,7 @@ def process_field(ndvi_folder, output_folder, weather_data, index, par, airr):
 
 @shared_task
 def fao_model(result, point, field_id):
+
 
     ndvi_folder = f"/app/Data/fao_output/{field_id}/ndvi"
     output_folder = f"/app/Data/fao_output/{field_id}"
@@ -136,4 +143,4 @@ def fao_model(result, point, field_id):
     process_field(ndvi_folder, output_folder, weather_data, index, par, airr)
 
 if __name__ == '__main__':
-    fao_model([-7.678321344603916, 31.66580238055144], 119)
+    fao_model('', [-7.678321344603916, 31.66580238055144], 198)

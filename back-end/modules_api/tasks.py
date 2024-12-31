@@ -333,14 +333,16 @@ def process_new_field(field_id, boundaries_wkt, point):
         result_len = len(results)
         if result_len:
 
-            # folder = download_data(results, session, specific_date, specific_tile, base_dir)
+            folder = download_data(results, session, specific_date, specific_tile, base_dir)
             
-            # S2_ndvi(folder, ndvi_folder, specific_date)
+            S2_ndvi(folder, ndvi_folder, specific_date)
+            
+            create_workspace(field_id)
 
             chain(
                 process_field.s(boundaries_wkt, field_id, specific_date),
                 fao_model.s(point, field_id),
-                run_geoserver.s(field_id)
+                # run_geoserver.s(field_id)
             )()
             break
         else:
