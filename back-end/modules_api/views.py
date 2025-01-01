@@ -125,14 +125,12 @@ class fao_test(APIView):
 	authentication_classes = [FARMERJWTAuthentication]
 	permission_classes = [IsAuthenticated]
 
-	def extract_date(self, file_name):
-		return datetime.strptime(file_name.split('.')[0], '%Y-%m-%d')
-
 	def get(self, request):
 
-		start_date = request.query_params.get('start_date')
-		end_date = request.query_params.get('end_date')
-		path  = "/app/tools/fao_test/fao_output"
+		# start_date = request.query_params.get('start_date')
+		# end_date = request.query_params.get('end_date')
+		field_id = request.query_params.get('field_id')
+		path  = f"/app/Data/fao_output/{field_id}"
 		folders  = os.listdir(path)
 
 		final_data = {}
@@ -142,9 +140,9 @@ class fao_test(APIView):
 				var = f"{path}/{folder}"
 				files = [f for f in os.listdir(var) if os.path.isfile(os.path.join(var, f))]
 
-				files = sorted(files, key=self.extract_date)
-				x, y = files.index(f"{start_date}.tif"), files.index(f"{end_date}.tif")
-				files = files[x:y]
+				files = sorted(files, key=lambda x: x.split('.')[0])
+				# x, y = files.index(f"{start_date}.tif"), files.index(f"{end_date}.tif")
+				# files = files[x:y]
 				for file in files:
 					tif = f"{var}/{file}"
 					with rasterio.open(tif) as src:
@@ -159,7 +157,7 @@ class fao_test(APIView):
 					'mean' : mean_values
 				}
 
-			final_data.update(calcul_aquacrop(31.665795547539773, -7.678333386926454, start_date, end_date))
+			# final_data.update(calcul_aquacrop(31.665795547539773, -7.678333386926454, start_date, end_date))
 
 			return Response(final_data, status=status.HTTP_202_ACCEPTED)		
 		except Exception as e:
