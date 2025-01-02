@@ -135,15 +135,17 @@ def process_field(boundaries, id, date):
 
             # # Transform polygon
             transformed_polygon = transform(transformer.transform, polygon)
+            print(transformed_polygon)
             if not transformed_polygon.is_valid:
                 transformed_polygon = transformed_polygon.buffer(0)
 
             # Align polygon to pixel grid
             aligned_polygon = align_polygon_to_pixel(transformed_polygon, src.transform)
             polygon_geojson = [mapping(aligned_polygon)]
-
+            print(polygon_geojson, transformed_polygon)
             # # Clip raster
             out_image, out_transform = mask(src, polygon_geojson, crop=True)
+            print(out_transform, out_image.shape)
             meta.update({
                 "driver": "GTiff",
                 "height": out_image.shape[1],
@@ -342,7 +344,7 @@ def process_new_field(field_id, boundaries_wkt, point):
             chain(
                 process_field.s(boundaries_wkt, field_id, specific_date),
                 fao_model.s(point, field_id),
-                # run_geoserver.s(field_id)
+                run_geoserver.s(field_id)
             )()
             break
         else:

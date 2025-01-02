@@ -122,8 +122,8 @@ class aquacrop(APIView):
 
 class fao_test(APIView):
 
-	authentication_classes = [FARMERJWTAuthentication]
-	permission_classes = [IsAuthenticated]
+	# authentication_classes = [FARMERJWTAuthentication]
+	# permission_classes = [IsAuthenticated]
 
 	def get(self, request):
 
@@ -134,13 +134,18 @@ class fao_test(APIView):
 		folders  = os.listdir(path)
 
 		final_data = {}
+		dates = []
 		try : 
 			for folder in folders:
 				min_values, max_values, mean_values = [], [], []
 				var = f"{path}/{folder}"
 				files = [f for f in os.listdir(var) if os.path.isfile(os.path.join(var, f))]
-
 				files = sorted(files, key=lambda x: x.split('.')[0])
+
+				if not dates:
+	
+					for file in  files:
+						dates.append(file.split('.')[0].split('_')[1])
 				# x, y = files.index(f"{start_date}.tif"), files.index(f"{end_date}.tif")
 				# files = files[x:y]
 				for file in files:
@@ -157,6 +162,8 @@ class fao_test(APIView):
 					'mean' : mean_values
 				}
 
+
+			final_data['dates'] = dates
 			# final_data.update(calcul_aquacrop(31.665795547539773, -7.678333386926454, start_date, end_date))
 
 			return Response(final_data, status=status.HTTP_202_ACCEPTED)		

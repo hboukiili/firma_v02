@@ -99,7 +99,7 @@ def process_field(ndvi_folder, output_folder, weather_data, index, par, airr):
     
     for i in range(fc.shape[1]):  # Loop over rows
         for x in range(fc.shape[2]):  # Loop over columns
-            try:
+            # try:
                 # Extract pixel values over time
                 fc_pixel = fc[:, i, x]
                 kcb_pixel = kcb[:, i, x]
@@ -112,8 +112,8 @@ def process_field(ndvi_folder, output_folder, weather_data, index, par, airr):
                             if date not in results[param]:
                                 results[param][date] = np.full((fc.shape[1], fc.shape[2]), np.nan)
                             results[param][date][i, x] = value
-            except Exception as e:
-                logger.error(f"Error processing pixel ({i}, {x}): {e}")
+            # except Exception as e:
+            #     logger.error(f"Error processing pixel ({i}, {x}): {e}")
         logger.info(f"processing pixel ({i}, {x}): Done")    
 
     # Save all results as rasters
@@ -133,9 +133,12 @@ def fao_model(result, point, field_id):
     files           = [f for f in os.listdir(ndvi_folder) if os.path.isfile(os.path.join(ndvi_folder, f))]
     files           = sorted(files, key=lambda x: x.split('.')[0])
     forcast, dates  = forcast_fao_Open_meteo(point[1], point[0])
+
     date_range      = pd.date_range(start=files[0].split('.')[0], end=dates[-1], freq='D')
     index           = date_range.strftime('%Y-%j')
-    Weather_Data    = fao_Open_meteo(forcast,files[0].split('.')[0], date_range[date_range.get_loc(pd.Timestamp(dates[0])) - 1].strftime('%Y-%m-%d'), point[1], point[0])
+    if files[0].split('.')[0] == dates[0]: Weather_Data = forcast
+    else :
+        Weather_Data    = fao_Open_meteo(forcast,files[0].split('.')[0], date_range[date_range.get_loc(pd.Timestamp(dates[0])) - 1].strftime('%Y-%m-%d'), point[1], point[0])
     weather_data    = Weather(Weather_Data, index)
     par             = Parameters()
     airr            = AutoIrrigate()
