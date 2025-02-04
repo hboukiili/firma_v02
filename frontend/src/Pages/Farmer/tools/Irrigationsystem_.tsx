@@ -73,7 +73,7 @@ const IrrForms = (name: { name: string }) => {
 
         <Form.Item
           name="WaterOutflowRate_c"
-          label="Input the outflow rate of the sprinkler (in m³/h)"
+          label="Input the outflow rate of the sprinkler (in L/h)"
         >
           <Input
             radius="full"
@@ -155,7 +155,7 @@ const IrrForms = (name: { name: string }) => {
         </Form.Item>
         <Form.Item
           name="WaterOutflowRate_t"
-          label="Input the outflow rate (in m³/h)"
+          label="Input the outflow rate (in L/h)"
         >
           <Input
             radius="full"
@@ -189,7 +189,7 @@ const IrrForms = (name: { name: string }) => {
 
         <Form.Item
           name="WaterOutflowRate_c"
-          label="Input the outflow rate of the sprinkler (in m³/h)"
+          label="Input the outflow rate of the sprinkler (in L/h)"
         >
           <Input
             radius="full"
@@ -332,8 +332,8 @@ const IrrgSys = () => {
       name: "Rainfed irrigation",
     },
   ];
-  const Data = useAppSelector((state) => state.farmer);
 
+  const Data = useAppSelector((state) => state.farmer);
   const cardStyle =
     "w-[20%] pb-4  flex group  focus:*:text-white focus:bg-black flex-col  items-center justify-between hover:bg-[#1E6F5C] overflow-hidden rounded-[10px] h-[170px] cursor-pointer";
   return (

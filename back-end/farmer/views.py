@@ -19,7 +19,9 @@ import logging
 from celery.result import AsyncResult
 # from ratelimit.decorators import ratelimit
 from modules_api.tasks import process_new_field
-
+import os
+import rasterio
+import numpy as np
 logger = logging.getLogger(__name__)
 
 
@@ -109,9 +111,16 @@ class field(APIView):
 		user = request.user
 		try : 
 
+			fields = Field.objects.all()
+
+			# for field in fields:
+			# 		process_new_field.delay(field.id, field.boundaries.wkt, field.boundaries[0][0])
+
 			fields = Field.objects.filter(user_id=user.id)
 			if fields.exists():
 				fields_data = [{'id' : field.id, 'name': field.name, 'boundaries': json.loads(field.boundaries.geojson)} for field in fields]
+				for field in fields:
+					print(field.boundaries.wkt, field.id)
 				return Response(fields_data, status=status.HTTP_200_OK)
 
 		except Exception as e:
@@ -233,119 +242,122 @@ class field(APIView):
 	# 			return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
 	# 	return Response({'message': 'Bad request'}, status=status.HTTP_400_BAD_REQUEST)
 
-class register_data(APIView):
+SOIL_METHODS = {
+    'Selection': 'Selection',
+    'Composition': 'Composition'
+}
 
-	authentication_classes = [FARMERJWTAuthentication]
-	permission_classes = [IsAuthenticated]
+IRRIGATION_TYPES = {
+    'Rainfed irrigation': 'Rainfed',
+    'Surface irrigation': 'Surface',
+    'Drip irrigation': 'Drip',
+    'Sprinkler irrigation': 'Sprinkler'
+}
 
+class RegisterData(APIView):
+    authentication_classes = [FARMERJWTAuthentication]
+    permission_classes = [IsAuthenticated]
 
-	def process_soil(self, method, value, field):
-			
-		if method == 'Selection':
-	
-			_type = {
-				'LOAMY SAND' : 'LOAMY_SAND',
-				'SANDY CLAY LOAM' : 'SANDY_CLAY_LOAM',
-				'CLAY LOAM' : 'CLAY_LOAM',
-				'SILTY CLAY' : 'SILTY_CLAY',
-				'SANDY CLAY' : 'SANDY_CLAY',
-				'SANDY LOAM' : 'SANDY_LOAM'
-			}.get(value, value)
+    def process_soil(self, method, value, field):
+        soil_kwargs = {
+            'field_id': field,
+            'soil_input_method': soil_input[method.lower()].name
+        }
 
-			new_soil = Soil(soil_type=Soil_type[_type].name,
-							field_id=field, soil_input_method=soil_input[method.lower()].name)
-			new_soil.save()
-		
-		elif method == 'Composition':
-			
-			new_soil = Soil(sand_percentage=value['sand'], 
-				   silt_percentage=value['silt'],
-				   clay_percentage=value['clay'], field_id=field,
-				   soil_input_method=soil_input[method.lower()].name)
-			new_soil.save()
-	
-	def process_irrigation_system(self, irrigation_data, field):
+        if method == SOIL_METHODS['Selection']:
+            soil_type_mapping = {
+                'LOAMY SAND': 'LOAMY_SAND',
+                'SANDY CLAY LOAM': 'SANDY_CLAY_LOAM',
+                'CLAY LOAM': 'CLAY_LOAM',
+                'SILTY CLAY': 'SILTY_CLAY',
+                'SANDY CLAY': 'SANDY_CLAY',
+                'SANDY LOAM': 'SANDY_LOAM'
+            }
+            _type = soil_type_mapping.get(value, value)
+            soil_kwargs['soil_type'] = Soil_type[_type].name
 
-		irg_type	= irrigation_data['system']
-		prop 		= irrigation_data['prop']
+        elif method == SOIL_METHODS['Composition']:
+            soil_kwargs.update({
+                'sand_percentage': value['sand'],
+                'silt_percentage': value['silt'],
+                'clay_percentage': value['clay']
+            })
 
-		irg_class = {
-			'Rainfed irrigation'	: Irrigation_system,
-			'Surface irrigation'	: Surface_irrigation,
-			'Drip irrigation'		: Drip_Irrigation,
-			'Sprinkler irrigation'	: Sprinkler_irrigation
-		}.get(irg_type)
+        Soil.objects.create(**soil_kwargs)
 
-		_type = {
-			'Sprinkler irrigation'	: 'Sprinkler',
-			'Surface irrigation' 	: 'Surface',
-			'Drip irrigation' 		: 'Drip',
-			'Rainfed irrigation' 	: 'Rainfed'
-		}.get(irg_type)
+    def process_irrigation_system(self, irrigation_data, field):
+        irg_type = irrigation_data['system']
+        prop = irrigation_data['prop']
 
+        irg_class = {
+            'Rainfed irrigation': Irrigation_system,
+            'Surface irrigation': Surface_irrigation,
+            'Drip irrigation': Drip_Irrigation,
+            'Sprinkler irrigation': Sprinkler_irrigation
+        }.get(irg_type)
 
-		irrigation_kwargs = {
-        	'irrigation_type'		: Irrigation_type[_type].name,
-        	'field_id'				: field,
-    	}
+        irrigation_kwargs = {
+            'irrigation_type': Irrigation_type[IRRIGATION_TYPES[irg_type]].name,
+            'field_id': field,
+        }
 
-		if irg_type == 'Drip irrigation':
-			irrigation_kwargs.update({
-				'Crop_Tubes_distance'	 : prop.get('DistanceBetweenTubes_c', None),
-				'Crop_Drippers_distance' : prop.get('DistanceBetweenDrippers_c', None),
-				'Tree_row_distance'		 : prop.get('DistanceBetweenRows_t', None),
-				'Tree_distance'			 : prop.get('DistanceBetweenTrees_t', None),
-				'Tubes_number_by_tree'	 : prop.get('NumberOfTubesPerTree_t', None),
-				'drippers_number_by_tree': prop.get('NumberOfDrippersPerTree_t', None),
-				'Tree_outflow_rate'		 : prop.get('WaterOutflowRate_t', None)
-			})
+        if irg_type == 'Drip irrigation':
+            irrigation_kwargs.update({
+                'Crop_Tubes_distance': prop.get('DistanceBetweenTubes_c', None),
+                'Crop_Drippers_distance': prop.get('DistanceBetweenDrippers_c', None),
+                'Tree_row_distance': prop.get('DistanceBetweenRows_t', None),
+                'Tree_distance': prop.get('DistanceBetweenTrees_t', None),
+                'Tubes_number_by_tree': prop.get('NumberOfTubesPerTree_t', None),
+                'drippers_number_by_tree': prop.get('NumberOfDrippersPerTree_t', None),
+                'Tree_outflow_rate': prop.get('WaterOutflowRate_t', None)
+            })
 
-		elif irg_type == 'Sprinkler irrigation':
-			irrigation_kwargs.update({
-				'coverage_area' 		: prop.get('sprinklerCoverage_c', None),
-				'outflow_rate' 			: prop.get('WaterOutflowRate_c', None),
-				'number_of_sprinklers'	: prop.get('numberOfSprinklers_c', None)
-			})
+        elif irg_type == 'Sprinkler irrigation':
+            irrigation_kwargs.update({
+                'coverage_area': prop.get('sprinklerCoverage_c', None),
+                'outflow_rate': prop.get('WaterOutflowRate_c', None),
+                'number_of_sprinklers': prop.get('numberOfSprinklers_c', None)
+            })
 
-		irg_class.objects.create(**irrigation_kwargs)
-		# process_new_field.delay(field.id, field.boundaries.wkt, field.boundaries[0][0])
+        irg_class.objects.create(**irrigation_kwargs)
 
-	def process_crop(self, data, field):
-		crop		= data['Crop']
-		tree 		= data['Tree']
-		crop_name	= crop['value']
-		tree_name	= tree['value']
+    def process_crop(self, data, field):
+        crop = data['Crop']
+        tree = data['Tree']
 
-		new_crop = Crop(Crop=crop_name, Crop_planting_date=crop['date'],
-	   			Tree=tree_name, Tree_planting_date=tree['date'],
-				field_id=field)
+        Crop.objects.create(
+            Crop=crop['value'],
+            Crop_planting_date=crop['date'],
+            Tree=tree['value'],
+            Tree_planting_date=tree['date'],
+            field_id=field
+        )
 
-		new_crop.save()
+    def post(self, request):
+        required_fields = ['field', 'irr', 'soil', 'plant']
+        if not all(request.data.get(field) for field in required_fields):
+            return Response("Missing required fields", status=status.HTTP_400_BAD_REQUEST)
 
-	# @ratelimit(key='user', rate='5/m', method='POST', block=True)
-	def post(self, request):
+        with transaction.atomic():
+            field_serializer = FieldSerializer(data=request.data.get('field'), context={'request': request})
+            if field_serializer.is_valid():
+                try:
+                    field = field_serializer.save()
+                    self.process_soil(request.data['soil']['method'], request.data['soil']['value'], field)
+                    self.process_irrigation_system(request.data['irr'], field)
+                    self.process_crop(request.data['plant'], field)
 
+                    logger.info('Starting the process...')
+                    # task_id = process_new_field.delay(field.id, field.boundaries.wkt, field.boundaries[0][0])
+                    # logger.info(f"Task ID: {task_id.id}")
+                    return Response('task_id.id', status=status.HTTP_201_CREATED)
 
-		if all([request.data.get('field'), request.data.get('irr'), request.data.get('soil'),
-		  	request.data.get('plant')]):
-			with transaction.atomic():
+                except Exception as e:
+                    logger.error(f"Error occurred during data processing: {str(e)}")
+                    return Response({"error": "An error occurred while processing your request"},
+						status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-				fieldSerializer = FieldSerializer(data=request.data.get('field'), context={'request': request})
-				if fieldSerializer.is_valid():
-					try :
-						field = fieldSerializer.save()
-						soil_ = request.data.get('soil')
-						self.process_soil(soil_['method'], soil_['value'], field)
-						self.process_irrigation_system(request.data.get('irr'), field)
-						self.process_crop(request.data.get('plant'), field)
-						logging.info('starting the process ....')
-						task_id = process_new_field.delay(field.id, field.boundaries.wkt, field.boundaries[0][0])
-						logger.info(task_id.id)
-						return Response(task_id.id, status=status.HTTP_201_CREATED)
-					except Exception as e:
-						logger.error(f"Error occurred during data processing: {str(e)}")  # Log error
-						return Response({"error": "An error occurred while processing your request"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-		return Response("Something went wrong", status=status.HTTP_400_BAD_REQUEST)
+            return Response(field_serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 		
 		# season = Season()
 		# field = Field.objects.get(id=1)
@@ -360,8 +372,20 @@ class register_data(APIView):
 
 class Irrigation(APIView):
 
-	# authentication_classes = [FARMERJWTAuthentication]
-	# permission_classes = [IsAuthenticated]
+	authentication_classes = [FARMERJWTAuthentication]
+	permission_classes = [IsAuthenticated]
+
+	def get_fc_value(self, field_id):
+
+		path = f'Data/fao_output/{field_id}/fc'
+
+		files = [f for f in os.listdir(path) if os.path.isfile(os.path.join(path, f))]
+
+		files = sorted(files, key=lambda x: x.split('.')[0])
+		with rasterio.open(f"{path}/{files[-1]}") as tif:
+			fc = tif.read(1)
+			fc_mean = np.nanmean(fc)
+			return fc_mean
 
 	def post(self, request):
 
@@ -372,19 +396,36 @@ class Irrigation(APIView):
 		if field_id and amount and date:
 			try :
 				user = request.user
+
+				fc = self.get_fc_value(field_id)
 				irrigation = Irrigation_system.objects. \
 								select_related('field_id').get(field_id=field_id,
 								field_id__user_id=user.id)
 
+				if irrigation.irrigation_type == 'Drip':
+					drip = Drip_Irrigation.objects.get(field_id=field_id)
+					c4 = int(amount)
+					if drip.Crop_Tubes_distance != None:
+						c1 = drip.Crop_Tubes_distance
+						c2 = drip.Crop_Drippers_distance
+						c3 = drip.Crop_outflow_rate
+						irrigation_Amount = (c4 * c3) / (c1 * c2 * fc)
+					elif drip.Tree_outflow_rate != None:
+						T1 = drip.Tree_row_distance
+						T2 = drip.Tree_distance
+						T3 = drip.drippers_number_by_tree
+						T4 = drip.Tree_outflow_rate
+						irrigation_Amount = (T4 * T3 * c4) / (T1 * T2 * fc)  
+
 				if irrigation != None:
-					new_irr = Irrigation_amount(amount=amount, date=date,irrigation_system_id=irrigation)
+					new_irr = Irrigation_amount(amount=irrigation_Amount, date=date,irrigation_system_id=irrigation)
 					new_irr.save()
-					return Response("Done !", status=status.HTTP_201_CREATED)
+				return Response(irrigation_Amount, status=status.HTTP_201_CREATED)
 			
 			except Exception as e:
 				logger.error(f"Error occurred during data processing: {str(e)}")  # Log error
 				return Response({f"error": "An error occurred while processing your request : {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-		return Response("Error in Data", status=status.HTTP_400_BAD_REQUEST)
+		# return Response("Error in Data", status=status.HTTP_400_BAD_REQUEST)
 
 class check_pro(APIView):
 

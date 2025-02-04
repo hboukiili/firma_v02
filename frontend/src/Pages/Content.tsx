@@ -12,11 +12,10 @@ import Cropgrowth_ from "./Farmer/cropgrowth";
 import Aquacrop from "./Farmer/Aquacrop";
 import Dashboard_v1 from "./Farmer/Dashboard_V1";
 // import Climate from "./Farmer/climate";
-
-const Dashboard = lazy(() => import(`./Farmer/Dashboard`));
+// const Dashboard = lazy(() => import(`./Farmer/Dashboard`));
+// const Cropgrowth = lazy(() => import(`./Cropgrowth`));
 const Policymaker = lazy(() => import(`./Policymaker/Policymaker`));
 const Academic = lazy(() => import(`./academin/Academic`));
-const Cropgrowth = lazy(() => import(`./Cropgrowth`));
 const Climate = lazy(() => import(`./Farmer/climate`));
 const FieldCrops = lazy(() => import(`./AddField`));
 
@@ -25,7 +24,6 @@ const Content = () => {
   const dispatch = useAppDispatch();
   const Data = useAppSelector((state) => state.farmer);
   const [api, contextHolder] = notification.useNotification();
-  //err handler
   const openNotificationWithIcon = (err: string) => {
     api["error"]({
       placement: "bottomRight",
@@ -42,7 +40,7 @@ const Content = () => {
     <div className=" flex b justify-between w-screen flex-col relative">
       {location.pathname != "/farmersetup" && (
         <div className="w-full flex justify-between z-50">
-          {document.location.pathname != "/farmer1" &&
+          {!location.pathname.startsWith("/farmer1") &&
             document.location.pathname != "/policymaker" && (
               <div className="relative w-[7%] min-w-[120px]">
                 <SideBar />
@@ -52,8 +50,8 @@ const Content = () => {
         </div>
       )}
       <div className={`"md:ml-[5rem] flex  items-center  flex-col grow " `}>
-        {location.pathname == "/farmer" && <Dashboard />}
-        {location.pathname == "/farmer1" && <Dashboard_v1 />}
+        {/* {location.pathname == "/farmer" && <Dashboard />} */}
+        {location.pathname.startsWith("/farmer1") && <Dashboard_v1 />}
         {location.pathname == "/addfield" && <FieldCrops />}
         {location.pathname == "/cropgrowth" && <Cropgrowth_ />}
         {location.pathname.startsWith("/policymaker") && <Policymaker />}

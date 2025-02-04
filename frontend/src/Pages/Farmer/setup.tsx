@@ -32,6 +32,7 @@ const Stepper_ = (step_: { step_: number }) => {
 function setupRequest(Data) {
   let soil;
   let data;
+
   switch (Data.soilMethod) {
     case "Selection":
       soil = Data.SoilType;
@@ -43,8 +44,6 @@ function setupRequest(Data) {
       soil = true;
       break;
   }
-
-  console.log(soil, Data.soilMethod, Data.PlantingDetails, Data.IrrigationType)
 
   api
     .post("/farmer/register_data", {
@@ -61,7 +60,7 @@ function setupRequest(Data) {
     })
     .then((res) => {
       data = res.data;
-      // window.location.href = "/farmer1";
+      window.location.href = "/farmer1";
       console.log(res.data);
     })
     .catch((err) => {
@@ -72,7 +71,7 @@ function setupRequest(Data) {
 
 const Setup = () => {
   const Data = useAppSelector((state) => state.farmer);
-  console.log(Data.PlantingDetails);
+  console.log(Data.soilMethod);
   const [step, setStep] = useState(0);
   const steps = [
     "Field information",
@@ -90,7 +89,7 @@ const Setup = () => {
         />
       </div>
       <div className=" flex flex-col h-full rounded-md overflow-hidden  justify-center items-center">
-        
+        {step < 5 ? (
           <div className="w-[900px] bg-back h-full  gap-6  bg-scBgGren flex flex-col justify-between p-4 rounded-[10px] items-center">
             <Stepper_ step_={step} />
             <Steps name={steps[step]} />
@@ -110,7 +109,6 @@ const Setup = () => {
                 <Button
                   onClick={() => {
                     if (steps[step] === "Validation") setupRequest(Data);
-                    else
                     setStep(step + 1);
                   }}
                   radius="full"
@@ -133,7 +131,9 @@ const Setup = () => {
               </span>
             </p>
           </div>
-        
+        ) : (
+          <Waiting />
+        )}
       </div>
     </div>
   );

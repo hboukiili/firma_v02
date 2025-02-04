@@ -120,56 +120,62 @@ class aquacrop(APIView):
 
 		return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-class fao_test(APIView):
+class FaoTest(APIView):
 
-	# authentication_classes = [FARMERJWTAuthentication]
-	# permission_classes = [IsAuthenticated]
+    authentication_classes = [FARMERJWTAuthentication]
+    permission_classes = [IsAuthenticated]
 
-	def get(self, request):
+    def get(self, request):
+        field_id = request.query_params.get('field_id')
+        if not field_id:
+            return Response({"error": "Field ID is required."}, status=status.HTTP_400_BAD_REQUEST)
+        
+        path = f"/app/Data/fao_output/{field_id}"
+        if not os.path.exists(path):
+            return Response({"error": f"Path {path} does not exist."}, status=status.HTTP_404_NOT_FOUND)
 
-		# start_date = request.query_params.get('start_date')
-		# end_date = request.query_params.get('end_date')
-		field_id = request.query_params.get('field_id')
-		path  = f"/app/Data/fao_output/{field_id}"
-		folders  = os.listdir(path)
+        folders = os.listdir(path)
+        if not folders:
+            return Response({"error": f"No data found for Field ID: {field_id}."}, status=status.HTTP_404_NOT_FOUND)
 
-		final_data = {}
-		dates = []
-		try : 
-			for folder in folders:
-				min_values, max_values, mean_values = [], [], []
-				var = f"{path}/{folder}"
-				files = [f for f in os.listdir(var) if os.path.isfile(os.path.join(var, f))]
-				files = sorted(files, key=lambda x: x.split('.')[0])
+        final_data = {}
+        dates = []
 
-				if not dates:
-	
-					for file in  files:
-						dates.append(file.split('.')[0].split('_')[1])
-				# x, y = files.index(f"{start_date}.tif"), files.index(f"{end_date}.tif")
-				# files = files[x:y]
-				for file in files:
-					tif = f"{var}/{file}"
-					with rasterio.open(tif) as src:
-					
-						data = src.read(1)
-						mean, min, max = np.nanmean(data), np.nanmin(data), np.nanmax(data)
-						min_values.append(min), mean_values.append(mean), max_values.append(max)
+        try:
+            for folder in folders:
+                min_values, max_values, mean_values = [], [], []
+                folder_path = os.path.join(path, folder)
+                files = [f for f in os.listdir(folder_path) if os.path.isfile(os.path.join(folder_path, f))]
+                files = sorted(files, key=lambda x: x.split('.')[0])
 
-				final_data[folder] = {
-					'min' :  min_values,
-					'max'  : max_values,
-					'mean' : mean_values
-				}
+                if not dates:
+                    dates = [file.split('.')[0].split('_')[1] for file in files]
 
+                for file in files:
+                    file_path = os.path.join(folder_path, file)
+                    with rasterio.open(file_path) as src:
+                        data = src.read(1)
+                        masked_value = np.ma.masked_equal(data, -9999)
+                        mean_value = np.nanmean(masked_value)
+                        min_value = np.nanmin(masked_value)
+                        max_value = np.nanmax(masked_value)
+                        min_values.append(min_value)
+                        mean_values.append(mean_value)
+                        max_values.append(max_value)
 
-			final_data['dates'] = dates
-			# final_data.update(calcul_aquacrop(31.665795547539773, -7.678333386926454, start_date, end_date))
+                final_data[folder] = {
+                    'min': min_values,
+                    'max': max_values,
+                    'mean': mean_values
+                }
 
-			return Response(final_data, status=status.HTTP_202_ACCEPTED)		
-		except Exception as e:
-			logger.error(f"Error occurred during data processing: {str(e)}")  # Log error	
-			return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+            final_data['dates'] = dates
+            # print(final_data['Ks'])
+            return Response(final_data, status=status.HTTP_200_OK)
+
+        except Exception as e:
+            logger.error(f"Error processing field_id {field_id}: {str(e)}")
+            return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
 class current_weather(APIView):
 
@@ -245,7 +251,7 @@ class weather(APIView):
 				point = field.boundaries[0][0]
 				lat = point[1]
 				lon = point[0]
-				
+				print(field_id, lat, lon)
 				final_result = {
 					'historic' : historic_weather(lat, lon, start_date, end_date),
 					'forcast'	: forcast(lat, lon)

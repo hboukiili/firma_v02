@@ -186,16 +186,24 @@ const SoilTextureTrianglePlot = () => {
     bgcolor: "transparent",
     opacity: 0,
   };
-  useEffect(() => {
-    console.log(form.getFieldsValue());
+  function onchange_() {
     dispatch(
       updateFarmerInfo({
         soilPr: form.getFieldsValue(),
         soilMethod: "Composition",
       })
     );
-  }, [form.isFieldsTouched()]);
-  console.log(Data.soilPr);
+    console.log(Data.soilPr);
+  }
+  // useEffect(() => {
+  //   console.log(form.getFieldsValue());
+  //   dispatch(
+  //     updateFarmerInfo({
+  //       soilPr: form.getFieldsValue(),
+  //       soilMethod: "Composition",
+  //     })
+  //   );
+  // }, [form.isFieldsTouched()]);
   return (
     <div className="flex flex-col  justify-center items-center relative ">
       <ReactSVG className="absolute top-[100px] w-[313px]" src={SoilTr} />
@@ -224,6 +232,7 @@ const SoilTextureTrianglePlot = () => {
       >
         <Form.Item name="clay" label="Clay %">
           <Input
+            onChange={onchange_}
             radius="full"
             variant="bordered"
             classNames={{
@@ -239,6 +248,7 @@ const SoilTextureTrianglePlot = () => {
 
         <Form.Item name="sand" label="Sand %">
           <Input
+            onChange={onchange_}
             radius="full"
             variant="bordered"
             classNames={{
@@ -254,6 +264,7 @@ const SoilTextureTrianglePlot = () => {
 
         <Form.Item name="silt" label="Silt %">
           <Input
+            onChange={onchange_}
             radius="full"
             variant="bordered"
             classNames={{
@@ -290,6 +301,7 @@ const Options = () => {
   useEffect(() => {
     if (Data.SoilType) dispatch(updateFarmerInfo({ SoilType: "" }));
   }, []);
+  console.log(Data);
   return (
     <div className="flex w-full h-full flex-col ">
       <Tabs

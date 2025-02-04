@@ -10,9 +10,11 @@ const Register = lazy(() => import(`./Pages/Register`));
 const Content = lazy(() => import(`./Pages/Content`));
 const Usertypes = lazy(() => import(`./Pages/usertypes`));
 const Documentation = lazy(() => import("./Pages/Home/Documentation"));
+const AnimatedCursor = lazy(() => import("react-animated-cursor"));
 
 
 function App() {
+  
   return (
     <div className=" flex justify-center items-center relative bgF">
       <Suspense
@@ -22,6 +24,7 @@ function App() {
           </div>
         }
       >
+       
         <BrowserRouter>
           <Routes>
             <Route path="/login" element={<Login />} />
@@ -29,7 +32,7 @@ function App() {
             <Route path="/register" element={<Register />} />
             <Route path="/usertypes" element={<Usertypes />} />
             <Route path="/farmer" element={<Content />} />
-            <Route path="/farmer1" element={<Content />} />
+            <Route path="/farmer1/:page?" element={<Content />} />
             <Route path="/addfield" element={<Content />} />
             <Route path="/cropgrowth" element={<Content />} />
             <Route path="/policyMaker" element={<Content />} />

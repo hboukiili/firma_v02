@@ -61,7 +61,7 @@ const SideBar = () => {
   };
 
   return (
-    <div className="absolute w-[90%]">
+    <div className="absolute w-[90%] h-full">
       <Button
         color="primary"
         aria-label="open drawer"
@@ -79,11 +79,13 @@ const SideBar = () => {
           "& .MuiDrawer-paper": {
             width: drawerWidth,
             boxSizing: "border-box",
-            backgroundColor: "#1E6F5C",
+            backgroundColor: "white",
+            borderRadius : "20px"
+            
           },
         }}
         variant="persistent"
-        anchor="left"
+        anchor="right"
         open={open}
       >
         <Button
@@ -94,7 +96,7 @@ const SideBar = () => {
           <MenuIcon />
         </Button>
         <Divider />
-        <List className="text-white">
+        <List className="text-">
           <ListItem key={"Dashboard"} disablePadding>
             <Link to="/farmer">
               <ListItemButton>

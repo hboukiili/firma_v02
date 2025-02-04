@@ -11,8 +11,9 @@ from pyproj import Transformer
 from shapely.geometry import mapping
 from shapely.ops import transform
 from rasterio.mask import mask
-from .Open_meteo import fao_Open_meteo, forcast_fao_Open_meteo
-from .geoserver_tools import publish_single_layer, create_workspace
+from Open_meteo import fao_Open_meteo, forcast_fao_Open_meteo
+from geoserver_tools import publish_single_layer, create_workspace, delete_workspace
+from datetime import date, timedelta, datetime
 
 pd.set_option('display.max_rows', None)  # This will display all rows
 pd.set_option('display.max_columns', None)  # This will display all columns
@@ -38,13 +39,20 @@ def load_raster_files(folder):
 
 def calculate_fc_kcb(ndvis):
     """Calculate FC and Kcb arrays for NDVI rasters."""
+
     ndvis = np.stack(ndvis)  # Stack into a 3D array (time, height, width)
+    
+    nodata_mask = ndvis == -9999
+    
     fc = 1.33 * ndvis - 0.20
     kcb = 1.64 * (ndvis - 0.14)
 
     # Ensure values are non-negative
     fc[fc < 0] = 0
     kcb[kcb < 0] = 0
+    
+    fc[nodata_mask] = -9999
+    kcb[nodata_mask] = -9999
 
     return fc, kcb
 
@@ -92,30 +100,34 @@ def process_field(ndvi_folder, output_folder, weather_data, index, par, airr):
     h = [np.nan] * len(ndvis)
 
     # Calculate FC and Kcb arrays
+    print('start_calculating fc and kcb')
     fc, kcb = calculate_fc_kcb(ndvis)
 
     # Initialize dictionaries for outputs
-    results = {param: {} for param in ['FC', 'Kcb', 'E', 'Zr', 'Ks', 'Kcadj', 'ETcadj', 'T', 'DP', 'Irrig', 'Rain', 'Runoff', 'ETref']}
-    
+    results = {param: {} for param in ['fc', 'Kcb', 'E', 'Zr', 'Ks', 'Kcadj', 'ETcadj', 'T', 'DP', 'Irrig', 'Rain', 'Runoff', 'ETref']}
+    for param in results:
+        for date in index:  # Assuming `index` contains all relevant dates
+            if date not in results[param]:
+                results[param][date] = np.full((fc.shape[1], fc.shape[2]), -9999, dtype=np.float32)  # Fill with -9999
+
     for i in range(fc.shape[1]):  # Loop over rows
         for x in range(fc.shape[2]):  # Loop over columns
-            # try:
-                # Extract pixel values over time
-                fc_pixel = fc[:, i, x]
-                kcb_pixel = kcb[:, i, x]
-                # Run the FAO model for this pixel
-                odata = run_fao_model(fc_pixel, kcb_pixel, h, weather_data, index, par, airr)
-                # Save results for each parameter
-                for param, values in odata.items():
-                    if param in results:
-                        for date, value in values.items():
-                            if date not in results[param]:
-                                results[param][date] = np.full((fc.shape[1], fc.shape[2]), np.nan)
-                            results[param][date][i, x] = value
-            # except Exception as e:
-            #     logger.error(f"Error processing pixel ({i}, {x}): {e}")
-        logger.info(f"processing pixel ({i}, {x}): Done")    
+            try:
+                if not np.any(fc[:, i, x] == -9999) and not np.any(kcb[:, i, x] == -9999):
 
+                    fc_pixel = fc[:, i, x]
+                    kcb_pixel = kcb[:, i, x]
+                    # Run the FAO model for this pixel
+                    odata = run_fao_model(fc_pixel, kcb_pixel, h, weather_data, index, par, airr)
+                    # print(odata['Ks'])
+                    # Save results for each parameter
+                    for param, values in odata.items():
+                        if param in results:
+                            for date, value in values.items():
+                                results[param][date][i, x] = value
+            except Exception as e:
+                logger.error(f"Error processing pixel ({i}, {x}): {e}")
+        logger.info(f"processing pixel ({i}, {x}): Done")    
     # Save all results as rasters
     for param, data_dict in results.items():
         param_output_folder = os.path.join(output_folder, param)
@@ -124,26 +136,38 @@ def process_field(ndvi_folder, output_folder, weather_data, index, par, airr):
     logger.info("Field processing completed.")
 
 @shared_task
-def fao_model(result, point, field_id):
+def fao_model(result, point, field_id, new_field, irr=None):
 
-
-    ndvi_folder = f"/app/Data/fao_output/{field_id}/ndvi"
+    # ndvi_folder = f"/app/Data/fao_output/{field_id}/ndvi"
     output_folder = f"/app/Data/fao_output/{field_id}"
-
+    ndvi_folder = f"/app/Data/test"
+    # output_folder = f"/app/Data/fao_output/32"
+    # if not new_field:
+    #     delete_workspace(field_id)
+    #     create_workspace(field_id)
     files           = [f for f in os.listdir(ndvi_folder) if os.path.isfile(os.path.join(ndvi_folder, f))]
     files           = sorted(files, key=lambda x: x.split('.')[0])
-    forcast, dates  = forcast_fao_Open_meteo(point[1], point[0])
+    # forcast, dates  = forcast_fao_Open_meteo(point[1], point[0])
+    yesterday = (datetime.now() - timedelta(days=1)).strftime('%Y-%m-%d')
+    date_range      = pd.date_range(start=files[0].split('.')[0], end=yesterday, freq='D')
+    # index           = date_range.strftime('%Y-%j')
+    # if files[0].split('.')[0] == dates[0]: Weather_Data = forcast
+    # else :
+    #     Weather_Data    = fao_Open_meteo(forcast,files[0].split('.')[0], date_range[date_range.get_loc(pd.Timestamp(dates[0])) - 1].strftime('%Y-%m-%d'), point[1], point[0])
+    # weather_data    = Weather(Weather_Data, index)
+    # par             = Parameters()
+    if irr == None:
+        airr            = AutoIrrigate()
+    else:
+        # index_len = len(index)
+        # irrEff = [100.0 * index_len]
+        # fw = [0.3] * index_len
+        # print(fw)
+        pass
 
-    date_range      = pd.date_range(start=files[0].split('.')[0], end=dates[-1], freq='D')
-    index           = date_range.strftime('%Y-%j')
-    if files[0].split('.')[0] == dates[0]: Weather_Data = forcast
-    else :
-        Weather_Data    = fao_Open_meteo(forcast,files[0].split('.')[0], date_range[date_range.get_loc(pd.Timestamp(dates[0])) - 1].strftime('%Y-%m-%d'), point[1], point[0])
-    weather_data    = Weather(Weather_Data, index)
-    par             = Parameters()
-    airr            = AutoIrrigate()
 
-    process_field(ndvi_folder, output_folder, weather_data, index, par, airr)
+    # process_field(ndvi_folder, output_folder, weather_data, index, par, airr)
 
 if __name__ == '__main__':
-    fao_model('', [-7.678321344603916, 31.66580238055144], 198)
+    irr = []
+    fao_model('', [-7.679958, 31.666682], 32, False, 'a')

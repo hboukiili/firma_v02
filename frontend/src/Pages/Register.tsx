@@ -45,9 +45,12 @@ const Register = () => {
   };
 
   return (
-    <div className="h-screen w-full flex justify-center items-center">
+    <div className="h-screen w-full flex items-center">
+      <div className="bg-black w-[50%] h-full">
+
+      </div>
       <form
-        className="w-[25%] gap-[30px] flex flex-col justify-between items-center max-lg:w-[40%] max-md:w-[60%]"
+        className="w-[50%] gap-[30px] flex flex-col justify-between items-center max-lg:w-[40%] max-md:w-[60%]"
         onSubmit={(e) => {
           e.preventDefault();
           post();

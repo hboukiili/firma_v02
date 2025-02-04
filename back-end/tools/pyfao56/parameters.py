@@ -70,10 +70,10 @@ class Parameters:
         Load the parameter data from a file
     """
 
-    def __init__(self, Kcbini=0.15, Kcbmid=1.10, Kcbend=0.50, Lini=25,
-                 Ldev=50, Lmid=50, Lend=25, hini=0.010, hmax=1.20,
+    def __init__(self, Kcbini=0.15, Kcbmid=1.10, Kcbend=0.15, Lini=30,
+                 Ldev=140, Lmid=40, Lend=30, hini=0.05, hmax=1.20,
                  thetaFC=0.250, thetaWP=0.100, theta0=0.100, Zrini=0.20,
-                 Zrmax=1.40, pbase=0.50, Ze=0.10, REW=8.0, CN2=70,
+                 Zrmax=1.80, pbase=0.55, Ze=0.10, REW=8.0, CN2=70,
                  comment=''):
         """Initialize the Parameters class attributes.
 

@@ -42,17 +42,7 @@ export const store = configureStore({
 
       },
     }).concat(thunk),
-  // {
-  //   userInfo: userSlice.reducer,
-  //   policyMaker: policyMakerSlice.reducer,
-  //   farmer: FarmerSlice.reducer,
-    // middleware: (getDefaultMiddleware) =>
-    //   getDefaultMiddleware({
-    //     serializableCheck: false, // Disable serializable checks
-    //   }),
-    // middleware: (getDefaultMiddleware) =>
-    //   getDefaultMiddleware().concat(sagaMiddleware),
-  // },
+
 });
 export const persistor = persistStore(store);
 export type RootState = ReturnType<typeof store.getState>;

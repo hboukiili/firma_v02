@@ -43,7 +43,10 @@ services:
     environment:
       GEOSERVER_ADMIN_PASSWORD : 123
       GEOSERVER_ADMIN_USER: test
-      JAVA_OPTS: "-Duser.timezone=GMT"
+      JAVA_OPTS: "-Dorg.geoserver.logging.level=DEBUG"
+      # JAVA_OPTS: 
     volumes:
       - ./geoserver_data:/var/lib/geoserver_data
       - ./back-end/Data/fao_output:/data
+      # - ./data_dir:/opt/geoserver/data_dir
+

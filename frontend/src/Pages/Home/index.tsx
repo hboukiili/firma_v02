@@ -32,6 +32,7 @@ import logo3 from "../../assets/Plogos/4.png";
 import logo4 from "../../assets/Plogos/5.png";
 import logo5 from "../../assets/Plogos/6.png";
 import logo6 from "../../assets/Plogos/7.png";
+import AnimatedCursor from "react-animated-cursor";
 
 const InfiniteLogos = () => {
   return (
@@ -367,7 +368,7 @@ const HeroSc = () => {
               </p>
             </div>
             <div className="flex flex-col gap-4  rounded-2xl p-4 w-[80%]">
-              <p className="text-[#ffffff] leading-6 text-justify text-[18px] line-clamp-6 font-nrml">
+              <p className="text-[#ffffff] leading-6 text-justify text-[18px] line-clamp-4 font-nrml">
                 Improve water efficiency and agricultural productivity with
                 FIRMA's innovative platform. Combining modern technologies like
                 remote sensing and machine learning, FIRMA offers real-time data
@@ -403,7 +404,7 @@ const HeroSc = () => {
               </p>
             </div>
             <div className="flex flex-col gap-4  rounded-2xl p-4 w-[80%]">
-              <p className="text-[#ffffff] leading-6 text-justify text-[18px] line-clamp-6 font-nrml">
+              <p className="text-[#ffffff] leading-6 text-justify text-[18px] line-clamp-4 font-nrml">
                 Improve water efficiency and agricultural productivity with
                 FIRMA's innovative platform. Combining modern technologies like
                 remote sensing and machine learning, FIRMA offers real-time data
@@ -439,7 +440,7 @@ const HeroSc = () => {
               </p>
             </div>
             <div className="flex flex-col gap-4  rounded-2xl p-4 w-[80%]">
-              <p className="text-[#ffffff] leading-6 text-justify text-[18px] line-clamp-6 font-nrml">
+              <p className="text-[#ffffff] leading-6 text-justify text-[18px] line-clamp-4 font-nrml">
                 Improve water efficiency and agricultural productivity with
                 FIRMA's innovative platform. Combining modern technologies like
                 remote sensing and machine learning, FIRMA offers real-time data
@@ -618,6 +619,7 @@ const Home = () => {
     { name: "Farmer", icn: Farmer_icn },
     { name: "Academic", icn: Policymake_icn },
   ];
+  const [isEnter, setIsEnter] = useState(false);
 
   return (
     <div className="w-screen flex flex-col  justify-start bg-[#F2F9F3]">

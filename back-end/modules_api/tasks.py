@@ -13,8 +13,8 @@ import os
 import rasterio
 from rasterio.enums import Resampling
 import zipfile
-from .tools.ndvi_calcul import S2_ndvi
-from models_only.models import Farmer, Field
+from tools.ndvi_calcul import S2_ndvi
+# from models_only.models import Farmer, Field
 from shapely.wkt import loads
 import pyfao56 as fao
 from pyfao56.tools import forecast
@@ -35,8 +35,8 @@ from affine import Affine
 import math
 from shapely.geometry import box
 from celery import group
-from .tools.fao_raster import fao_model
-from .tools.geoserver_tools import *
+from tools.fao_raster import fao_model
+from tools.geoserver_tools import *
 from celery import chain
 
 
@@ -52,10 +52,10 @@ def align_polygon_to_pixel(polygon, transform):
     minx, miny, maxx, maxy = polygon.bounds
     
     # Align to nearest pixel edges
-    aligned_minx = (np.floor((minx - transform.c) / transform.a) * transform.a) + transform.c
-    aligned_miny = (np.floor((miny - transform.f) / transform.e) * transform.e) + transform.f
-    aligned_maxx = (np.ceil((maxx - transform.c) / transform.a) * transform.a) + transform.c
-    aligned_maxy = (np.ceil((maxy - transform.f) / transform.e) * transform.e) + transform.f
+    aligned_minx = (np.floor((minx - transform.c) / transform.a) * transform.a) + transform.c - transform.a
+    aligned_miny = (np.floor((miny - transform.f) / transform.e) * transform.e) + transform.f - transform.e
+    aligned_maxx = (np.ceil((maxx - transform.c) / transform.a) * transform.a) + transform.c + transform.a
+    aligned_maxy = (np.ceil((maxy - transform.f) / transform.e) * transform.e) + transform.f + transform.e
     
     # Create an aligned bounding box
     aligned_polygon = box(aligned_minx, aligned_miny, aligned_maxx, aligned_maxy)
@@ -124,8 +124,8 @@ def process_field(boundaries, id, date):
 
     folder = f"/app/Data/fao_output"
     polygon = loads(boundaries)
-    field_folder = f"{folder}/{str(id)}/ndvi"
-
+    # field_folder = f"{folder}/{str(id)}/ndvi"
+    field_folder = f"/app/Data/test"
     try:
         with rasterio.open(f'/app/Data/ndvi/{date}_ndvi.tif') as src:
     
@@ -140,8 +140,8 @@ def process_field(boundaries, id, date):
                 transformed_polygon = transformed_polygon.buffer(0)
 
             # Align polygon to pixel grid
-            aligned_polygon = align_polygon_to_pixel(transformed_polygon, src.transform)
-            polygon_geojson = [mapping(aligned_polygon)]
+            # aligned_polygon = align_polygon_to_pixel(transformed_polygon, src.transform)
+            polygon_geojson = [mapping(transformed_polygon)]
             print(polygon_geojson, transformed_polygon)
             # # Clip raster
             out_image, out_transform = mask(src, polygon_geojson, crop=True)
@@ -156,12 +156,12 @@ def process_field(boundaries, id, date):
     
             output_path = os.path.join(field_folder, f"{date}.tif")
     
-            if not os.path.exists(field_folder):
-                os.makedirs(field_folder)
-                os.chmod(field_folder, 0o777)
+            # if not os.path.exists(field_folder):
+            #     os.makedirs(field_folder)
+            #     os.chmod(field_folder, 0o777)
     
-            with rasterio.open(output_path, "w", **meta) as dest:
-                dest.write(out_image[0], 1)
+            # with rasterio.open(output_path, "w", **meta) as dest:
+            #     dest.write(out_image[0], 1)
 
             logger.info(f"Processed field {id} successfully. Output saved at {output_path}")
 
@@ -184,7 +184,10 @@ def process_field(boundaries, id, date):
                     if os.path.exists(tif_path):
                         with rasterio.open(tif_path) as tif:
                             ndvi = tif.read(1)
-                            ndvi_data.append(ndvi)
+                            if np.nanmean(ndvi) != 0.0:
+                                ndvi_data.append(ndvi)
+                            else:
+                                ndvi_data.append(np.full((ndvi.shape[0], ndvi.shape[1]), np.nan))
                     else :
                         ndvi_data.append(np.full((ndvi.shape[0], ndvi.shape[1]), np.nan))
 
@@ -198,19 +201,11 @@ def process_field(boundaries, id, date):
         logger.error(f"Unexpected Error for field {id}: {e}")
  
 
-def check_data(specific_date):
+def check_data(specific_date, session, specific_tile):
 
     try:
 
-        copernicus_user = "hm.boukiili97@gmail.com"
-        copernicus_password = "Mas123456789@"
-
-        specific_tile = "T29SPR"  # Replace with your desired tile ID
         base_dir = "/app/Data"
-
-        session = requests.Session()
-        keycloak_token = get_keycloak(copernicus_user, copernicus_password)
-        session.headers.update({"Authorization": f"Bearer {keycloak_token}"})
 
         query_url = (
             f"https://catalogue.dataspace.copernicus.eu/odata/v1/Products?"
@@ -221,7 +216,7 @@ def check_data(specific_date):
         )
 
         response = session.get(query_url)
-        return response, specific_tile, session, base_dir
+        return response, specific_tile, base_dir
 
     except requests.exceptions.RequestException as e:
         logger.error(f"Error in check_data: {e}")
@@ -253,7 +248,7 @@ def download_data(results, session, specific_date, specific_tile, base_dir):
         with zipfile.ZipFile(save_path, 'r') as zip_ref:
             zip_ref.extractall(folder)
             logger.info("Extraction complete!")
-            os.remove(save_path)
+            # os.remove(save_path)
         return folder
     except requests.exceptions.RequestException as e:
         logger.error(f"Error downloading data: {e}")
@@ -282,7 +277,7 @@ def run_model():
             group_tasks = group(
                 chain(
                     process_field.s(field.boundaries.wkt, field.id, specific_date),
-                    fao_model.s(field.boundaries[0][0], field.id)
+                    fao_model.s(field.boundaries[0][0], field.id, False)
                 ) for field in All_fields
             )
 
@@ -319,13 +314,22 @@ def process_new_field(field_id, boundaries_wkt, point):
 
     ndvi_folder = '/app/Data/ndvi'
     result_len = 0
-    max_retries = 10
-    retry_count = 0
+    # create_workspace(field_id)
+    # fao_model('',point, field_id, True)
+    copernicus_user = "hm.boukiili97@gmail.com"
+    copernicus_password = "Mas123456789@"
+
+    specific_tile = "T29SPR"  # Replace with your desired tile ID
+    session = requests.Session()
+    keycloak_token = get_keycloak(copernicus_user, copernicus_password)
+    session.headers.update({"Authorization": f"Bearer {keycloak_token}"})
+
     specific_date = (datetime.now()).strftime('%Y-%m-%d')
 
-    while result_len == 0 and retry_count < max_retries:
-
-        response, specific_tile, session, base_dir = check_data(specific_date)
+    soumis_date = datetime.strptime('2024-12-17', "%Y-%m-%d")
+    while soumis_date != specific_date:
+        print(specific_date)
+        response, specific_tile,  base_dir = check_data(specific_date, session, specific_tile)
         if response.status_code != 200:
             logger.error(f"Failed to fetch data: {response.status_code}")
             session.close()
@@ -333,27 +337,35 @@ def process_new_field(field_id, boundaries_wkt, point):
 
         results = response.json()["value"]
         result_len = len(results)
+        print(f'result len : {result_len}')
         if result_len:
 
-            folder = download_data(results, session, specific_date, specific_tile, base_dir)
-            
-            S2_ndvi(folder, ndvi_folder, specific_date)
-            
-            create_workspace(field_id)
+            if not os.path.exists(f'/app/Data/ndvi/{specific_date}_ndvi.tif'):
+                print('starting downloading data')
+                folder = download_data(results, session, specific_date, specific_tile, base_dir)
+                print('data downloaded ...\n start ndvi process ...')
+                S2_ndvi(folder, ndvi_folder, specific_date)
+                break
 
-            chain(
-                process_field.s(boundaries_wkt, field_id, specific_date),
-                fao_model.s(point, field_id),
-                run_geoserver.s(field_id)
-            )()
-            break
-        else:
+    # files = [f for f in os.listdir(ndvi_folder) if os.path.isfile(os.path.join(ndvi_folder, f))]
+    # print(field_id)
+    # for file in files:
+    #     specific_date = file.split('_')[0]
+    #     print(specific_date)
+    #     process_field(boundaries_wkt, field_id, specific_date)
+        # break
 
-            logger.info(f'no data has been found for {specific_date}')
-            specific_date = (datetime.strptime(specific_date, "%Y-%m-%d") - timedelta(days=1)).strftime("%Y-%m-%d")
-            retry_count += 1
-    session.close()
+            # chain(
+            #     process_field.s(boundaries_wkt, field_id, specific_date),
+            #     fao_model.s(point, field_id, True),
+            #     # run_geoserver.s(field_id)
+            # )()
+            # break
+
+        # logger.info(f'{specific_date}')
+        specific_date = (datetime.strptime(specific_date, "%Y-%m-%d") - timedelta(days=1)).strftime("%Y-%m-%d")
+    # session.close()
 
 
 if __name__ == '__main__':
-    process_new_field(119, '', '')
+    process_new_field(32, 'POLYGON ((-7.680666 31.66665, -7.679964 31.666687, -7.679883 31.666271, -7.680436 31.666276, -7.680554 31.666536, -7.680666 31.66665))', '')  # Valid input example

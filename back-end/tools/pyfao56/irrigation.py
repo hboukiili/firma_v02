@@ -49,7 +49,7 @@ class Irrigation:
         Return the last irrigation date in the record.
     """
 
-    def __init__(self,filepath=None,comment=''):
+    def __init__(self, data, index):
         """Initialize the Irrigation class attributes.
 
         If filepath is provided, irrigation data is loaded from the file
@@ -62,12 +62,7 @@ class Irrigation:
             User-defined file descriptions or metadata (default = '')
         """
 
-        self.comment = 'Comments: ' + comment.strip()
-        self.tmstmp = datetime.datetime.now()
-        self.idata = pd.DataFrame(columns=['Depth','fw','ieff'])
-
-        if filepath is not None:
-            self.loadfile(filepath)
+        self.idata = pd.DataFrame(data, index=index)
 
     def __str__(self):
         """Represent the Irrigation class variables as a string."""

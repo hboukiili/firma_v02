@@ -14,7 +14,7 @@ def historic_weather(lat, lon, start_date, end_date):
         "longitude": lon,  
         "start_date": start_date,  
         "end_date": end_date,  # End date for historical data
-        "daily" : "rain_sum,shortwave_radiation_sum,et0_fao_evapotranspiration,temperature_2m_max,relative_humidity_2m_max,wind_speed_10m_max,wind_direction_10m_dominant,precipitation_probability_mean",
+        "daily" : "rain_sum,shortwave_radiation_sum,et0_fao_evapotranspiration,temperature_2m_max,relative_humidity_2m_max,wind_speed_10m_max,wind_direction_10m_dominant",
         "timezone": "Africa/Casablanca", 
         "windspeed_unit": "ms",        # kmh, ms, mph, kn
     }
@@ -39,7 +39,6 @@ def historic_weather(lat, lon, start_date, end_date):
             "Rh_max"            : daily["relative_humidity_2m_max"],
             "Ws"                : daily["wind_speed_10m_max"],
             "Wd"                : daily["wind_direction_10m_dominant"],
-            "Rain_pro"          : daily["precipitation_probability_mean"],
     }
 
 def forcast(lat, lon):

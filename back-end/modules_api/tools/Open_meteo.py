@@ -87,13 +87,16 @@ def fao_Open_meteo(forcast_Data,start_date, end_date, lat, long):
     # Check if the request was successful
     if response.status_code == 200:
         data, dates = get_final_date(response)
-
+        
+        # data['Rain'][-2] = 0.0 
+        # data['ETref'][-2] = 2.78 
+        # data['Srad'][-2] = 12.50
+        # data['Tdew'][-1] = 1.44
         for key in data:
             if data[key][-1] == None \
                 or data[key][-1] == np.nan:
-                data[key][-1] = forcast_Data[key][0] 
+                data[key][-1] = forcast_Data[key][0]
             data[key] +=  forcast_Data.get(key, [])
-    
         return data
 
     else:

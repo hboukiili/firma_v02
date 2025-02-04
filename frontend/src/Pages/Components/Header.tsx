@@ -88,7 +88,7 @@ function NavBar() {
       </NavbarContent>
       <NavbarContent justify="end">
         <NavbarItem className="hidden lg:flex">
-          <Link className="text-[#4FC38F]" href="#">
+          <Link className="text-[#4FC38F]" href="/login">
             Login
           </Link>
         </NavbarItem>
@@ -96,7 +96,7 @@ function NavBar() {
           <Button
             as={Link}
             className="rounded-full bg-[#4FC38F] text-white"
-            href="#"
+            href="/register"
             variant="flat"
           >
             Sign Up
@@ -167,7 +167,7 @@ const Header = () => {
   console.log(location.pathname)
   return (
     <>
-    {location.pathname === "/farmer1" ? <Header_/> : <NavBar/>}
+    {location.pathname.startsWith("/farmer1") ? <Header_/> : <NavBar/>}
     </>
   );
 };

@@ -25,7 +25,7 @@ const Validation = () => {
   const Data = useAppSelector((state) => state.farmer);
   function SoilData() {
     if (Data.SoilType) return Data.SoilType;
-    if (Data.soilPr?.clay) {
+    else if (Data.soilPr?.clay) {
       const { clay, sand, silt } = Data.soilPr;
       return `Clay : ${clay}, Sand : ${sand}, Silt : ${silt}`;
     }
@@ -117,8 +117,65 @@ const Validation = () => {
           }
         );
       }
+    } else {
+      if (type === "Sprinkler irrigation") {
+        result.push(
+          {
+            key: "5",
+            Attribute: "Sprinkler Coverage",
+            EnteredValue: props?.sprinklerCoverage_c,
+          },
+          {
+            key: "6",
+            Attribute: "Water Outflow Rate",
+            EnteredValue: props?.WaterOutflowRate_c,
+          },
+          {
+            key: "7",
+            Attribute: "Number of Sprinklers",
+            EnteredValue: props?.numberOfSprinklers_c,
+          }
+        );
+      } else if (type === "Drip irrigation") {
+        result.push(
+          {
+            key: "5",
+            Attribute: "Distance Between Tubes",
+            EnteredValue: props?.DistanceBetweenTubes_c,
+          },
+          {
+            key: "6",
+            Attribute: "Distance Between Drippers",
+            EnteredValue: props?.DistanceBetweenDrippers_c,
+          },
+          {
+            key: "7",
+            Attribute: "Distance Between Rows",
+            EnteredValue: props?.DistanceBetweenRows_t,
+          },
+          {
+            key: "8",
+            Attribute: "Distance Between Trees",
+            EnteredValue: props?.DistanceBetweenTrees_t,
+          },
+          {
+            key: "9",
+            Attribute: "Number of Tubes Per Tree",
+            EnteredValue: props?.NumberOfTubesPerTree_t,
+          },
+          {
+            key: "10",
+            Attribute: "Number of Drippers Per Tree",
+            EnteredValue: props?.NumberOfDrippersPerTree_t,
+          },
+          {
+            key: "11",
+            Attribute: "Water Outflow Rate",
+            EnteredValue: props?.WaterOutflowRate_t,
+          }
+        );
+      }
     }
-
     return result;
   }
 

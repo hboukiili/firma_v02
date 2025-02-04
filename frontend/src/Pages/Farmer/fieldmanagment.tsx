@@ -190,7 +190,7 @@ export const CropInfo = () => {
   const [tree, Settree] = useState("");
   const dispatch = useAppDispatch();
 
-  const list = plantType === "Crop" ? crops_ : trees;
+  const list = plantType === "Tree" ? trees : crops_;
   useEffect(() => {
     dispatch(
       updateFarmerInfo({
@@ -295,7 +295,7 @@ export const CropInfo = () => {
             Settree(e.target.value);
           }}
         >
-          {list.map((val, _) => {
+          {trees.map((val, _) => {
             return (
               <SelectItem key={val} value={val}>
                 {val}

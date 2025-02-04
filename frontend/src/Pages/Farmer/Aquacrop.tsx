@@ -9,342 +9,270 @@ import AddField from "./tools/addField.tsx";
 import { CalendarDate } from "@internationalized/date";
 import canld from "../../assets/canld.png";
 import PuffLoader from "react-spinners/PuffLoader";
-
-export const config: { series: [{}]; options: ApexCharts.ApexOptions } = {
-  options: {
-    colors: ["#01A5CF", "#1E6F5C", "#E6DD3B"],
-    chart: {
-      toolbar: {
-        show: true,
-      },
-    },
-
-    dataLabels: {
-      enabled: false,
-    },
-    stroke: {
-      curve: "straight",
-      width: 3,
-    },
-
-    // xaxis: {
-    //     type: "datetime",
-    //     tickAmount: 6,
-    //     min: new Date("01 Jan 2019").getTime(),
-    //     max: new Date("01 May 2019").getTime(),
-    //     categories: getDateRange("2019-01-01", "2019-01-05"),
-    // },
-    // tooltip: {
-    //   x: {
-    //     format: "dd MMM yyyy HH:mm",
-    //   },
-    // },
-    fill: {},
-    // fill: {
-    //   type: "gradient",
-    //   gradient: {
-    //     // opacityTo:[]
-    //     // shadeIntensity: 1,
-    //     // opacityFrom: 0.7,
-    //     opacityTo: 0,
-    //     // stops: [0, 100],
-    //   },
-    // },
-    grid: {
-      show: true,
-    },
-  },
-};
-
-function setSeries(data) {
-  const series = [
-    [
-      {
-        name: "Irrigation mm/day",
-        type: "column",
-        data: data.IrrDay,
-      },
-      {
-        name: "Deep Perc",
-        type: "line",
-        data: data.DeepPerc,
-      },
-      {
-        name: "ET",
-        type: "line",
-        data: data.ET,
-      },
-    ],
-    [
-      {
-        name: "Irrigation mm/day",
-        type: "column",
-        data: data.IrrDay,
-      },
-      {
-        name: "SM1",
-        type: "line",
-        data: data.Th1,
-      },
-      {
-        name: "SM2",
-        type: "line",
-        data: data.Th2,
-      },
-      {
-        name: "SM3",
-        type: "line",
-        data: data.th3,
-      },
-    ],
-    [
-      {
-        name: "Irrigation mm/day",
-        type: "column",
-        data: data.IrrDay,
-      },
-      {
-        name: "Canopy cover",
-        type: "line",
-        data: data.canopy_cover,
-      },
-      {
-        name: "Biomass",
-        type: "line",
-        data: data.biomass,
-      },
-    ],
-    [
-      {
-        name: "Z root",
-        type: "column",
-        data: data.z_root,
-      },
-      {
-        name: "Gdd cum",
-        type: "line",
-        data: data.gdd_cum,
-      },
-    ],
-    [
-      {
-        name: "Harvest index",
-        type: "column",
-        data: data.harvest_index,
-      },
-      {
-        name: "Dry Yield",
-        type: "line",
-        data: data.DryYield,
-      },
-      {
-        name: "Fresh Yield",
-        type: "line",
-        data: data.FreshYield,
-      },
-    ],
-  ];
-  return series;
+import { format } from "date-fns";
+import {
+  LineChart,
+  Line,
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  Legend,
+  ResponsiveContainer,
+  ComposedChart
+} from "recharts";
+interface DataSet {
+  name: string;
+  data: number[];
+  color: string;
+  type: "line" | "bar";
+  yAxisId: number;
+  forecastCount?: number; // Number of forecasted points
 }
 
-const Aquacrop = () => {
-  const [Data, SetData] =
-    useState<{ name: string; type: string; data: any }[][]>();
-  const [dates, Setdates] = useState();
+interface YAxisConfig {
+  id: number;
+  title: string;
+  opposite?: boolean;
+}
+
+interface ChartProps {
+  Data: {
+    datasets: DataSet[];
+    DateRange: string[];
+    yAxes: YAxisConfig[];
+  };
+}
+
+export const MultiChart_ = ({ Data }: ChartProps) => {
+  const { DateRange, datasets, yAxes } = Data;
   const Data_ = useAppSelector((state) => state.farmer);
-  const dispatch = useAppDispatch();
-  console.log(Data_);
-  const [isLoad, setIsLoad] = useState(false);
-  const [start_date, SetSrtDate] = useState("");
-  const [end_date, SetEndDate] = useState("");
-  const [fID, SetFid] = useState();
-  const [sub, Setsub] = useState(true);
-  const [loader , SetLoader] = useState(false)
-  useEffect(() => {
-    // api
-    //   .get("/api/aquacrop")
-    //   .then((res) => {
-    //     SetData(setSeries(res.data));
-    //     Setdates(res.data.dates);
-    //     console.log(res.data);
-    //   })
-    //   .catch((err) => {
-    //     console.log(err);
-    //   });
-    if (end_date && start_date && fID) Setsub(false);
-  }, [end_date, start_date, fID]);
+
+  let DateRange_ = DateRange ? DateRange : Data_.DateRange;
+
+  // Ensure chartData is structured properly
+  const chartData = DateRange_.map((date, index) => {
+    let entry: Record<string, any> = { date };
+
+    datasets.forEach((dataset) => {
+      const totalPoints = dataset.data.length;
+      const forecastIndex = totalPoints - dataset.forecastCount!; // Start of forecast points
+
+      entry[dataset.name] = dataset.data[index];
+
+      // If index is within forecasted range, separate actual and forecasted values
+      if (dataset.forecastCount && index >= forecastIndex) {
+        entry[`${dataset.name}_forecast`] = dataset.data[index]; // Forecasted values
+        entry[`${dataset.name}_actual`] = null; // Hide from actual line
+      } else {
+        entry[`${dataset.name}_actual`] = dataset.data[index]; // Actual values
+        entry[`${dataset.name}_forecast`] = null; // Hide from forecasted line
+      }
+    });
+
+    return entry;
+  });
 
   return (
-    <div className="w-screen p-2">
-      <div className="w-[100%] flex flex-col gap-4">
-        {isLoad ? (
-          Data?.map((val, _) => {
-            return (
-              <ReactApexCharts
-                className="bg-white rounded-md p-4"
-                //   key={_}
-                height={400}
-                // type="area"
-                options={{
-                  ...config.options,
-                  xaxis: {
-                    type: "datetime",
-                    categories: dates,
-                  },
-                  yaxis: [
-                    {
-                      min: 0,
-                      seriesName: val[0].name,
-                      //   opposite: true,
-                      axisTicks: {
-                        show: true,
-                      },
-                      axisBorder: {
-                        show: true,
-                        //   color: "black",
-                      },
-                      labels: {
-                        formatter: function (value: number) {
-                          return value.toFixed(2); // Format the labels to have 2 decimal places if needed
-                        },
-                      },
-                      title: {
-                        text: val[0].name,
-                        style: {
-                          //   color: "#00E396",
-                        },
-                      },
-                    },
-                    {
-                      min: Math.min(...val[1].data),
-                      seriesName: val[1].name,
-                      opposite: true,
-                      axisTicks: {
-                        show: true,
-                      },
-                      axisBorder: {
-                        show: true,
-                        //   color: "black",
-                      },
-                      labels: {
-                        formatter: function (value: number) {
-                          return value.toFixed(2); // Format the labels to have 2 decimal places if needed
-                        },
-                      },
-                      title: {
-                        text: val[1].name,
-                        style: {
-                          //   color: "#00E396",
-                        },
-                      },
-                    },
-                  ],
-                  //   title: {
-                  //     text: vr[0].name,
-                  //     align: "left",
-                  //   },
-                }}
-                series={val}
+    <ResponsiveContainer width="100%">
+      <ComposedChart data={chartData}>
+        <CartesianGrid strokeDasharray="2 2" />
+        <XAxis
+          dataKey="date"
+          tickFormatter={(date) => format(new Date(date), "dd MMM")} // Formats as "01 Jan"
+          tick={{ fontSize: 10 }} // Reduces font size
+        />
+
+        {/* Generate multiple Y-Axes dynamically */}
+        {yAxes.map((axis) => (
+          <YAxis
+            padding={{ top: 20 }}
+            key={axis.id}
+            yAxisId={axis.id}
+            // label={{
+            //   value: axis.title,
+            //   angle: -90,
+            //   position: "end",
+            //   fontSize: 14,
+            //   dx: 20
+            // }}
+            orientation={axis.opposite ? "right" : "left"} // Right or left placement
+          />
+        ))}
+
+        <Tooltip />
+        <Legend
+          wrapperStyle={{ paddingTop: "20px" }}
+          iconSize={0}
+          layout="horizontal"
+          height={0}
+          iconType="circle"
+          align="right"
+          verticalAlign="bottom"
+        />
+
+        {/* Render datasets dynamically based on type */}
+        {datasets.map((dataset) =>
+          dataset.type === "bar" ? (
+            <Bar
+              key={dataset.name}
+              dataKey={dataset.name}
+              fill={dataset.color}
+              yAxisId={dataset.yAxisId}
+            />
+          ) : (
+            <>
+              {/* Solid line for actual data (shows in legend) */}
+              <Line
+                key={`${dataset.name}_actual`}
+                type="monotone"
+                dataKey={`${dataset.name}_actual`}
+                stroke={dataset.color}
+                yAxisId={dataset.yAxisId}
+                strokeWidth={2}
+                dot={false}
+                name={dataset.name} // Keep in legend
               />
-            );
-          })
-        ) : (
-          <div className="w-full flex flex-col">
-            <div className="relative w-full h-[760px] overflow-hidden rounded-[10px]">
-              <div className="w-[35%] absolute z-40 p-4 rounded-lg flex flex-col gap-2 bg-white m-2">
-                <Select
-                  // defaultSelectedKeys={Data.currentField?.name}
-                  size="sm"
-                  radius={"lg"}
-                  label="Select field"
-                  className="w-full  "
-                  classNames={{
-                    trigger: "bg-scBgGreen",
-                  }}
-                  onChange={(e) => {
-                    SetFid(Data_.fieldInfo[e.target.value].id);
-                    dispatch(
-                      updateFarmerInfo({
-                        currentField: Data_.fieldInfo[e.target.value],
-                      })
-                    );
-                  }}
-                >
-                  {Data_.fieldInfo.map((val, _) => {
-                    return (
-                      <SelectItem key={_} value={val.name}>
-                        {val.name}
-                      </SelectItem>
-                    );
-                  })}
-                </Select>
-                <div className="w-full flex gap-2 font-Myfont">
-                  <DateInput
-                    onChange={(e) => {
-                      // console.log(e.toString(),"3333")
-                      if (e.day && e.month && e.year) SetSrtDate(e.toString());
-                    }}
-                    label="Enter the start date."
-                    variant="faded"
-                    radius="full"
-                    size="lg"
-                    classNames={{ inputWrapper: "border[#1E6F5C]", input: "" }}
-                    //   defaultValue={parseDate("2024-04-04")}
-                    placeholderValue={new CalendarDate(1995, 11, 6)}
-                    labelPlacement="outside"
-                    startContent={<img className="w-[20px]" src={canld} />}
-                  ></DateInput>
-                  <DateInput
-                    onChange={(e) => {
-                      // console.log(e.toString(),"3333")
-                      SetEndDate(e.toString());
-                    }}
-                    label="Enter the end date."
-                    variant="faded"
-                    radius="full"
-                    size="lg"
-                    classNames={{ inputWrapper: "border[#1E6F5C]", input: "" }}
-                    //   defaultValue={parseDate("2024-04-04")}
-                    placeholderValue={new CalendarDate(1995, 11, 6)}
-                    labelPlacement="outside"
-                    startContent={<img className="w-[20px]" src={canld} />}
-                  ></DateInput>
-                </div>
-                <Button
-                  onClick={() => {
-                    SetLoader(true)
-                    Setsub(true)
-                    api
-                      .post("/api/aquacrop", {
-                        field_id: Data_.fieldInfo[0].id,
-                        start_date: "2019-01-01",
-                        end_date: "2019-05-05",
-                      })
-                      .then((res) => {
-                        SetData(setSeries(res.data));
-                        Setdates(res.data.dates);
-                        setIsLoad(true);
-                        console.log(res.data);
-                      })
-                      .catch((err) => {
-                        console.log(err);
-                      });
-                  }}
-                  // isDisabled={sub}
-                  className="mt-2 bg-Green text-white"
-                  radius="full"
-                >
-            {loader ? <PuffLoader className="w-[15px]" color="#fff" />
-             : "Submit"}
-                </Button>
-              </div>
-              <AddField options_={false} />
-            </div>
-          </div>
+
+              {/* Dashed line for forecasted data (HIDDEN in legend) */}
+              <Line
+                key={`${dataset.name}_forecast`}
+                type="monotone"
+                dataKey={`${dataset.name}_forecast`}
+                stroke={dataset.color}
+                yAxisId={dataset.yAxisId}
+                strokeWidth={2}
+                dot={false}
+                strokeDasharray="5 5"
+                name=" " // Hide from legend
+              />
+            </>
+          )
         )}
-      </div>
-    </div>
+      </ComposedChart>
+    </ResponsiveContainer>
   );
+};
+
+// export const MultiChart_ = ({ Data, annotations }: ChartProps) => {
+//   const Data_ = useAppSelector((state) => state.farmer);
+//   const series = Data.datasets.map((dataset) => ({
+//     name: dataset.name,
+//     data:
+//       // dataset.name === "Rain"
+//       //   ? dataset.data.map((v) => {
+//       //       if (v) return v;
+//       //       return "-";
+//       //     })
+//       //   :
+//       dataset.data,
+//     color: dataset.color,
+//     type: dataset.type,
+//     id: dataset.yAxisId,
+//   }));
+
+//   // Handle range area by combining min and max arrays into pairs
+//   if (Data.rangeArea && Data.rangeArea.max && Data.rangeArea.min) {
+//     const rangeData = Data.DateRange.map((date, index) => ({
+//       x: new Date(date).getTime(), // Convert date to timestamp
+//       y: [Data.rangeArea.min[index], Data.rangeArea.max[index]],
+//     }));
+
+//     series.push({
+//       name: "Range Area",
+//       data: rangeData,
+//       type: "rangeArea", // Make sure ApexCharts supports this type if using a range area
+//       color: "#b0e57c",
+//       fill: {
+//         type: "gradient",
+//         gradient: {
+//           shade: "light",
+//           type: "vertical",
+//           opacityFrom: 0.5,
+//           opacityTo: 0,
+//         },
+//       },
+//     });
+//   }
+
+//   const options = {
+//     forecastDataPoints: {
+//       count: Data.DateRange ? 7 : 5,
+//     },
+//     chart: {
+
+//       toolbar: {
+//         show: true,
+//         offsetX: -30,
+//         // offsetY: 10,
+//       },
+//       animations: {
+//         enabled: false,
+//       },
+//     },
+//     tooltip: {
+//       enabled: true,
+//       shared: true,
+//       intersect: false,
+//       followCursor: true,
+//       x: { show: true },
+//       y: { show: true },
+//     },
+//     dataLabels: { enabled: false },
+//     stroke: { curve: "smooth", width: 4 },
+//     grid: {
+//       row: { colors: ["#f3f3f3", "transparent"], opacity: 0.5 },
+
+//     },
+//     xaxis: {
+//       categories: Data.DateRange ? Data.DateRange : Data_.DateRange,
+//       type: "datetime",
+//       tickAmount: 6,
+//       // min: new Date("15 Jan 2024").getTime(),
+//       // max: new Date("30 May 2024").getTime(),
+//     },
+//     yaxis: Data.yAxes.map((axis) => ({
+//       opposite: axis.opposite || false,
+//       title: { text: axis.title },
+//       labels: {
+//         formatter: (value: number) => value.toFixed(2),
+//       },
+//     })),
+//     legend: {
+//       position: "top",
+//       horizontalAlign: "start",
+//       // floating: true,
+
+//       offsetX: 5,
+//       // offsetX: 100,
+//     },
+//     // annotations: {
+//     //   yaxis: annotations, // Pass the annotations prop here
+//     // },
+//   };
+
+//   let updatedOptions;
+//   if (annotations)
+//     updatedOptions = {
+//       ...options,
+//       annotations: { yaxis: annotations },
+//     };
+//   else updatedOptions = options;
+
+//   return (
+//     <ReactApexCharts
+//       className="grow"
+//       height="100%"
+//       options={updatedOptions}
+//       series={series}
+//     />
+//   );
+// };
+
+const Aquacrop = () => {
+  return <div></div>;
 };
 
 export default Aquacrop;

@@ -60,6 +60,10 @@ const Documentation = () => {
       dis: "Understand the various models used in our application to simulate and analyze agricultural practices.",
     },
     {
+      title: "Products",
+      dis: "Understand the various models used in our application to simulate and analyze agricultural practices.",
+    },
+    {
       title: "APIs",
       dis: "Detailed information about the APIs used in our application.",
     },

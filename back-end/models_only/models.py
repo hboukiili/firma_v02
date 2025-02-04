@@ -202,14 +202,14 @@ class Sprinkler_irrigation(Irrigation_system):
 
 class Drip_Irrigation(Irrigation_system):
     
-    Crop_Tubes_distance     = models.IntegerField(blank=True, null=True)
-    Crop_Drippers_distance  = models.IntegerField(blank=True, null=True)
-    Crop_outflow_rate       = models.IntegerField(blank=True, null=True)    
-    Tree_row_distance       = models.IntegerField(blank=True, null=True)
-    Tree_distance           = models.IntegerField(blank=True, null=True)
-    Tubes_number_by_tree    = models.IntegerField(blank=True, null=True)
-    drippers_number_by_tree = models.IntegerField(blank=True, null=True)
-    Tree_outflow_rate       = models.IntegerField(blank=True, null=True)    
+    Crop_Tubes_distance     = models.FloatField(blank=True, null=True)
+    Crop_Drippers_distance  = models.FloatField(blank=True, null=True)
+    Crop_outflow_rate       = models.FloatField(blank=True, null=True)    
+    Tree_row_distance       = models.FloatField(blank=True, null=True)
+    Tree_distance           = models.FloatField(blank=True, null=True)
+    Tubes_number_by_tree    = models.FloatField(blank=True, null=True)
+    drippers_number_by_tree = models.FloatField(blank=True, null=True)
+    Tree_outflow_rate       = models.FloatField(blank=True, null=True)    
 
 class Maitenance_dates(models.Model):
 

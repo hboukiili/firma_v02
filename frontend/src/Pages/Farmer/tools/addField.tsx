@@ -17,6 +17,7 @@ import {
   Pane,
   Polygon,
   TileLayer,
+  WMSTileLayer,
   ZoomControl,
 } from "react-leaflet";
 import { EditControl } from "react-leaflet-draw";
@@ -32,8 +33,10 @@ import L, { Layer } from "leaflet";
 import { FileCard, FileUploader } from "evergreen-ui";
 import { message } from "antd";
 import Dragger_ from "./Dragger";
-import { useLocation } from "react-router-dom";
+import { useLocation, useParams } from "react-router-dom";
 import { DrawFieldTools } from "../Dashboard_V1";
+import AnimatedCursor from "react-animated-cursor";
+import { Farmer } from "../../../Redux/Farmer/Interfaces";
 
 export let MapRef_: L.Map = null;
 export const drawnItems = new L.FeatureGroup();
@@ -66,7 +69,7 @@ export const CreateFieldOptions = (prop: { map: L.Map }) => {
         radius="full"
         className="bg-scBgGreen w-44 p-8 text-[#072B1F] z-10 grow text-[16px]"
       >
-        <ReactSVG src={drIcon} />
+        <ReactSVG className="fill-Red" src={drIcon} />
         Draw Polygon
       </Button>
       <Button
@@ -106,7 +109,6 @@ export const CreateFieldOptions = (prop: { map: L.Map }) => {
               <ModalFooter>
                 <Button
                   onClick={() => {
-                    console.log();
                     try {
                       if (!isShapefile) {
                         let cr = JSON.parse(target);
@@ -139,29 +141,69 @@ export const CreateFieldOptions = (prop: { map: L.Map }) => {
   );
 };
 
+function requestGeoServerPixelValue(map: L.Map, geoServerUrl, Data: Farmer) {
+  // Remove any existing click event listener to prevent duplicate events
+  map.off("click");
+
+  // Add a click event listener to the map
+  map.on("click", function (e) {
+    const layerName = `${Data.RasterKey}:${Data.currentDate}`;
+    const latlng = e.latlng; // Get clicked coordinates
+
+    // Define the parameters for GetFeatureInfo request
+    const url =
+      `${geoServerUrl}?SERVICE=WMS&VERSION=1.1.1&REQUEST=GetFeatureInfo&LAYERS=${layerName}` +
+      `&QUERY_LAYERS=${layerName}&STYLES=&BBOX=${map
+        .getBounds()
+        .toBBoxString()}` +
+      `&FEATURE_COUNT=1&HEIGHT=${map.getSize().y}&WIDTH=${map.getSize().x}` +
+      `&FORMAT=image/png&INFO_FORMAT=application/json&SRS=EPSG:4326&X=${Math.round(
+        e.containerPoint.x
+      )}` +
+      `&Y=${Math.round(e.containerPoint.y)}`;
+
+    // Make an AJAX request to GeoServer
+    fetch(url)
+      .then((response) => response.json())
+      .then((data) => {
+        let content = "No data available";
+
+        // Check if data exists in the response
+        if (data.features && data.features.length > 0) {
+          const properties = data.features[0].properties;
+          // Dynamically get the first attribute in the feature properties
+          const firstKey = Object.keys(properties)[0];
+          const firstValue = properties[firstKey];
+
+          content = `${firstValue}`;
+        }
+
+        // Create and show a popup at the clicked location with the data
+        L.popup()
+          .setLatLng(latlng)
+          .setContent(`<pre>${content}</pre>`)
+          .openOn(map);
+      })
+      .catch((err) => {
+        console.error("Error fetching GeoServer data:", err);
+      });
+  });
+}
 const AddField = (prop: { options_: boolean }) => {
   const path = useLocation();
   const [zoomened, isZoomEnded] = useState(false);
   const MapRef = useRef<L.Map>();
-  const [isDraw, setIsDraw] = useState(false);
   const dispatch = useAppDispatch();
   const Data = useAppSelector((state) => state.farmer);
   const location = useLocation();
-  const _onCreate = (e) => {
-    const geoJson = JSON.stringify(e.layer.toGeoJSON());
-    dispatch(
-      updateFarmerInfo({
-        Field: geoJson,
-      })
-    );
-    console.log(e.layer.toGeoJSON().geometry.coordinates);
-  };
+  const {page} = useParams()
   const flyToField = () => {
+    const len = Data.fieldInfo.length
     if (MapRef.current && Data.currentField) {
       const boundaries = Data.currentField?.boundaries.coordinates[0];
       const bounds = boundaries!.map((coord) => [coord[1], coord[0]]);
       MapRef.current.flyToBounds(bounds, {
-        duration: 3,
+        duration: 2,
       });
       MapRef.current.on("zoomend", function () {
         isZoomEnded(true);
@@ -170,9 +212,8 @@ const AddField = (prop: { options_: boolean }) => {
         isZoomEnded(false);
       });
       dispatch(updateFarmerInfo({ boundaries: bounds }));
-    } else if (MapRef.current && Data.fieldInfo[0]) {
-      console.log(Data.fieldInfo[0]);
-      const boundaries = Data.fieldInfo[0].boundaries.coordinates[0];
+    } else if (MapRef.current && Data.fieldInfo[len - 1]) {
+      const boundaries = Data.fieldInfo[len - 1].boundaries.coordinates[0];
       const bounds = boundaries!.map((coord) => [coord[1], coord[0]]);
       MapRef.current.flyToBounds(bounds, {
         duration: 3,
@@ -180,47 +221,135 @@ const AddField = (prop: { options_: boolean }) => {
       dispatch(updateFarmerInfo({ boundaries: bounds }));
     }
   };
+  const whiteTileUrl =
+    "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/wcAAwAB/ZWQwF8AAAAASUVORK5CYII=";
+
   useEffect(() => {
     if (MapRef.current) {
       MapRef_ = MapRef.current;
       MapRef_.addLayer(drawnItems);
     }
     dispatch(updateFarmerInfo({ boundaries: null }));
-    if (document.location.pathname === "/farmer1") flyToField();
-  }, [Data.currentField?.name, path.pathname, MapRef.current]);
+    if (document.location.pathname.startsWith("/farmer1")) flyToField();
+    if (Data.DrawOption && MapRef.current) MapRef.current.off("click");
+    if (MapRef.current && Data.isRasterData) {
+      requestGeoServerPixelValue(
+        MapRef_,
+        "http://localhost:8080/geoserver/wms",
+        Data
+      );
+    }
+  }, [
+    Data.currentField?.name,
+    path.pathname,
+    MapRef.current,
+    Data.RasterKey,
+    Data.currentDate,
+    Data.isRasterData,
+  ]);
+  const [tet, settet] = useState(false);
   return (
-    <div className="w-full h-full relative map-c">
-      <div className={`absolute z-40 p-4 ${location.pathname === "/farmer1" ? "bottom-0 left-0" : "top-0 right-0"} ` }>
-        <DrawFieldTools />
-      </div>
-      <MapContainer
-        center={[29, -6]}
-        zoom={6}
-        ref={MapRef}
-        style={{ width: "100%", height: "100%" }}
-        zoomControl={false}
+    <div
+      onMouseEnter={() => {
+        settet(true);
+      }}
+      onMouseLeave={() => {
+        settet(false);
+      }}
+      className="w-full h-full relative map-c"
+    >
+      <div
+        className={`absolute z-40 p-4 ${
+          location.pathname.startsWith("/farmer1") ? "bottom-0 left-0" : "top-0 right-0"
+        } `}
       >
-        <LayersControl position="bottomright">
-          <LayersControl.BaseLayer checked name="Satellite">
-            <LayerGroup>
-              <TileLayer
-                attribution="Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community"
-                url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
-              />
-              <TileLayer
-                attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
-                url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager_only_labels/{z}/{x}/{y}{r}.png"
-              />
-            </LayerGroup>
-          </LayersControl.BaseLayer>
-        </LayersControl>
-        <ZoomControl position="bottomright" />
-        {Data.boundaries && zoomened && !Data.DrawOption && (
-          <Polygon
-            positions={Data.boundaries}
-            pathOptions={{ color: "#F5D152" }}
+        {prop.options_ && <DrawFieldTools />}
+      </div>
+      {Data.DrawOption && (
+        <AnimatedCursor
+          color="255, 255, 255"
+          outerSize={12}
+          innerSize={10}
+          outerAlpha={0.1}
+          innerScale={1.5}
+          outerScale={8}
+          innerStyle={{ zIndex: 9999 }}
+          showSystemCursor={true}
+        />
+      )}
+
+      <MapContainer
+        center={[29, -8]}
+        zoom={10}
+        ref={MapRef}
+        style={{
+          width: "100%",
+          height: "100%",
+          backgroundColor: "transparent",
+        }}
+        zoomControl={false}
+        // dragging={Data.Location === "Home"} // Disable dragging
+      >
+        {!page ? (
+          <LayersControl position="bottomright">
+            <LayersControl.BaseLayer checked name="Satellite">
+              <LayerGroup>
+                <TileLayer
+                  attribution="Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community"
+                  url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
+                />
+
+                <TileLayer
+                  attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
+                  url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager_only_labels/{z}/{x}/{y}{r}.png"
+                />
+              </LayerGroup>
+            </LayersControl.BaseLayer>
+          </LayersControl>
+        ) : (
+          <></>
+          // <TileLayer url={whiteTileUrl} attribution="" />
+        )}
+
+        {Data.isRasterData && !Data.DrawOption && (
+          <WMSTileLayer
+            key={Data.RasterKey + Data.currentDate}
+            url="http://localhost:8080/geoserver/wms"
+            layers={`${Data.currentField?.id}:${Data.RasterKey}_${Data.currentDate}`}
+            format="image/png"
+            noWrap
+            tileSize={512}
+            transparent
+            styles={"RedGreen"}
+            bounds={Data.boundaries}
           />
         )}
+        {/* <ZoomControl position="bottomright" /> */}
+        {/* {Data.boundaries &&
+          zoomened &&
+          !Data.DrawOption &&
+          !Data.isRasterData && (
+            <Polygon
+              positions={Data.boundaries}
+              pathOptions={{ color: "#F5D152" }}
+            />
+          )} */}
+
+        {!Data.isRasterData && Data.fieldInfo.map((v, k) => {
+          const boundaries = v.boundaries.coordinates[0];
+          const bounds = boundaries!.map((coord) => [coord[1], coord[0]]);
+          let color = "#F5D152";
+          let opct = 0.5
+          if (v.name === Data.currentField?.name) {color = "#ffea00"; opct = 1};
+          return (
+            <Polygon
+              opacity={9}
+              key={k}
+              positions={bounds}
+              pathOptions={{ color: color ,opacity : opct, }}
+            />
+          );
+        })}
 
         {<Shapefile removeLayer={false} />}
       </MapContainer>

@@ -6,13 +6,7 @@ import { useAppDispatch, useAppSelector } from "../../../Redux/hooks";
 import { Form } from "antd";
 
 const FieldInformation = () => {
-  const irrigation_ = [
-    "Surface irrigation",
-    "Sprinkler irrigation",
-    "Drip irrigation",
-    "Subsurface irrigation",
-  ];
-  const crops_ = ["Wheat", "Maize", "Potatoes"];
+ 
   const dispatch = useAppDispatch();
   const Data = useAppSelector((state) => state.farmer);
 

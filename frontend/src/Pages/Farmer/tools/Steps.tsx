@@ -16,16 +16,16 @@ interface Steps {
 export const Waiting = () => {
   return (
     <motion.div
-      initial={{ opacity: 0, x: 60 }} // Starting state
-      animate={{ opacity: 1, x: 0 }} // Animation to apply
+      initial={{ opacity: 0, y: 60 }} // Starting state
+      animate={{ opacity: 1, y: 0 }} // Animation to apply
       transition={{ duration: 0.4 }}
-      className="font-Myfont w-[800px] flex items-center flex-col gap-4"
+      className="font-Myfont w-[900px] flex items-center flex-col gap-4"
     >
       <PuffLoader className="" color="#48A788" />
       <p className="font-bld text-[22px] text-center">
         Processing your data, please wait
       </p>
-      <p className="text-center w-[300px] text-[12px]">
+      <p className="text-center  w-[300px] text-[12px]">
         We are validating your field information and optimizing the irrigation
         and planting details. This might take a few moments. Thank you for your
         patience!
@@ -40,7 +40,7 @@ const Steps = (prop: Steps) => {
     "Soil information": <SoilInfo_ />,
     "Irrigation system": <Irrigationsystem_ />,
     "Crop information": <CropInfo />,
-    Validation: <Validation />,
+    "Validation": <Validation />,
   };
 
   return (

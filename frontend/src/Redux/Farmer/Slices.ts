@@ -13,7 +13,7 @@ export const FarmerSlice = createSlice({
         }
       });
       if (!state.currentField && state.fieldInfo)
-        state.currentField = state.fieldInfo[0];
+        state.currentField = state.fieldInfo[state.fieldInfo.length - 1];
     },
   },
 });
