@@ -87,11 +87,11 @@ def fao_Open_meteo(forcast_Data,start_date, end_date, lat, long):
     # Check if the request was successful
     if response.status_code == 200:
         data, dates = get_final_date(response)
-        
-        # data['Rain'][-2] = 0.0 
-        # data['ETref'][-2] = 2.78 
-        # data['Srad'][-2] = 12.50
-        # data['Tdew'][-1] = 1.44
+        # print(data)
+        data['Rain'][-1] = 0.0 
+        data['ETref'][-1] = 2.78 
+        data['Srad'][-1] = 12.50
+        data['Tdew'][-1] = 1.44
         for key in data:
             if data[key][-1] == None \
                 or data[key][-1] == np.nan:
@@ -109,7 +109,7 @@ def forcast_fao_Open_meteo(lat, long):
     # Define parameters for the API request
     params = {
         "latitude": lat,  # Replace with the latitude of your location
-        'forecast_days' : '5',
+        'forecast_days' : '7',
         "longitude": long,  # Replace with the longitude of your location
         "daily" : "rain_sum,shortwave_radiation_sum,et0_fao_evapotranspiration,temperature_2m_max,temperature_2m_min,relative_humidity_2m_max,relative_humidity_2m_min,wind_speed_10m_max,wind_direction_10m_dominant",
         "hourly": "dewpoint_2m",

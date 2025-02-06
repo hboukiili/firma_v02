@@ -270,7 +270,7 @@ class AutoIrrigate:
                 data.append(float(line[25]))  #fw
                 self.aidata.loc[i] = data
 
-    def addset(self,start,end,alre=True,idow='0123456',fpdep=25.,
+    def addset(self,start,end,alre=False,idow='0123456',fpdep=25.,
                fpday=3,fpact='proceed',mad=float('NaN'),
                madDr=float('NaN'),ksc=float('0.7'),dsli=float('NaN'),
                dsle=float('NaN'),evnt=10.,icon=float('NaN'),

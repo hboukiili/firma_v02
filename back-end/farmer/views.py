@@ -119,8 +119,8 @@ class field(APIView):
 			fields = Field.objects.filter(user_id=user.id)
 			if fields.exists():
 				fields_data = [{'id' : field.id, 'name': field.name, 'boundaries': json.loads(field.boundaries.geojson)} for field in fields]
-				for field in fields:
-					print(field.boundaries.wkt, field.id)
+				# for field in fields:
+				# 	print(field.id, field.name)
 				return Response(fields_data, status=status.HTTP_200_OK)
 
 		except Exception as e:
@@ -389,43 +389,49 @@ class Irrigation(APIView):
 
 	def post(self, request):
 
-		field_id	= request.data.get('field_id')
-		amount 		= request.data.get('amount')
-		date		= request.data.get('date')
-		
-		if field_id and amount and date:
+		field_id				= request.data.get('field_id')
+		# print(field_id)
+		irrigation_Amount 		= request.data.get('value')
+		date					= request.data.get('date')
+		Unity					= request.data.get('unity')
+		print(field_id, date, Unity)
+		if field_id and irrigation_Amount and date and Unity:
 			try :
 				user = request.user
 
-				fc = self.get_fc_value(field_id)
 				irrigation = Irrigation_system.objects. \
-								select_related('field_id').get(field_id=field_id,
-								field_id__user_id=user.id)
+					select_related('field_id').get(field_id=field_id,
+					field_id__user_id=user.id)
+				# print(irrigation.id)
+				if Unity == 'duration':
 
-				if irrigation.irrigation_type == 'Drip':
-					drip = Drip_Irrigation.objects.get(field_id=field_id)
-					c4 = int(amount)
-					if drip.Crop_Tubes_distance != None:
-						c1 = drip.Crop_Tubes_distance
-						c2 = drip.Crop_Drippers_distance
-						c3 = drip.Crop_outflow_rate
-						irrigation_Amount = (c4 * c3) / (c1 * c2 * fc)
-					elif drip.Tree_outflow_rate != None:
-						T1 = drip.Tree_row_distance
-						T2 = drip.Tree_distance
-						T3 = drip.drippers_number_by_tree
-						T4 = drip.Tree_outflow_rate
-						irrigation_Amount = (T4 * T3 * c4) / (T1 * T2 * fc)  
+
+					fc = self.get_fc_value(field_id)
+
+					if irrigation.irrigation_type == 'Drip':
+						drip = Drip_Irrigation.objects.get(field_id=field_id)
+						c4 = int(irrigation_Amount)
+						if drip.Crop_Tubes_distance != None:
+							c1 = drip.Crop_Tubes_distance
+							c2 = drip.Crop_Drippers_distance
+							c3 = drip.Crop_outflow_rate
+							irrigation_Amount = (c4 * c3) / (c1 * c2 * fc)
+						elif drip.Tree_outflow_rate != None:
+							T1 = drip.Tree_row_distance
+							T2 = drip.Tree_distance
+							T3 = drip.drippers_number_by_tree
+							T4 = drip.Tree_outflow_rate
+							irrigation_Amount = (T4 * T3 * c4) / (T1 * T2 * fc)  
 
 				if irrigation != None:
 					new_irr = Irrigation_amount(amount=irrigation_Amount, date=date,irrigation_system_id=irrigation)
 					new_irr.save()
-				return Response(irrigation_Amount, status=status.HTTP_201_CREATED)
+				return Response("OK", status=status.HTTP_201_CREATED)
 			
 			except Exception as e:
 				logger.error(f"Error occurred during data processing: {str(e)}")  # Log error
 				return Response({f"error": "An error occurred while processing your request : {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-		# return Response("Error in Data", status=status.HTTP_400_BAD_REQUEST)
+		return Response("Error in Data", status=status.HTTP_400_BAD_REQUEST)
 
 class check_pro(APIView):
 

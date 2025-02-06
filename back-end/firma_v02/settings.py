@@ -39,6 +39,7 @@ REST_FRAMEWORK = {
 }
 
 INSTALLED_APPS = [
+    'jazzmin',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.gis',

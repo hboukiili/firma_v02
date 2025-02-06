@@ -186,7 +186,7 @@ class Irrigation_system(models.Model):
 
 class Irrigation_amount(models.Model):
 
-    amount = models.IntegerField()
+    amount = models.FloatField()
     date = models.DateField()
     irrigation_system_id = models.ForeignKey(Irrigation_system, on_delete=models.CASCADE)
 

@@ -32,7 +32,6 @@ def delete_workspace(workspace_name, recurse=True):
 
 def publish_single_layer(workspace, tiff_file, var):
 
-    print(tiff_file, var)
     create_store_url = f"{GEOSERVER_URL}/rest/workspaces/{workspace}/coveragestores"
     container_folder = f"/data/{workspace}/{var}"
     tiff_name = tiff_file.split('.')[0]

@@ -155,10 +155,9 @@ class FaoTest(APIView):
                     file_path = os.path.join(folder_path, file)
                     with rasterio.open(file_path) as src:
                         data = src.read(1)
-                        masked_value = np.ma.masked_equal(data, -9999)
-                        mean_value = np.nanmean(masked_value)
-                        min_value = np.nanmin(masked_value)
-                        max_value = np.nanmax(masked_value)
+                        mean_value = np.nanmean(data)
+                        min_value = np.nanmin(data)
+                        max_value = np.nanmax(data)
                         min_values.append(min_value)
                         mean_values.append(mean_value)
                         max_values.append(max_value)

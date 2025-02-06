@@ -34,57 +34,69 @@ def create_workspace(workspace_name, namespace_uri):
 		print(f"Failed to create workspace. Status code: {response.status_code}")
 		print(response.text)
 
+
+def publish_single_layer(workspace, tiff_file, var):
+
+    create_store_url = f"{geoserver_url}/rest/workspaces/{workspace}/coveragestores"
+    container_folder = f"/data/{workspace}/{var}"
+    tiff_name = tiff_file.split('.')[0]
+
+    store_payload = f"""
+    <coverageStore>
+    <name>{tiff_name}</name>
+    <type>GeoTIFF</type>
+    <workspace>{workspace}</workspace>
+    <enabled>true</enabled>
+    <url>file:{container_folder}/{tiff_file}</url>
+    <description>Raster Data</description>
+    </coverageStore>
+    """
+    response = requests.post(create_store_url, data=store_payload, headers={'Content-Type': 'text/xml'}, auth=HTTPBasicAuth(username, password))
+
+    if response.status_code == 201:
+        print(f"Store '{tiff_name}' created successfully.")
+    elif response.status_code == 409:
+        print(f"Store '{tiff_name}' already exists.")
+    else:
+        print(f"Failed to create store: {response.content}")
+
+
+    # Step 2: Publish the layer
+    publish_layer_url = f"{geoserver_url}/rest/workspaces/{workspace}/coveragestores/{tiff_name}/coverages"
+    layer_payload = f"""
+    <coverage>
+    <name>{tiff_name}</name>
+    <title>{tiff_name} Layer</title>
+    <srs>EPSG:32629</srs>
+    </coverage>
+    """
+    response = requests.post(publish_layer_url, data=layer_payload, headers={'Content-Type': 'text/xml'}, auth=HTTPBasicAuth(username, password))
+
+    if response.status_code == 201:
+        print(f"Store '{tiff_name}' created successfully.")
+    elif response.status_code == 409:
+        print(f"Store '{tiff_name}' already exists.")
+    else:
+        print(f"Failed to create store: {response.content}")
+
 # Path to the folder with TIFF files
 path 		= "/app/Data/fao_output"
 folders		= os.listdir(path)
 
 # Loop through all the TIFF files in the folder
 for workspace in folders:
+    workspace = '32'
     tiff_folder = f"{path}/{workspace}"
-    create_workspace(f'{workspace}', f"http://firma.com/{workspace}")
+    create_workspace(workspace, f"http://firma.com/{workspace}")
     fields = os.listdir(tiff_folder)
-
+    print(workspace)
     for var in fields:
         path = f"{tiff_folder}/{var}"
         tifs = os.listdir(path)
         for tiff_file in tifs:
-		# print(tiff_file)
             if tiff_file.endswith(".tif"):
-                tiff_name = os.path.splitext(tiff_file)[0]
-                print(tiff_name)
-			
-                container_folder = f"/data/{workspace}/{var}"
-# 			# Step 1: Create the coverage store
-                create_store_url = f"{geoserver_url}/rest/workspaces/{workspace}/coveragestores"
-                store_payload = f"""
-                <coverageStore>
-                <name>{tiff_name}</name>
-                <type>GeoTIFF</type>
-                <workspace>{workspace}</workspace>
-                <enabled>true</enabled>
-                <url>file:{container_folder}/{tiff_file}</url>
-                <description>Raster Data</description>
-                </coverageStore>
-                """
-                response = requests.post(create_store_url, data=store_payload, headers={'Content-Type': 'text/xml'}, auth=HTTPBasicAuth(username, password))
-#               
-                print(response.status_code)
-                # Step 2: Publish the layer
-                publish_layer_url = f"{geoserver_url}/rest/workspaces/{workspace}/coveragestores/{tiff_name}/coverages"
-                layer_payload = f"""
-# <coverage>
-# <name>{tiff_name}</name>
-# <title>{tiff_name} Layer</title>
-# <srs>EPSG:32629</srs>
-# </coverage>
-# 			"""
-                print(layer_payload)
-                response = requests.post(publish_layer_url, data=layer_payload, headers={'Content-Type': 'text/xml'}, auth=HTTPBasicAuth(username, password))
-                exit()
-            print(workspace, response.status_code)
-print("All TIFFs published!")
-
-# def publish_single_layer(workspace, tiff_file, var):
+                
+                publish_single_layer(workspace, tiff_file, var)
 
 
 #     create_store_url = f"{GEOSERVER_URL}/rest/workspaces/{workspace}/coveragestores"

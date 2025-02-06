@@ -495,6 +495,7 @@ class Model:
                     aistart= datetime.datetime.strptime(aistart,'%Y-%j')
                     aiend  = self.autoirr.aidata.loc[i,'end']
                     aiend  = datetime.datetime.strptime(aiend,'%Y-%j')
+                    
                     if tcurrent<aistart or tcurrent>aiend:
                         continue
                     #Evaluate "after last recorded irrigation" condition
@@ -505,7 +506,7 @@ class Model:
                                 continue
                     #Evaluate day of the week condition
                     dnow = tcurrent.strftime('%w')
-                    if dnow not in self.autoirr.aidata.loc[i,'idow']:
+                    if dnow not in self.autoirr.aidata.loc[i,'idow']:                    
                         continue
                     #Evaluate forecasted precipitation condition
                     fpdep = self.autoirr.aidata.loc[i,'fpdep']
@@ -518,7 +519,7 @@ class Model:
                         fcrain += self.wth.wdata.loc[fpkey,'Rain']
                     reduceirr = 0.
                     if fcrain >= fpdep:
-                        if fpact == 'cancel':
+                        if fpact == 'cancel':                        
                             continue
                         elif fpact == 'reduce':
                             reduceirr = fcrain
@@ -555,11 +556,9 @@ class Model:
                         dsle = ((tcurrent-self.startDate).days)+1
                     if dsle < self.autoirr.aidata.loc[i,'dsle']:
                         continue
-
                     #All conditions were met, need to autoirrigate
                     #Default rate is root-zone soil water depletion (Dr)
                     rate = max([0.0,io.Dr - reduceirr])
-
                     #Alternatively, the default rate may be modified:
                     #Use a contant rate
                     icon  = self.autoirr.aidata.loc[i,'icon']
