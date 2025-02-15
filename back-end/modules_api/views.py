@@ -122,59 +122,59 @@ class aquacrop(APIView):
 
 class FaoTest(APIView):
 
-    authentication_classes = [FARMERJWTAuthentication]
-    permission_classes = [IsAuthenticated]
+	authentication_classes = [FARMERJWTAuthentication]
+	permission_classes = [IsAuthenticated]
 
-    def get(self, request):
-        field_id = request.query_params.get('field_id')
-        if not field_id:
-            return Response({"error": "Field ID is required."}, status=status.HTTP_400_BAD_REQUEST)
-        
-        path = f"/app/Data/fao_output/{field_id}"
-        if not os.path.exists(path):
-            return Response({"error": f"Path {path} does not exist."}, status=status.HTTP_404_NOT_FOUND)
+	def get(self, request):
+		field_id = request.query_params.get('field_id')
+		if not field_id:
+			return Response({"error": "Field ID is required."}, status=status.HTTP_400_BAD_REQUEST)
+		
+		path = f"/app/Data/fao_output/{field_id}"
+		if not os.path.exists(path):
+			return Response({"error": f"Path {path} does not exist."}, status=status.HTTP_404_NOT_FOUND)
+		
+		folders = os.listdir(path)
+		if not folders:
+			return Response({"error": f"No data found for Field ID: {field_id}."}, status=status.HTTP_404_NOT_FOUND)
+		
+		final_data = {}
+		dates = []
 
-        folders = os.listdir(path)
-        if not folders:
-            return Response({"error": f"No data found for Field ID: {field_id}."}, status=status.HTTP_404_NOT_FOUND)
+		try:
+			for folder in folders:
+				min_values, max_values, mean_values = [], [], []
+				folder_path = os.path.join(path, folder)
+				files = [f for f in os.listdir(folder_path) if os.path.isfile(os.path.join(folder_path, f)) and f.endswith('.tif')]
+				files = sorted(files, key=lambda x: x.split('.')[0])
 
-        final_data = {}
-        dates = []
+				if not dates:
+					dates = [file.split('.')[0].split('_')[1] for file in files]
 
-        try:
-            for folder in folders:
-                min_values, max_values, mean_values = [], [], []
-                folder_path = os.path.join(path, folder)
-                files = [f for f in os.listdir(folder_path) if os.path.isfile(os.path.join(folder_path, f))]
-                files = sorted(files, key=lambda x: x.split('.')[0])
+				for file in files:
+					file_path = os.path.join(folder_path, file)
+					with rasterio.open(file_path) as src:
+						data = src.read(1)
+						mean_value = np.nanmean(data)
+						min_value = np.nanmin(data)
+						max_value = np.nanmax(data)
+						min_values.append(min_value)
+						mean_values.append(mean_value)
+						max_values.append(max_value)
 
-                if not dates:
-                    dates = [file.split('.')[0].split('_')[1] for file in files]
+				final_data[folder] = {
+					'min': min_values,
+					'max': max_values,
+					'mean': mean_values
+				}
 
-                for file in files:
-                    file_path = os.path.join(folder_path, file)
-                    with rasterio.open(file_path) as src:
-                        data = src.read(1)
-                        mean_value = np.nanmean(data)
-                        min_value = np.nanmin(data)
-                        max_value = np.nanmax(data)
-                        min_values.append(min_value)
-                        mean_values.append(mean_value)
-                        max_values.append(max_value)
+			final_data['dates'] = dates
+			# print(final_data['Ks'])
+			return Response(final_data, status=status.HTTP_200_OK)
 
-                final_data[folder] = {
-                    'min': min_values,
-                    'max': max_values,
-                    'mean': mean_values
-                }
-
-            final_data['dates'] = dates
-            # print(final_data['Ks'])
-            return Response(final_data, status=status.HTTP_200_OK)
-
-        except Exception as e:
-            logger.error(f"Error processing field_id {field_id}: {str(e)}")
-            return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+		except Exception as e:
+			logger.error(f"Error processing field_id {field_id}: {str(e)}")
+			return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
 class current_weather(APIView):
 

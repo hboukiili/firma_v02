@@ -14,7 +14,7 @@ import rasterio
 from rasterio.enums import Resampling
 import zipfile
 from .tools.ndvi_calcul import S2_ndvi
-from models_only.models import Farmer, Field
+from models_only.models import Farmer, Field, Irrigation_system, Irrigation_amount
 from shapely.wkt import loads
 import pyfao56 as fao
 from pyfao56.tools import forecast
@@ -38,11 +38,22 @@ from celery import group
 from .tools.fao_raster import fao_model
 from .tools.geoserver_tools import *
 from celery import chain
+from django.db.models import Prefetch
+from rasterio.features import shapes
 
 
 logger = logging.getLogger(__name__)
 
+def get_session():
 
+    copernicus_user = "hm.boukiili97@gmail.com"
+    copernicus_password = "Mas123456789@"
+
+    session = requests.Session()
+    keycloak_token = get_keycloak(copernicus_user, copernicus_password)
+    session.headers.update({"Authorization": f"Bearer {keycloak_token}"})
+
+    return session
 
 def align_polygon_to_pixel_outside(polygon, transform, pixel_size):
     """
@@ -95,6 +106,7 @@ def get_keycloak(username: str, password: str) -> str:
         )
     return r.json()["access_token"]
 
+@shared_task
 def interpolate_ndvi(meta, field_folder):
     """
     Interpolates NDVI data for all pixels across time using vectorized operations.
@@ -108,7 +120,6 @@ def interpolate_ndvi(meta, field_folder):
     Returns:
     - None (writes interpolated NDVI rasters to files)
     """
-    
     files = [f for f in os.listdir(field_folder) if os.path.isfile(os.path.join(field_folder, f))]
     
     if len(files) <= 1: return
@@ -165,7 +176,8 @@ def interpolate_ndvi(meta, field_folder):
             dest.write(interpolated_ndvi[i], 1)  # Write the data to the first band
             # dest.update_tags(TIFFTAG_DATETIME=date.strftime('%Y%m%d'), Time=date.strftime('%Y%m%d'))
             logging.info(f"{date.strftime('%Y-%m-%d')} Done")
-            
+
+@shared_task         
 def process_field(boundaries, id, date):
 
     folder = f"/app/Data/fao_output"
@@ -210,7 +222,7 @@ def process_field(boundaries, id, date):
 
             logger.info(f"Processed field {id} successfully. Output saved at {output_path}")
 
-            return transformed_polygon, meta, field_folder
+            return transformed_polygon.wkt, field_folder, meta
 
     except rasterio.errors.RasterioIOError as e:
         logger.error(f"RasterIO Error for field {id}: {e}")
@@ -271,42 +283,94 @@ def download_data(results, session, specific_date, specific_tile, base_dir):
         logger.error(f"Error downloading data: {e}")
         return None  # Indicate failure
 
+def get_irrigation():
+    
+    fields = Field.objects.prefetch_related(
+    Prefetch('irrigation_systems', queryset=Irrigation_system.objects.prefetch_related(
+        Prefetch('irrigation_amounts', queryset=Irrigation_amount.objects.all().order_by('date'))
+    )))
+    
+    field_irrigation_amounts = {}
+
+    # Iterate through each field
+    for field in fields:
+        amounts = []
+
+        if field.irrigation_systems.exists():
+            for system in field.irrigation_systems.all():
+                for amount in system.irrigation_amounts.all():
+                    amounts.append(amount.amount)
+
+        if not amounts: amounts = None
+        field_irrigation_amounts[field] = amounts
+    return field_irrigation_amounts
+
+@shared_task
+def get_field_info(id, boundaries):
+
+    field_folder = f"/app/Data/fao_output/{str(id)}/ndvi"
+    files = [f for f in os.listdir(field_folder) if os.path.isfile(os.path.join(field_folder, f))]
+    polygon = loads(boundaries)
+
+    with rasterio.open(f'{field_folder}/{files[0]}') as src:
+        raster_crs = src.crs
+        transformer = Transformer.from_crs("EPSG:4326", raster_crs, always_xy=True)
+
+        transformed_polygon = transform(transformer.transform, polygon)
+
+    return transformed_polygon.wkt
+
+
 @shared_task
 def run_model():
 
     ndvi_folder = '/app/Data/ndvi'
+    session = get_session()
+    specific_tile = "T29SPR"  # Replace with your desired tile ID
     specific_date = (datetime.now() - timedelta(days=1)).strftime('%Y-%m-%d')
-    response, specific_tile, session, base_dir = check_data(specific_date)
+    response, specific_tile,  base_dir = check_data(specific_date, session, specific_tile)
     if response.status_code == 200:
         results = response.json()["value"]
         len_result = len(results)
         if len_result:
 
             # If the condition is met, process fields and then run fao_model
-            folder = download_data(results, session, specific_date, specific_tile, base_dir)
+            if not os.path.exists(f'/app/Data/ndvi/{specific_date}_ndvi.tif'):
+                folder = download_data(results, session, specific_date, specific_tile, base_dir)
 
             # Start calculating NDVI
             S2_ndvi(folder, ndvi_folder, specific_date)
 
-            All_fields = Field.objects.all()
 
-            # Create a group of chains for `process_field` and `fao_model`
-            group_tasks = group(
-                chain(
-                    process_field.s(field.boundaries.wkt, field.id, specific_date),
-                    fao_model.s(field.boundaries[0][0], field.id, False)
-                ) for field in All_fields
-            )
+            field_irrigation_amounts = get_irrigation()
+    
+            for field, amounts in field_irrigation_amounts.items():
 
-            group_tasks.apply_async()
+                irrigation_amount = amounts if amounts else None
+                polygon, field_folder, meta = process_field(field.boundaries.wkt, field.id, specific_date)
+                task_chain = chain(
+                    interpolate_ndvi.s(meta, field_folder),
+                    fao_model.s().set(args=(polygon, field.boundaries[0][0], field.id, irrigation_amount))  # Explicitly set correct args
+                )
+
+                group_tasks = group(task_chain)
+                group_tasks.apply_async()
 
         else:
 
-            All_fields = Field.objects.all()
+            field_irrigation_amounts = get_irrigation()
 
-            model_tasks = group(fao_model.s(field.boundaries[0][0], field.id) for field in All_fields)
-            model_tasks.apply_async()
+            for field, amounts in field_irrigation_amounts.items():
 
+                irrigation_amount = amounts if amounts else None
+
+                task_chain = chain(
+                    get_field_info.s(field.id, field.boundaries.wkt),
+                    fao_model.s(field.boundaries[0][0], field.id, irrigation_amount)
+                )
+
+                group_tasks = group(task_chain)
+                group_tasks.apply_async()
 
     else:
         logger.info(f"Error fetching data: {response.status_code} - {response.text}")
@@ -317,16 +381,10 @@ def process_new_field(field_id, boundaries_wkt, point, soumis_date):
 
     ndvi_folder = '/app/Data/ndvi'
     result_len = 0
-    copernicus_user = "hm.boukiili97@gmail.com"
-    copernicus_password = "Mas123456789@"
-
     specific_tile = "T29SPR"  # Replace with your desired tile ID
-    session = requests.Session()
-    keycloak_token = get_keycloak(copernicus_user, copernicus_password)
-    session.headers.update({"Authorization": f"Bearer {keycloak_token}"})
+    session = get_session()
 
     specific_date = (datetime.now()).strftime('%Y-%m-%d')
-
     while soumis_date != specific_date:
         response, specific_tile,  base_dir = check_data(specific_date, session, specific_tile)
         if response.status_code != 200:
@@ -342,20 +400,27 @@ def process_new_field(field_id, boundaries_wkt, point, soumis_date):
             if not os.path.exists(f'/app/Data/ndvi/{specific_date}_ndvi.tif'):
                 print('starting downloading data')
                 folder = download_data(results, session, specific_date, specific_tile, base_dir)
-                print('data downloaded ...\n start ndvi process ...')
+                # file_name = f"{specific_date}_{specific_tile}.zip"    
+                # save_path = os.path.join(base_dir, file_name)
+                # if os.path.exists(save_path):
+                #     folder = f"{base_dir}/{specific_date}_{specific_tile}"
+                #     with zipfile.ZipFile(save_path, 'r') as zip_ref:
+                #         zip_ref.extractall(folder)
+                #         logger.info("Extraction complete!")
+                #         # os.remove(save_path)
+                #     print('data downloaded ...\n start ndvi process ...')
                 S2_ndvi(folder, ndvi_folder, specific_date)
-
             print('processing data ....')
-            polygon, meta, field_folder = process_field(boundaries_wkt, field_id, specific_date)
+            polygon, field_folder, meta = process_field(boundaries_wkt, field_id, specific_date)
         logger.info(f'{specific_date}')
         specific_date = (datetime.strptime(specific_date, "%Y-%m-%d") - timedelta(days=1)).strftime("%Y-%m-%d")
     session.close()
 
     interpolate_ndvi(meta, field_folder)
     print('running fao model ....')
-    irr = [0,00,0,0,0,0,0,0,0,0,0,14.12396349,0,0,0,0,0,0,14.12396349,0,0,0,0,0,0,0,0,0,0,0,9.415975658,0,0,0,0,0,0,0]
-    fao_model(point, field_id, polygon, irr)
+    irr = [0,0,0,0,22.10251597,0,0,17.68372754,0,0,0,0,0,0,0,0,0,0,0,1.494152744,6.17857993,0,0,0,0,0,0,0,0,0,0,0,0,7.328736828,0,0,0,0,0,]
+    fao_model(polygon, point, field_id , irr)
 
 
 if __name__ == '__main__':
-    process_new_field(47, 'POLYGON ((-7.679181 31.666372, -7.679148 31.666125, -7.678735 31.666057, -7.678456 31.666039, -7.678542 31.666386, -7.679181 31.666372))', [-7.680666, 31.66665], '2024-12-16')  # Valid input example
+    process_new_field(32, 'POLYGON ((-7.680666 31.66665, -7.679964 31.666687, -7.679883 31.666271, -7.680436 31.666276, -7.680554 31.666536, -7.680666 31.66665))', [-7.680666, 31.66665], '2024-12-15')  # Valid input example

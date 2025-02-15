@@ -27,17 +27,22 @@ pd.set_option('display.max_columns', None)  # This will display all columns
 logger = logging.getLogger(__name__)
 
 
-def load_raster_files(folder):
+def load_raster_files(folder, polygon, output_folder):
     """Load all NDVI rasters from a folder and return as a list of arrays."""
     files = sorted([f for f in os.listdir(folder) if f.endswith(".tif")], key=lambda x: x.split('.')[0])
     rasters = []
     meta = None
 
+    os.makedirs(f'{output_folder}/ndvi_vis', mode=0o777, exist_ok=True)
+    os.chmod(f'{output_folder}/ndvi_vis', 0o777)
+    
     for file in files:
             with rasterio.open(os.path.join(folder, file)) as src:
-                if meta is None: meta = src.meta.copy()    
-                rasters.append(src.read(1))  # Read the first band
-
+                if meta is None: meta = src.meta.copy()
+                ndvi = src.read(1)
+                rasters.append(ndvi)  # Read the first band
+                output_path = os.path.join(f'{output_folder}/ndvi_vis', f'ndvi_{file}')
+                resample_data(meta, ndvi, polygon, ndvi.shape, output_path, f'{output_folder}/ndvi_vis')
     return rasters, meta
 
 def calculate_fc_kcb(ndvis):
@@ -64,17 +69,71 @@ def run_fao_model(fc, kcb, h, weather_data, index, par, irr, airr):
     
     data = pd.DataFrame({'fc': fc, 'Kcb': kcb, 'h': h}, index=index)
     update = Update(data)
-    
+
     model = Model(index[0], index[-1], par, weather_data, autoirr=airr, upd=update, irr=irr)
 
     model.run()
 
     return model.odata
 
+def resample_data(meta, data, polygon, shape, output_path, output_folder):
+
+    polygon = loads(polygon)
+    actual_geojson = [mapping(polygon)]
+
+    new_transform, new_width, new_height = calculate_default_transform(
+                meta['crs'], meta['crs'], shape[1] * 10, shape[0] * 10,
+                *polygon.bounds, resolution=(1, 1)  # Adjust resolution as needed
+            )
+            # Resample the raster
+    resampled_raster = np.empty((new_height, new_width), dtype=meta['dtype'])
+    reproject(
+        source=data,  # Single-band
+        destination=resampled_raster,
+        src_transform=meta['transform'],
+        src_crs=meta['crs'],
+        dst_transform=new_transform,
+        dst_crs=meta['crs'],
+        resampling=Resampling.bilinear)
+
+    # Clip the resampled raster to the polygon
+    with rasterio.MemoryFile() as memfile:
+        with memfile.open(
+            driver='GTiff',
+            height=new_height,
+            width=new_width,
+            count=1,
+            dtype=meta['dtype'],
+            crs=meta['crs'],
+            transform=new_transform
+        ) as dataset:
+            dataset.write(resampled_raster, 1)
+
+        with memfile.open() as dataset:
+            final_clipped, final_transform = mask(dataset, actual_geojson, crop=True, nodata=np.nan)
+
+    # Update metadata for the clipped raster
+    final_meta = meta.copy()
+    final_meta.update({
+        "transform": final_transform,
+        "height": final_clipped.shape[1],
+        "width": final_clipped.shape[2],
+        "nodata": np.nan,
+    })
+
+    # Save the final clipped raster
+    with rasterio.open(output_path, 'w', **final_meta) as dst:
+        dst.write(final_clipped[0], 1)  # Single-band write
+        
+    publish_single_layer(
+                output_folder.split('/')[-2],
+                output_path.split('/')[-1],
+                output_folder.split('/')[-1]
+            )
+
 def save_raster(data_dict, output_folder, meta, shape, polygon):
     """Save computed rasters to disk."""
 
-    actual_geojson = [mapping(polygon)]
     for date_str, data in data_dict.items():
         try:
             # Parse the date
@@ -85,69 +144,19 @@ def save_raster(data_dict, output_folder, meta, shape, polygon):
             # Create the output folder if it doesn't exist
             os.makedirs(output_folder, mode=0o777, exist_ok=True)
             os.chmod(output_folder, 0o777)
-
-            # Calculate the new transform and dimensions for resampling
-            new_transform, new_width, new_height = calculate_default_transform(
-                meta['crs'], meta['crs'], shape[1] * 10, shape[0] * 10,
-                *polygon.bounds, resolution=(1, 1)  # Adjust resolution as needed
-            )
-            # Resample the raster
-            resampled_raster = np.empty((new_height, new_width), dtype=meta['dtype'])
-            reproject(
-                source=data,  # Single-band
-                destination=resampled_raster,
-                src_transform=meta['transform'],
-                src_crs=meta['crs'],
-                dst_transform=new_transform,
-                dst_crs=meta['crs'],
-                resampling=Resampling.bilinear)
-
-            # Clip the resampled raster to the polygon
-            with rasterio.MemoryFile() as memfile:
-                with memfile.open(
-                    driver='GTiff',
-                    height=new_height,
-                    width=new_width,
-                    count=1,
-                    dtype=meta['dtype'],
-                    crs=meta['crs'],
-                    transform=new_transform
-                ) as dataset:
-                    dataset.write(resampled_raster, 1)
-
-                with memfile.open() as dataset:
-                    final_clipped, final_transform = mask(dataset, actual_geojson, crop=True, nodata=np.nan)
-
-            # Update metadata for the clipped raster
-            final_meta = meta.copy()
-            final_meta.update({
-                "transform": final_transform,
-                "height": final_clipped.shape[1],
-                "width": final_clipped.shape[2],
-                "nodata": np.nan,
-            })
-
-            # Save the final clipped raster
-            with rasterio.open(output_path, 'w', **final_meta) as dst:
-                dst.write(final_clipped[0], 1)  # Single-band write
-
-            # Publish the layer
-            publish_single_layer(
-                output_folder.split('/')[-2],
-                output_path.split('/')[-1],
-                output_folder.split('/')[-1]
-            )
+            
+            resample_data(meta, data, polygon, shape, output_path, output_folder)            
 
         except Exception as e:
             print(f"Error processing {date_str}: {e}")
     
 
-def process_field(ndvi_folder, output_folder, weather_data, index, par, irr, airr, polygon):
+def process_field(ndvi_folder, output_folder, weather_data, index, par, airr, polygon, irr):
     """Process NDVI rasters and run the FAO model."""
     logger.info("Starting field processing...")
 
     # Load NDVI rasters
-    ndvis, meta = load_raster_files(ndvi_folder)
+    ndvis, meta = load_raster_files(ndvi_folder, polygon, output_folder)
     
     len_ndvis, len_index = len(ndvis), len(index)
 
@@ -193,10 +202,11 @@ def process_field(ndvi_folder, output_folder, weather_data, index, par, irr, air
         param_output_folder = os.path.join(output_folder, param)
         save_raster(data_dict, param_output_folder, meta, fc.shape[1:], polygon)
 
+
     logger.info("Field processing completed.")
 
 @shared_task
-def fao_model(point, field_id, polygon, irr_data=None):
+def fao_model(polygon, point, field_id, irr_data=None):
     
     delete_workspace(field_id)
     create_workspace(field_id)
@@ -212,9 +222,10 @@ def fao_model(point, field_id, polygon, irr_data=None):
     date_range      = pd.date_range(start=files[0].split('.')[0], end=dates[-1], freq='D')
     index           = date_range.strftime('%Y-%j')
     Weather_Data    = fao_Open_meteo(forcast,files[0].split('.')[0], yesterday, point[1], point[0])
+    print(len(Weather_Data['Tdew']), len(index))
     weather_data    = Weather(Weather_Data, index)
     par             = Parameters()
-
+    airr            = AutoIrrigate()
     if irr_data != None:
 
         index_len       = len(index)
@@ -230,10 +241,11 @@ def fao_model(point, field_id, polygon, irr_data=None):
         }, index=index)
 
         irr             = Irrigation(Data)
-        airr            = AutoIrrigate()
         airr.addset(index[-7], index[-3], ksc=0.9, mad=0.5)
+    else : irr = None
 
-        process_field(ndvi_folder, output_folder, weather_data, index, par, irr, airr, polygon)
+    process_field(ndvi_folder, output_folder, weather_data, index, par, airr, polygon, irr)
+
     
 # @shared_task
 # def forcast_fao_model(point, field_id, new_field):

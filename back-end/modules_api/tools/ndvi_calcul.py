@@ -51,20 +51,26 @@ def decodeMasqueSen2cor(msq):
 
 Cloud_mask_sen2cor = True
 
-def lire_masque_sen2cor(nom_masque) :
+def lire_masque_sen2cor(nom_masque):
+    # Open the Sen2Cor mask file (assumed at 20 m resolution)
+    ds_masque = gdal.Open(nom_masque)
+    nb_col_20m = ds_masque.RasterXSize
+    nb_lig_20m = ds_masque.RasterYSize
 
-	ds_masque=gdal.Open(nom_masque)
-	nb_col_20m=ds_masque.RasterXSize
-	nb_lig_20m=ds_masque.RasterYSize
+    # Read the mask data from the first raster band
+    msq = ds_masque.GetRasterBand(1).ReadAsArray()
+    
+    # Upsample the mask by a factor of 2 (from 20 m to 10 m) using nearest neighbor interpolation
+    msq_10m = ndimage.zoom(msq, 2, order=0)
+    
+    # Close the dataset
+    ds_masque = None
 
-	nb_col_10m=ds_masque.RasterXSize
-	nb_lig_10m=ds_masque.RasterYSize
+    # Update the dimensions to reflect the upsampled 10 m resolution
+    nb_col_10m = nb_col_20m * 2
+    nb_lig_10m = nb_lig_20m * 2
 
-	msq = ds_masque.GetRasterBand(1).ReadAsArray()
-	msq = ndimage.zoom(msq,2,order=0)
-	ds_masque = None
-	
-	return msq,nb_col_10m,nb_lig_10m
+    return msq_10m, nb_col_10m, nb_lig_10m
 
 def GetExtent(gt,cols,rows):
     ''' Return list of corner coordinates from a geotransform
@@ -168,29 +174,38 @@ def S2_ndvi(fname_L2A,dir_NDVI,specefic_date,flocal='./flocal'):
 			rasterOut.SetGeoTransform(fileBand4.GetGeoTransform())
 			rasterOut.SetProjection(fileBand4.GetProjection())			
 			bandOut=rasterOut.GetRasterBand(1)
-			for j in range(0, nb_slice):
-				print("Slice " + str(j + 1))
-				
-				# Read slices of the Red and NIR bands
+
+			for j in range(nb_slice):
+				print("Processing Slice " + str(j + 1))
+
+				# Read slices of the Red (B4) and NIR (B8) bands
 				L4 = band4.ReadAsArray(0, int(j * jr), cols, int(min(jr, rows - jr * j)))
 				L8 = band8.ReadAsArray(0, int(j * jr), cols, int(min(jr, rows - jr * j)))
-				
-				# Read the cloud mask slice
+
+				# Read the binary cloud mask slice (LCLD1: 1 = cloud/problematic, 0 = clear)
 				LCLD1 = LCLD[int(j * jr):int(min(rows, jr * j + jr)), 0:cols]
-				
-				# Define the emprise mask where L4 is not zero
-				emprise = (L4 != 0)
-				
-				# Calculate NDVI, ensuring no division by zero
-				tt = (np.float32(L8) - np.float32(L4)) / (np.float32(L8) + np.float32(L4) + 0.0000001) * ((np.float32(LCLD1) - 1.) * -1.)
-				
-				# Apply emprise mask to exclude no-data pixels (where L4 is 0)
-				tt = tt * emprise
-				
 
-				# Write array to output TIFF here
+				# Define valid data mask: only pixels where L4 is nonzero
+				valid_mask = (L4 != 0)
 
-				bandOut.WriteArray(np.float32(tt), 0, int(j * jr))
+				# Convert L4 and L8 to reflectance by dividing by 10,000
+				L4 = L4.astype(np.float32) / 10000.0
+				L8 = L8.astype(np.float32) / 10000.0
+
+				# Calculate NDVI using the standard formula, adding a small constant to avoid division by zero
+				ndvi = (L8 - L4) / (L8 + L4 + 1e-7)
+
+				# Build a clear mask from LCLD1: clear pixels will be 1 (1 - 0), clouds become 0 (1 - 1)
+				clear_mask = 1 - np.float32(LCLD1)
+
+				# Combine the valid mask and clear mask:
+				# Only keep NDVI values where the red band is valid and the pixel is clear
+				ndvi_masked = ndvi * valid_mask * clear_mask
+
+				# Write the resulting NDVI slice to the output TIFF
+				bandOut.WriteArray(ndvi_masked.astype(np.float32), 0, int(j * jr))
+
+
 							
 			del driverOut
 			

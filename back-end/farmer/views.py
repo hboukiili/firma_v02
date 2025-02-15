@@ -101,7 +101,10 @@ class login(APIView):
 
 		return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
+from shapely.wkt import loads
+import geopandas as gpd
 class field(APIView):
+
 
 	authentication_classes = [FARMERJWTAuthentication]
 	permission_classes = [IsAuthenticated]
@@ -119,8 +122,11 @@ class field(APIView):
 			fields = Field.objects.filter(user_id=user.id)
 			if fields.exists():
 				fields_data = [{'id' : field.id, 'name': field.name, 'boundaries': json.loads(field.boundaries.geojson)} for field in fields]
+				# wkt = []
 				# for field in fields:
-				# 	print(field.id, field.name)
+				# 	wkt.append(loads(field.boundaries.wkt))
+				# gdf = gpd.GeoDataFrame(geometry=wkt, crs="EPSG:4326")
+				# gdf.to_file('/app/shapefile.shp', driver="ESRI Shapefile")
 				return Response(fields_data, status=status.HTTP_200_OK)
 
 		except Exception as e:
@@ -390,10 +396,10 @@ class Irrigation(APIView):
 	def post(self, request):
 
 		field_id				= request.data.get('field_id')
-		# print(field_id)
 		irrigation_Amount 		= request.data.get('value')
 		date					= request.data.get('date')
 		Unity					= request.data.get('unity')
+
 		print(field_id, date, Unity)
 		if field_id and irrigation_Amount and date and Unity:
 			try :
@@ -402,9 +408,8 @@ class Irrigation(APIView):
 				irrigation = Irrigation_system.objects. \
 					select_related('field_id').get(field_id=field_id,
 					field_id__user_id=user.id)
-				# print(irrigation.id)
-				if Unity == 'duration':
 
+				if Unity == 'hour':
 
 					fc = self.get_fc_value(field_id)
 
@@ -421,11 +426,12 @@ class Irrigation(APIView):
 							T2 = drip.Tree_distance
 							T3 = drip.drippers_number_by_tree
 							T4 = drip.Tree_outflow_rate
-							irrigation_Amount = (T4 * T3 * c4) / (T1 * T2 * fc)  
+							irrigation_Amount = (T4 * T3 * c4) / (T1 * T2 * fc)
 
 				if irrigation != None:
-					new_irr = Irrigation_amount(amount=irrigation_Amount, date=date,irrigation_system_id=irrigation)
+					new_irr = Irrigation_amount(amount=irrigation_Amount, date=date,irrigation_system_id=irrigation, amount_type=Unity)
 					new_irr.save()
+
 				return Response("OK", status=status.HTTP_201_CREATED)
 			
 			except Exception as e:

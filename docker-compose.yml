@@ -12,7 +12,12 @@ services:
     restart : always
     depends_on:
       - postgres
-
+  ml:
+    build : ./ML
+    volumes:
+    - ./ML:/app
+    ports:
+        - "8001:8001"
   frontend:
     build: ./frontend/
     volumes:
@@ -48,5 +53,5 @@ services:
     volumes:
       - ./geoserver_data:/var/lib/geoserver_data
       - ./back-end/Data/fao_output:/data
-      # - ./data_dir:/opt/geoserver/data_dir
+      - ./data_dir:/opt/geoserver/data_dir
 

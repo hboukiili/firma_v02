@@ -74,8 +74,7 @@ class Crop(models.Model):
     Crop_planting_date  = models.DateField(blank=True, null=True)
     Tree                = models.CharField(max_length=30, blank=True, null=True)
     Tree_planting_date  = models.DateField(blank=True, null=True)
-    field_id            = models.ForeignKey(Field, on_delete=models.CASCADE)
-
+    field_id = models.ForeignKey(Field, on_delete=models.CASCADE, related_name='irrigation_systems')  
 
 class Soil_type(Enum):
 
@@ -186,9 +185,27 @@ class Irrigation_system(models.Model):
 
 class Irrigation_amount(models.Model):
 
-    amount = models.FloatField()
-    date = models.DateField()
-    irrigation_system_id = models.ForeignKey(Irrigation_system, on_delete=models.CASCADE)
+    amount                  = models.FloatField()
+    date                    = models.DateField()
+    irrigation_system_id    = models.ForeignKey(Irrigation_system, on_delete=models.CASCADE, related_name='irrigation_amounts')  # Custom related_name
+    amount_type             = models.CharField(max_length=50, blank=True, null=True)
+    
+    def save(self, *args, **kwargs):
+        # Check if an entry with the same date and irrigation_system already exists
+        existing_entry = Irrigation_amount.objects.filter(
+            date=self.date,
+            irrigation_system_id=self.irrigation_system_id
+        ).first()
+
+        # If an existing entry is found, delete it
+        if existing_entry:
+            existing_entry.delete()
+
+        # Save the new entry
+        super().save(*args, **kwargs)
+
+    def __str__(self):
+        return f"{self.date} - {self.amount} ({self.amount_type})"
 
 class Surface_irrigation(Irrigation_system):
     pass

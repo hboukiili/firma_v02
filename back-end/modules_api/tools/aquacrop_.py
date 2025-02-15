@@ -188,7 +188,7 @@ def aquacrop_run(start_date_, end_date_, Weather_data, lat, long):
                 np.nanmax(Weather_data[current_date_str]["Rh"]),  
                 np.nanmean(Weather_data[current_date_str]["Irg"])
             )
-            # 
+
             et0_.append(et0_simple)
             T_max.append(t_max)
             T_min.append(t_min)

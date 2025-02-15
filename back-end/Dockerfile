@@ -23,7 +23,7 @@ RUN pip install aquacrop==3.0.7 pyfao56
 
 RUN export DJANGO_SETTINGS_MODULE=firma_v02.settings
 
-# RUN pip install xarray
+WORKDIR /app
 
 COPY ./script.sh /app/
 
@@ -31,27 +31,6 @@ RUN chmod +x /app/script.sh
 
 # ENTRYPOINT [ "/app/script.sh" ]
 
-# CMD python managy.py makemigrations && python manage.py migrate && python manage.py makemigrations models_only && python manage.py migrate models_only && python manage.py runserver 0.0.0.0:8000
-
-# RUN pip install openpyxl
-
-# RUN pip install aquacrop && pip install --upgrade numpy && pip install --upgrade numba
-
-# COPY ./tools /tools
-
-# WORKDIR /tools/pypro4sail 
-
-# RUN python setup.py install
-
-# WORKDIR /tools/pyTSEB
-
-# RUN python setup.py install
-
-# WORKDIR /tools/pyMETRIC
-
-# RUN python setup.py install
-
-# WORKDIR /app
 
 # CMD ["/app/script.sh"]
 
