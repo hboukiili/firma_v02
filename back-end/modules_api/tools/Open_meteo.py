@@ -16,7 +16,7 @@ def calculate_vapor_pressure_dew_point(T_dew):
     Calculate vapor pressure from dew point temperature using the Magnus-Tetens formula.
     """
     if T_dew is None:
-        return None
+        return np.nan
     return 6.11 * 10**((7.5 * T_dew) / (T_dew + 237.3))
 
 def fill_missing_values(data, method='mean'):
@@ -95,6 +95,7 @@ def fao_Open_meteo(forecast_data, start_date, end_date, lat, long, timezone="Afr
         "end_date": end_date,
         "daily": "rain_sum,shortwave_radiation_sum,et0_fao_evapotranspiration,temperature_2m_max,temperature_2m_min,relative_humidity_2m_max,relative_humidity_2m_min,wind_speed_10m_max",
         "hourly": "dewpoint_2m",
+        "windspeed_unit": "ms",        # kmh, ms, mph, kn
         "timezone": timezone
     }
 
@@ -107,18 +108,12 @@ def fao_Open_meteo(forecast_data, start_date, end_date, lat, long, timezone="Afr
             historical_values = data[key]
             forecast_values = forecast_data.get(key, [])
 
-            # Replace missing historical values with forecasted values
-            for i in range(len(historical_values)):
-                if historical_values[i] is None or np.isnan(historical_values[i]):
-                    if i < len(forecast_values) and forecast_values[i] is not None:
-                        historical_values[i] = forecast_values[i]
-
-            # If forecasted data is also missing, use a fallback mechanism
-            data[key] = fill_missing_values(historical_values, method='interpolate')  # or 'interpolate'
-
             # Append forecasted data
-            data[key] += forecast_values
-            
+            combined_values = historical_values + forecast_values
+    
+            # If forecasted data is also missing, use a fallback mechanism
+            data[key] = fill_missing_values(combined_values, method='interpolate')  # or 'interpolate'
+
 
         return data
     else:
@@ -137,7 +132,8 @@ def forcast_fao_Open_meteo(lat, long, timezone="Africa/Casablanca"):
         "forecast_days": "7",
         "daily": "rain_sum,shortwave_radiation_sum,et0_fao_evapotranspiration,temperature_2m_max,temperature_2m_min,relative_humidity_2m_max,relative_humidity_2m_min,wind_speed_10m_max,wind_direction_10m_dominant",
         "hourly": "dewpoint_2m",
-        "timezone": timezone
+        "timezone": timezone,
+        "windspeed_unit": "ms",        # kmh, ms, mph, kn
     }
 
     response = requests.get(url, params=params)

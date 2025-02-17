@@ -439,6 +439,9 @@ class Irrigation(APIView):
 				return Response({f"error": "An error occurred while processing your request : {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 		return Response("Error in Data", status=status.HTTP_400_BAD_REQUEST)
 
+	def get(self, request):
+		pass
+
 class check_pro(APIView):
 
 	authentication_classes = [FARMERJWTAuthentication]

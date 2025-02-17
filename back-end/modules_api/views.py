@@ -250,11 +250,12 @@ class weather(APIView):
 				point = field.boundaries[0][0]
 				lat = point[1]
 				lon = point[0]
-				print(field_id, lat, lon)
+				# print(field_id, lat, lon)
 				final_result = {
 					'historic' : historic_weather(lat, lon, start_date, end_date),
 					'forcast'	: forcast(lat, lon)
 				}
+				print(final_result['historic'])
 				return Response(final_result, status=status.HTTP_200_OK)
 			except Exception as e:
 				logger.error(f"Error occurred during data processing: {str(e)}")  # Log error	
