@@ -379,8 +379,8 @@ class RegisterData(APIView):
 
 class Irrigation(APIView):
 
-	# authentication_classes = [FARMERJWTAuthentication]
-	# permission_classes = [IsAuthenticated]
+	authentication_classes = [FARMERJWTAuthentication]
+	permission_classes = [IsAuthenticated]
 
 	def get_fc_value(self, field_id):
 
@@ -401,10 +401,10 @@ class Irrigation(APIView):
 		date					= request.data.get('date')
 		Unity					= request.data.get('unity')
 
-		print(field_id, date, Unity, irrigation_Amount)
-		# if field_id and irrigation_Amount and date and Unity:
-		try :
-				# user = request.user
+		# print(field_id, date, Unity, irrigation_Amount)
+		if field_id and irrigation_Amount and date and Unity:
+			try :
+				user = request.user
 				irrigation = Irrigation_system.objects. \
 					select_related('field_id').get(field_id=field_id) #field_id__user_id=user.id
 				if Unity == 'hour':
@@ -430,14 +430,34 @@ class Irrigation(APIView):
 					new_irr = Irrigation_amount(amount=irrigation_Amount, date=date,irrigation_system_id=irrigation, amount_type=Unity)
 					new_irr.save()
 
-				return Response("OK", status=status.HTTP_201_CREATED)
+				return Response(status=status.HTTP_201_CREATED)
 			
-		except Exception as e:
+			except Exception as e:
 				logger.error(f"Error occurred during data processing: {str(e)}")  # Log error
 				return Response({f"error": "An error occurred while processing your request : {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 		return Response("Error in Data", status=status.HTTP_400_BAD_REQUEST)
 
+	def get(self, request):
+		user = request.user
+		try :
+			
+			irrigation_qs = Irrigation_amount.objects.filter(
+			    irrigation_system_id__field_id__user_id=user.id,
+			    amount__gt=0
+			).select_related('irrigation_system_id__field_id')
 
+			data = []
+			for ia in irrigation_qs:
+				data.append({
+    		        'date': ia.date.strftime('%Y-%m-%d'),
+    		        'amount': ia.amount,
+    		        'amount_type': ia.amount_type,
+    		        'name': ia.irrigation_system_id.field_id.name,
+    		    })
+			return Response(data, status=status.HTTP_200_OK)
+		except Exception as e:
+			logger.error(f"Error occurred during data processing: {str(e)}")  # Log error
+			return Response({f"error": "An error occurred while processing your request : {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 class check_pro(APIView):
 

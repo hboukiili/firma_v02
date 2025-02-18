@@ -88,7 +88,7 @@ def forcast(lat, lon):
         "latitude": lat,
         'forecast_days' : '7',
         "longitude": lon,  
-        "daily" : "rain_sum,shortwave_radiation_sum,et0_fao_evapotranspiration,temperature_2m_max,relative_humidity_2m_max,wind_speed_10m_max,wind_direction_10m_dominant,precipitation_probability_mean",
+        "daily" : "rain_sum,shortwave_radiation_sum,et0_fao_evapotranspiration,temperature_2m_max,temperature_2m_min,relative_humidity_2m_max,wind_speed_10m_max,wind_direction_10m_dominant,precipitation_probability_mean",
         "timezone": "Africa/Casablanca",
         "hourly": "wind_speed_10m,wind_direction_10m,cloud_cover",
         "windspeed_unit": "ms",        # kmh, ms, mph, kn
@@ -117,6 +117,7 @@ def forcast(lat, lon):
             "irg"               : daily["shortwave_radiation_sum"],
             "Et0"               : daily["et0_fao_evapotranspiration"],
             "T2m_max"           : daily["temperature_2m_max"],
+            "T2m_min"           : daily["temperature_2m_min"],
             "Rh_max"            : daily["relative_humidity_2m_max"],
             "Ws"                : [convert_wind_speed(ws) for ws in daily["wind_speed_10m_max"]],
             "Wd"                : daily["wind_direction_10m_dominant"],
