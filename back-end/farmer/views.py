@@ -536,7 +536,8 @@ class recommandation(APIView):
 						'date' : files[0].split('_')[1].split('_')[0]
 					}
 			latest_irrigation = Irrigation_amount.objects.filter(
-					irrigation_system_id__field_id=field_id
+					irrigation_system_id__field_id=field_id,
+					amount__gt=0
 				).order_by('-date').first()
 			data = model_to_dict(latest_irrigation)
 			latest = {
