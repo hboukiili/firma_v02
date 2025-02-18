@@ -23,6 +23,7 @@ import os
 import rasterio
 from shapely.wkt import loads
 import geopandas as gpd
+from django.forms.models import model_to_dict
 import numpy as np
 logger = logging.getLogger(__name__)
 
@@ -519,20 +520,31 @@ class recommandation(APIView):
 	permission_classes = [IsAuthenticated]
 
 	def get(self, request):
+
 		if 'field_id' in request.query_params:
+
 			recommandation = None
-			drip = Drip_Irrigation.objects.get(field_id=field_id)
 			field_id = request.query_params.get('field_id')
+			drip = Drip_Irrigation.objects.get(field_id=field_id)
 			path = f'/app/Data/fao_output/{field_id}/Irrig'
 			files = sorted([f for f in os.listdir(path) if f.endswith(".tif")], key=lambda x: x.split('.')[0])
-			latest_irrigation = Irrigation_amount.filter(
-					irrigation_system_id__field_id=field_id
-				).order_by('-date').first()
 			with rasterio.open(os.path.join(path, files[-6])) as src:
 				irr = src.read(1)
 				if np.nanmean(irr):
-					recommandation { 
-                    self.calculate_irrigation_duration_dripp(np.nanmean(irr), drip.Crop_Tubes_distance, drip.Crop_Drippers_distance, drip.Crop_outflow_rate)
+					recommandation = { 
+						'duration' : Irrigation.calculate_irrigation_duration_dripp('',np.nanmean(irr), drip.Crop_Tubes_distance, drip.Crop_Drippers_distance, drip.Crop_outflow_rate),
+						'date' : files[0].split('_')[1].split('_')[0]
+					}
+			latest_irrigation = Irrigation_amount.objects.filter(
+					irrigation_system_id__field_id=field_id
+				).order_by('-date').first()
+			data = model_to_dict(latest_irrigation)
+			latest = {
+				'duration' : Irrigation.calculate_irrigation_duration_dripp('',data['amount'], drip.Crop_Tubes_distance, drip.Crop_Drippers_distance, drip.Crop_outflow_rate),
+				'date' : data['date']
+			}
+			return Response({'latest' : latest, 'recommandation' : recommandation}, status=status.HTTP_200_OK)
+		return Response("Error in Data", status=status.HTTP_400_BAD_REQUEST)
 
 class check_pro(APIView):
 

@@ -9,5 +9,5 @@ urlpatterns = [
     path('register_data', RegisterData.as_view()),
     path('irr', Irrigation.as_view()),
     path('check_pro', check_pro.as_view()),
-    path('test', test.as_view())
+    path('reco', recommandation.as_view())
 ]
