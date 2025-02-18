@@ -171,7 +171,7 @@ def process_field(ndvi_folder, output_folder, weather_data, index, par, airr, po
     fc, kcb = calculate_fc_kcb(ndvis)
 
     # Initialize dictionaries for outputs
-    results = {param: {} for param in ['fc', 'Kcb', 'E', 'Zr', 'Ks', 'Kcadj', 'ETcadj', 'T', 'DP', 'Irrig', 'Rain', 'Runoff', 'ETref']}
+    results = {param: {} for param in ['fc', 'Kcb', 'E', 'Zr', 'Ks', 'Kcadj', 'ETcadj', 'T', 'DP', 'Irrig', 'Rain', 'Runoff', 'ETref', 'rzsm_pr']}
     # for param in results:
     #     for date in index:  # Assuming `index` contains all relevant dates
     #         if date not in results[param]:
@@ -187,6 +187,7 @@ def process_field(ndvi_folder, output_folder, weather_data, index, par, airr, po
                 # Run the FAO model for this pixel
                 odata = run_fao_model(fc_pixel, kcb_pixel, h, weather_data, index, par, irr, airr)
                 # Save results for each parameter
+                # print(odata['rzsm_pr'])
                 for param, values in odata.items():
                     if param in results:
                         for date, value in values.items():
@@ -208,9 +209,8 @@ def process_field(ndvi_folder, output_folder, weather_data, index, par, airr, po
 @shared_task
 def fao_model(polygon, point, field_id, irr_data=None):
     
-    delete_workspace(field_id)
-    create_workspace(field_id)
-
+    # delete_workspace(field_id)
+    # create_workspace(field_id)
     ndvi_folder     = f"/app/Data/fao_output/{field_id}/ndvi"
     output_folder   = f"/app/Data/fao_output/{field_id}"
 
@@ -222,7 +222,6 @@ def fao_model(polygon, point, field_id, irr_data=None):
     date_range      = pd.date_range(start=files[0].split('.')[0], end=dates[-1], freq='D')
     index           = date_range.strftime('%Y-%j')
     Weather_Data    = fao_Open_meteo(forcast,files[0].split('.')[0], yesterday, point[1], point[0])
-    print(len(Weather_Data['Tdew']), len(index))
     weather_data    = Weather(Weather_Data, index)
     par             = Parameters()
     airr            = AutoIrrigate()
@@ -245,26 +244,6 @@ def fao_model(polygon, point, field_id, irr_data=None):
     else : irr = None
 
     process_field(ndvi_folder, output_folder, weather_data, index, par, airr, polygon, irr)
-
-    
-# @shared_task
-# def forcast_fao_model(point, field_id, new_field):
-
-#     ndvi_folder = f"/app/Data/fao_output/{field_id}/ndvi"
-#     output_folder = f"/app/Data/fao_output/{field_id}"
-
-#     files           = [f for f in os.listdir(ndvi_folder) if os.path.isfile(os.path.join(ndvi_folder, f))]
-#     files           = sorted(files, key=lambda x: x.split('.')[0])
-#     forcast, dates  = forcast_fao_Open_meteo(point[1], point[0])
-#     date_range      = pd.date_range(start=dates[0], end=dates[-1], freq='D')
-#     index           = date_range.strftime('%Y-%j')
-
-#     weather_data    = Weather(forcast, index)
-#     par             = Parameters()
-#     airr            = AutoIrrigate()
-
-
-#     process_field(ndvi_folder, output_folder, weather_data, index, par, airr, True)
 
 if __name__ == '__main__':
     irr = [0,0,0,0,22.10251597,0,0,17.68372754,0,0,0,0,0,0,0,0,0,0,0,1.494152744,6.17857993,0,0,0,0,0,0,0,0,0,0,0,0,7.328736828,0,0,0,0,0]

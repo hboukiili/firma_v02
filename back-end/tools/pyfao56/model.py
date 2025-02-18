@@ -208,13 +208,13 @@ class Model:
         self.aq_Ks = aq_Ks
         self.comment = 'Comments: ' + comment.strip()
         self.tmstmp = datetime.datetime.now()
-        self.cnames = ['Year','DOY','DOW','Date','ETref','tKcb','Kcb',
-                       'h','Kcmax','fc','fw','few','De','Kr','Ke','E',
-                       'DPe','Kc','ETc','TAW','TAWrmax','TAWb','Zr','p',
-                       'RAW','Ks','Kcadj','ETcadj','T','DP','Dinc','Dr',
-                       'fDr','Drmax','fDrmax','Db','fDb','Irrig',
-                       'IrrLoss','Rain','Runoff','Year','DOY','DOW',
-                       'Date']
+        self.cnames = ['Year', 'DOY', 'DOW', 'Date', 'ETref', 'tKcb', 'Kcb',
+                       'h', 'Kcmax', 'fc', 'fw', 'few', 'De', 'Kr', 'Ke', 'E',
+                       'DPe', 'Kc', 'ETc', 'TAW', 'TAWrmax', 'TAWb', 'Zr', 'p',
+                       'RAW', 'Ks', 'Kcadj', 'ETcadj', 'T', 'DP', 'Dinc', 'Dr',
+                       'fDr', 'Drmax', 'fDrmax', 'Db', 'fDb', 'Irrig', 'IrrLoss',
+                       'Rain', 'Runoff', 'Year', 'DOY', 'DOW', 'Date', 'RZSM', 'rzsm_pr']
+
         self.odata = pd.DataFrame(columns=self.cnames)
 
     def __str__(self):
@@ -651,12 +651,13 @@ class Model:
             dow = tcurrent.strftime('%a') #Day of Week
             dat = tcurrent.strftime('%m/%d/%y') #Date mm/dd/yy
             data = [year, doy, dow, dat, io.ETref, io.tKcb, io.Kcb,
-                    io.h, io.Kcmax, io.fc, io.fw, io.few, io.De, io.Kr,
-                    io.Ke, io.E, io.DPe, io.Kc, io.ETc, io.TAW,
-                    io.TAWrmax, io.TAWb, io.Zr, io.p, io.RAW, io.Ks,
-                    io.Kcadj, io.ETcadj, io.T, io.DP, io.Dinc, io.Dr,
-                    io.fDr, io.Drmax, io.fDrmax, io.Db, io.fDb, io.idep,
-                    io.irrloss, io.rain, io.runoff, year, doy, dow, dat]
+                        io.h, io.Kcmax, io.fc, io.fw, io.few, io.De, io.Kr,
+                        io.Ke, io.E, io.DPe, io.Kc, io.ETc, io.TAW,
+                        io.TAWrmax, io.TAWb, io.Zr, io.p, io.RAW, io.Ks,
+                        io.Kcadj, io.ETcadj, io.T, io.DP, io.Dinc, io.Dr,
+                        io.fDr, io.Drmax, io.fDrmax, io.Db, io.fDb, io.idep,
+                        io.irrloss, io.rain, io.runoff, year, doy, dow, dat,
+                        io.RZSM, io.rzsm_pr]
             self.odata.loc[mykey] = data
 
             tcurrent = tcurrent + tdelta
@@ -908,3 +909,6 @@ class Model:
                 io.fDb = 1.0 - ((io.TAWb - io.Db) / io.TAWb)
             else:
                 io.fDb = 0.0
+
+        io.RZSM = io.thetaWP +(1-(io.Dr /io.TAW))*(io.thetaFC - io.thetaWP)
+        io.rzsm_pr = ((io.thetaFC - io.RZSM) / (io.thetaFC - io.thetaWP)) * 100

@@ -169,7 +169,7 @@ class FaoTest(APIView):
 				}
 
 			final_data['dates'] = dates
-			# print(final_data['Ks'])
+			print(final_data['rzsm_pr'])
 			return Response(final_data, status=status.HTTP_200_OK)
 
 		except Exception as e:
@@ -255,7 +255,7 @@ class weather(APIView):
 					'historic' : historic_weather(lat, lon, start_date, end_date),
 					'forcast'	: forcast(lat, lon)
 				}
-				print(final_result['historic'])
+				# print(final_result['historic'])
 				return Response(final_result, status=status.HTTP_200_OK)
 			except Exception as e:
 				logger.error(f"Error occurred during data processing: {str(e)}")  # Log error	

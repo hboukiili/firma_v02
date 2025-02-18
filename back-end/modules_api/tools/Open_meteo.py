@@ -78,16 +78,18 @@ def get_final_date(response):
         "RHmin": rh_min,
         "Rain": rain_sum,
         "ETref": et0_evapotranspiration,
+        "Wndsp": [convert_wind_speed(ws) for ws in wind_speed_max],
         "MorP": ["M"] * (len(rain_sum) + 7),
-        "Wndsp": [convert_wind_speed(ws) for ws in wind_speed_max]
     }, daily_data.get('time')
 
-def fao_Open_meteo(forecast_data, start_date, end_date, lat, long, timezone="Africa/Casablanca"):
+def fao_Open_meteo(forecast, start_date, end_date, lat, long, timezone="Africa/Casablanca"):
     """
     Fetch historical weather data from Open-Meteo and combine it with forecast data.
     Fill all missing historical data with forecasted data, and use a fallback mechanism for any remaining missing values.
     """
-    url = "https://archive-api.open-meteo.com/v1/archive"
+    url                     = "https://archive-api.open-meteo.com/v1/archive"
+    historic_forecast_url   = "https://historical-forecast-api.open-meteo.com/v1/forecast"
+
     params = {
         "latitude": lat,
         "longitude": long,
@@ -102,19 +104,35 @@ def fao_Open_meteo(forecast_data, start_date, end_date, lat, long, timezone="Afr
     response = requests.get(url, params=params)
     if response.status_code == 200:
         data, dates = get_final_date(response)
-        # Fill all missing historical data with forecasted data
-        for key in data:
-            if key == 'MorP': continue
-            historical_values = data[key]
-            forecast_values = forecast_data.get(key, [])
+        daily_keys = [
+            "Srad",
+            "Tmax",
+            "Tmin",
+            "Vapr",
+            "Tdew",
+            "RHmax",
+            "RHmin",
+            "Rain",
+            'ETref',
+            'Wndsp'
+        ]
+        
 
-            # Append forecasted data
-            combined_values = historical_values + forecast_values
-    
-            # If forecasted data is also missing, use a fallback mechanism
-            data[key] = fill_missing_values(combined_values, method='interpolate')  # or 'interpolate'
+        missing_indices_per_variable = {
+            key: [idx for idx, value in enumerate(data[key]) if value is None]
+            for key in daily_keys
+        }
 
+        if missing_indices_per_variable:
+            response = requests.get(historic_forecast_url, params=params)
+            response.raise_for_status()
+            forecast_data, dates = get_final_date(response)
 
+        for key, missing_indices in missing_indices_per_variable.items():
+            if missing_indices_per_variable[key]:
+                for idx in missing_indices:
+                    data[key][idx] = forecast_data[key][idx]
+            data[key] += forecast[key]
         return data
     else:
         print(f"Error: {response.status_code}")

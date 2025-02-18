@@ -21,6 +21,8 @@ from celery.result import AsyncResult
 from modules_api.tasks import process_new_field
 import os
 import rasterio
+from shapely.wkt import loads
+import geopandas as gpd
 import numpy as np
 logger = logging.getLogger(__name__)
 
@@ -101,8 +103,7 @@ class login(APIView):
 
 		return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-from shapely.wkt import loads
-import geopandas as gpd
+
 class field(APIView):
 
 
@@ -114,7 +115,7 @@ class field(APIView):
 		user = request.user
 		try : 
 
-			fields = Field.objects.all()
+			# fields = Field.objects.all()
 
 			# for field in fields:
 			# 		process_new_field.delay(field.id, field.boundaries.wkt, field.boundaries[0][0])
@@ -378,8 +379,8 @@ class RegisterData(APIView):
 
 class Irrigation(APIView):
 
-	authentication_classes = [FARMERJWTAuthentication]
-	permission_classes = [IsAuthenticated]
+	# authentication_classes = [FARMERJWTAuthentication]
+	# permission_classes = [IsAuthenticated]
 
 	def get_fc_value(self, field_id):
 
@@ -400,15 +401,12 @@ class Irrigation(APIView):
 		date					= request.data.get('date')
 		Unity					= request.data.get('unity')
 
-		print(field_id, date, Unity)
-		if field_id and irrigation_Amount and date and Unity:
-			try :
-				user = request.user
-
+		print(field_id, date, Unity, irrigation_Amount)
+		# if field_id and irrigation_Amount and date and Unity:
+		try :
+				# user = request.user
 				irrigation = Irrigation_system.objects. \
-					select_related('field_id').get(field_id=field_id,
-					field_id__user_id=user.id)
-
+					select_related('field_id').get(field_id=field_id) #field_id__user_id=user.id
 				if Unity == 'hour':
 
 					fc = self.get_fc_value(field_id)
@@ -434,13 +432,12 @@ class Irrigation(APIView):
 
 				return Response("OK", status=status.HTTP_201_CREATED)
 			
-			except Exception as e:
+		except Exception as e:
 				logger.error(f"Error occurred during data processing: {str(e)}")  # Log error
 				return Response({f"error": "An error occurred while processing your request : {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 		return Response("Error in Data", status=status.HTTP_400_BAD_REQUEST)
 
-	def get(self, request):
-		pass
+
 
 class check_pro(APIView):
 
@@ -461,3 +458,69 @@ class check_pro(APIView):
 		else :
 			return Response("Task is still running")
 
+import requests
+import csv
+import pandas as pd
+def send_req(field_id, date, value, unity='m³'):
+	
+	payload = {
+		'field_id' : field_id,
+		'date' : date,
+		'value' : value,
+		'unity' : unity
+	}
+
+	response = requests.post('http://localhost:8000/farmer/irr', json=payload)
+	print(response.status_code)
+
+class test(APIView):
+
+	def get(self, request):
+		
+		fields = {
+			'E3P2' : '32',
+			'E3P1' : '34',
+			'E3P4' : '35',
+			'E3P3' : '36',
+			'E3P6' : '37',
+			'E3P8' : '38',
+			'E3P7' : '39',
+			'E3P5' : '40',
+			'E2P6' : '41',
+			'E2P5' : '42',
+			'E2P7' : '43',
+			'E2P4' : '44',
+			'E2P3' : '45',
+			'E2P2' : '46',
+			'E2P1' : '47',
+		}
+		df = pd.read_csv('/app/tools/irrigation parcelle lraba 18_02_2025(Feuil1).csv', sep=';')
+		df.drop('date',axis=1, inplace=True)
+		start_date = "2024-12-17"
+		end_date = '16-02-2025'
+
+		# # Generate a date range and format it as strings
+		date_range = pd.date_range(start=start_date, end=end_date)
+		dates_str = date_range.strftime("%Y-%m-%d").tolist()
+		for i in df:
+			field_id = fields[i]
+			x = 0
+			while (x < len(date_range)):
+				send_req(field_id, dates_str[x], df[i][x])
+				# print(field_id, dates_str[x], df[i][x])
+				x += 1
+
+		# fields = Field.objects.all()	
+		# for field in fields:
+		# 	print(field.id, field.name)
+		# 	if field.id == 32 or field.id == 34 or field.id == 35:
+		# 		continue
+		# 	path = f"/app/Data/fao_output/{field.id}/Irrig"
+		# 	files = sorted([f for f in os.listdir(path) if f.endswith(".tif")], key=lambda x: x.split('.')[0])
+		# 	send_req(field.id, '2024-12-16', 0)
+		# 	for file in files:
+		# 		date = file.split('_')[1].split('.')[0]
+		# 		with rasterio.open(os.path.join(path, file)) as src:
+		# 			ndvi = src.read(1)
+		# 			send_req(field.id, date, float(np.nanmean(ndvi)))
+		return Response("No ...")

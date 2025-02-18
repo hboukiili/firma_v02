@@ -6,37 +6,13 @@ import math
 from scipy.interpolate import interp1d
 import numpy as np
 
-
-def fill_missing_values(data, method='mean'):
-    """
-    Fill missing values in a list using averages or interpolation.
-    """
-    if not data:
-        return data
-
-    # Convert None to NaN for easier handling
-    data = np.array(data, dtype=float)
-    mask = np.isnan(data)
-
-    if method == 'mean':
-        # Fill missing values with the mean of available data
-        mean_value = np.nanmean(data)
-        data[mask] = mean_value
-    elif method == 'interpolate':
-        # Interpolate missing values
-        x = np.arange(len(data))
-        interp_fn = interp1d(x[~mask], data[~mask], kind='linear', fill_value="extrapolate")
-        data[mask] = interp_fn(x[mask])
-
-    return data.tolist()
-
 def convert_wind_speed(wind_speed_10m):
     """
     Convert wind speed from 10m height to 2m height using a logarithmic wind profile.
     """
     if wind_speed_10m is None:
         return None
-    return wind_speed_10m * (math.log(2 / 0.0002) / (math.log(10 / 0.0002)))
+    return round(wind_speed_10m * (math.log(2 / 0.0002) / (math.log(10 / 0.0002))), 2)
 
 def historic_weather(lat, lon, start_date, end_date):
 
@@ -52,7 +28,6 @@ def historic_weather(lat, lon, start_date, end_date):
         "daily": ("rain_sum,shortwave_radiation_sum,et0_fao_evapotranspiration,"
                   "temperature_2m_max,relative_humidity_2m_max,"
                   "wind_speed_10m_max,wind_direction_10m_dominant"),
-        "hourly": "wind_speed_10m,wind_direction_10m",
         "timezone": "Africa/Casablanca", 
         "windspeed_unit": "ms",
     }
@@ -63,9 +38,8 @@ def historic_weather(lat, lon, start_date, end_date):
     data = response.json()
 
     # Retrieve daily and hourly parts
-    daily = data.get('daily', {})
-    hourly = data.get('hourly', {})
-
+    daily_data = data.get('daily', {})
+    # print(daily_data)
     # Define the keys to check for daily and hourly data
     daily_keys = [
         "rain_sum",
@@ -76,62 +50,33 @@ def historic_weather(lat, lon, start_date, end_date):
         "wind_speed_10m_max",
         "wind_direction_10m_dominant"
     ]
-    hourly_keys = [
-        "wind_speed_10m",
-        "wind_direction_10m"
-    ]
 
-    # Build dictionaries for daily and hourly data
-    daily_data = {key: daily.get(key, []) for key in daily_keys}
-    hourly_data = {key: hourly.get(key, []) for key in hourly_keys}
 
-    # Check for missing values in daily data
-    missing_daily_indices = set()
-    for key in daily_keys:
-        for idx, value in enumerate(daily_data[key]):
-            if value is None:
-                missing_daily_indices.add(idx)
-
-    # Check for missing values in hourly data
-    missing_hourly_indices = set()
-    for key in hourly_keys:
-        for idx, value in enumerate(hourly_data[key]):
-            if value is None:
-                missing_hourly_indices.add(idx)
-
-    # If there are missing values in either daily or hourly data, patch from forecast
-    if missing_daily_indices or missing_hourly_indices:
+    missing_indices_per_variable = {
+            key: [idx for idx, value in enumerate(daily_data[key]) if value is None]
+            for key in daily_keys
+    }
+    if missing_indices_per_variable:
         response = requests.get(historic_forecast_url, params=params)
         response.raise_for_status()
         forecast_data = response.json()
 
         # Patch daily missing values
         forecast_daily = forecast_data.get('daily', {})
-        for key in daily_keys:
-            forecast_values = forecast_daily.get(key, [])
-            for idx in missing_daily_indices:
-                if idx < len(forecast_values) and forecast_values[idx] is not None:
-                    daily_data[key][idx] = forecast_values[idx]
-
-        # Patch hourly missing values
-        forecast_hourly = forecast_data.get('hourly', {})
-        for key in hourly_keys:
-            forecast_values = forecast_hourly.get(key, [])
-            for idx in missing_hourly_indices:
-                if idx < len(forecast_values) and forecast_values[idx] is not None:
-                    hourly_data[key][idx] = forecast_values[idx]
+        for key, missing_indices in missing_indices_per_variable.items():
+            if missing_indices_per_variable[key]:
+                for idx in missing_indices:
+                    daily_data[key][idx] = forecast_daily[key][idx]
 
     return {
-            "Dates"     : daily['time'],
+            "Dates"     : forecast_daily['time'],
             "Rain"      : daily_data["rain_sum"],
             "irg"       : daily_data["shortwave_radiation_sum"],
             "Et0"       : daily_data["et0_fao_evapotranspiration"],
             "T2m_max"   : daily_data["temperature_2m_max"],
             "Rh_max"    : daily_data["relative_humidity_2m_max"],
-            "Ws"        : daily_data["wind_speed_10m_max"],
+            "Ws"        : [convert_wind_speed(ws) for ws in daily_data["wind_speed_10m_max"]],
             "Wd"        : daily_data["wind_direction_10m_dominant"],
-            'ws_h'      : hourly_data["wind_speed_10m"],
-            'wd_h'      : hourly_data["wind_direction_10m"]
     }
 
 def forcast(lat, lon):
@@ -144,7 +89,8 @@ def forcast(lat, lon):
         'forecast_days' : '7',
         "longitude": lon,  
         "daily" : "rain_sum,shortwave_radiation_sum,et0_fao_evapotranspiration,temperature_2m_max,relative_humidity_2m_max,wind_speed_10m_max,wind_direction_10m_dominant,precipitation_probability_mean",
-        "timezone": "Africa/Casablanca", 
+        "timezone": "Africa/Casablanca",
+        "hourly": "wind_speed_10m,wind_direction_10m,cloud_cover",
         "windspeed_unit": "ms",        # kmh, ms, mph, kn
     }
 
@@ -157,8 +103,14 @@ def forcast(lat, lon):
     data = response.json()
 
 
-    daily = data['daily']
-
+    daily   = data['daily']
+    hourly  = data['hourly']
+    
+    daily_avg = []
+    for i in range(0, len(hourly['cloud_cover']), 24):
+        day_values = hourly['cloud_cover'][i:i+24]
+        daily_avg.append(sum(day_values) / 24)
+    
     return {
             "Dates"             : daily['time'],
             "Rain"              : daily["rain_sum"],
@@ -169,6 +121,9 @@ def forcast(lat, lon):
             "Ws"                : [convert_wind_speed(ws) for ws in daily["wind_speed_10m_max"]],
             "Wd"                : daily["wind_direction_10m_dominant"],
             "Rain_pro"          : daily["precipitation_probability_mean"],
+            "Ws_h"              : hourly['wind_speed_10m'][:24],
+            'Wd_h'              : hourly['wind_direction_10m'][:24],
+            'cloud'             : daily_avg,
     }
 
 def gdd_weather(lat, lon, start_date, end_date):

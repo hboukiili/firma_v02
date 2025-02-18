@@ -202,7 +202,6 @@ def process_field(boundaries, id, date):
             polygon_geojson = [mapping(aligned_polygon)]
             # # Clip raster
             out_image, out_transform = mask(src, polygon_geojson, crop=True)
-
             meta.update({
                 "driver": "GTiff",
                 "height": out_image.shape[1],
@@ -217,8 +216,8 @@ def process_field(boundaries, id, date):
                 os.makedirs(field_folder)
                 os.chmod(field_folder, 0o777)
     
-            with rasterio.open(output_path, "w", **meta) as dest:
-                dest.write(out_image[0], 1)
+            # with rasterio.open(output_path, "w", **meta) as dest:
+            #     dest.write(out_image[0], 1)
 
             logger.info(f"Processed field {id} successfully. Output saved at {output_path}")
 
@@ -332,14 +331,15 @@ def run_model():
     if response.status_code == 200:
         results = response.json()["value"]
         len_result = len(results)
+        
         if len_result:
 
             # If the condition is met, process fields and then run fao_model
             if not os.path.exists(f'/app/Data/ndvi/{specific_date}_ndvi.tif'):
                 folder = download_data(results, session, specific_date, specific_tile, base_dir)
 
-            # Start calculating NDVI
-            S2_ndvi(folder, ndvi_folder, specific_date)
+                # Start calculating NDVI
+                S2_ndvi(folder, ndvi_folder, specific_date)
 
 
             field_irrigation_amounts = get_irrigation()
@@ -350,16 +350,14 @@ def run_model():
                 polygon, field_folder, meta = process_field(field.boundaries.wkt, field.id, specific_date)
                 task_chain = chain(
                     interpolate_ndvi.s(meta, field_folder),
-                    fao_model.s().set(args=(polygon, field.boundaries[0][0], field.id, irrigation_amount))  # Explicitly set correct args
+                    fao_model.s()(polygon, field.boundaries[0][0], field.id, irrigation_amount)  # Explicitly set correct args
                 )
 
                 group_tasks = group(task_chain)
                 group_tasks.apply_async()
-
         else:
 
             field_irrigation_amounts = get_irrigation()
-
             for field, amounts in field_irrigation_amounts.items():
 
                 irrigation_amount = amounts if amounts else None
@@ -371,7 +369,6 @@ def run_model():
 
                 group_tasks = group(task_chain)
                 group_tasks.apply_async()
-
     else:
         logger.info(f"Error fetching data: {response.status_code} - {response.text}")
     return "Model completed successfully"
@@ -411,15 +408,24 @@ def process_new_field(field_id, boundaries_wkt, point, soumis_date):
                 #     print('data downloaded ...\n start ndvi process ...')
                 S2_ndvi(folder, ndvi_folder, specific_date)
             print('processing data ....')
-            polygon, field_folder, meta = process_field(boundaries_wkt, field_id, specific_date)
+            field_irrigation_amounts = get_irrigation()
+            for field, amounts in field_irrigation_amounts.items():
+            # polygon, field_folder, meta = process_field(boundaries_wkt, field_id, specific_date)
+                polygon, field_folder, meta = process_field(field.boundaries.wkt, field.id, specific_date)
+                # interpolate_ndvi(meta, field_folder)
+                fao_model(polygon, [-7.680666, 31.66665], field.id , amounts)
+                # print(field.id, amounts)
+            break
         logger.info(f'{specific_date}')
         specific_date = (datetime.strptime(specific_date, "%Y-%m-%d") - timedelta(days=1)).strftime("%Y-%m-%d")
     session.close()
-
-    interpolate_ndvi(meta, field_folder)
-    print('running fao model ....')
-    irr = [0,0,0,0,22.10251597,0,0,17.68372754,0,0,0,0,0,0,0,0,0,0,0,1.494152744,6.17857993,0,0,0,0,0,0,0,0,0,0,0,0,7.328736828,0,0,0,0,0,]
-    fao_model(polygon, point, field_id , irr)
+    # field_irrigation_amounts = get_irrigation()
+    # for field, amounts in field_irrigation_amounts.items():
+    #     folder = f"/app/Data/fao_output"
+    #     field_folder = f"{folder}/{str(field.id)}/ndvi"
+    #     interpolate_ndvi(meta, field_folder)
+    #     print('running fao model ....')
+    #     fao_model(polygon, point, field_id , amounts)
 
 
 if __name__ == '__main__':
