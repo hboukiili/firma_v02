@@ -911,4 +911,4 @@ class Model:
                 io.fDb = 0.0
 
         io.RZSM = io.thetaWP +(1-(io.Dr /io.TAW))*(io.thetaFC - io.thetaWP)
-        io.rzsm_pr = ((io.thetaFC - io.RZSM) / (io.thetaFC - io.thetaWP)) * 100
+        io.rzsm_pr = (1 - ((io.thetaFC - io.RZSM) / (io.thetaFC - io.thetaWP))) * 100

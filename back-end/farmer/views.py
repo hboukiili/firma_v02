@@ -394,6 +394,28 @@ class Irrigation(APIView):
 			fc_mean = np.nanmean(fc)
 			return fc_mean
 
+	def calculate_irrigation_duration_dripp(self, mm, disTubes, disDr, outflowRate):
+
+		"""
+		Calculate the irrigation duration based on the desired water depth and application parameters.
+
+		Parameters:
+			mm (float): Desired water depth in millimeters.
+			disTubes (float): Length or one dimension of the area (in meters).
+			disDr (float): The other dimension of the area (in meters).
+			outflowRate (float): Application rate (in cubic meters per minute).
+
+		Returns:
+			float: The duration required (in minutes).
+		"""
+		# Convert mm to m, compute the volume, then divide by the outflow rate.
+		duration = mm * disTubes * disDr / outflowRate
+		fractional_part = duration - int(duration)
+		fractional_part = int(fractional_part * 60)
+		if fractional_part == 0 and int(duration) == 0: return ('0H2M')
+		return f'{str(int(duration))}H{str(fractional_part)}M'
+
+
 	def post(self, request):
 
 		field_id				= request.data.get('field_id')
@@ -437,27 +459,80 @@ class Irrigation(APIView):
 				return Response({f"error": "An error occurred while processing your request : {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 		return Response("Error in Data", status=status.HTTP_400_BAD_REQUEST)
 
+	def all_thefields(self, user):
+
+
+		irrigation_qs = Irrigation_amount.objects.filter(
+			irrigation_system_id__field_id__user_id=user.id,
+			amount__gt=0
+		).select_related('irrigation_system_id', 'irrigation_system_id__field_id').order_by('id')
+
+		data = []
+		for ia in irrigation_qs:
+			drip = Drip_Irrigation.objects.get(field_id=ia.irrigation_system_id.field_id.id)
+			duration = self.calculate_irrigation_duration_dripp(ia.amount, drip.Crop_Tubes_distance, drip.Crop_Drippers_distance, drip.Crop_outflow_rate)
+			data.append({
+				'ammount_id' : ia.id,
+				'date': ia.date.strftime('%Y-%m-%d'),
+				'amount': duration,
+				'amount_type': ia.amount_type,
+				'name': ia.irrigation_system_id.field_id.name,
+			})
+
+		return data
+
+	def irrigation_by_field(self, field_id):
+		irrigation_qs = Irrigation_amount.objects.filter(
+				irrigation_system_id__field_id=field_id,
+				amount__gt=0
+		).order_by('date')
+
+		dates = []
+		amount = []
+		for ia in irrigation_qs:
+			drip = Drip_Irrigation.objects.get(field_id=ia.irrigation_system_id.field_id.id)
+			duration = self.calculate_irrigation_duration_dripp(ia.amount, drip.Crop_Tubes_distance, drip.Crop_Drippers_distance, drip.Crop_outflow_rate)
+			dates.append(ia.date.strftime('%Y-%m-%d'))
+			amount.append(duration)
+
+		return {
+			'dates' : dates,
+			'duration' : amount,
+		}
+
+
 	def get(self, request):
 		user = request.user
 		try :
-			
-			irrigation_qs = Irrigation_amount.objects.filter(
-			    irrigation_system_id__field_id__user_id=user.id,
-			    amount__gt=0
-			).select_related('irrigation_system_id__field_id')
-
-			data = []
-			for ia in irrigation_qs:
-				data.append({
-    		        'date': ia.date.strftime('%Y-%m-%d'),
-    		        'amount': ia.amount,
-    		        'amount_type': ia.amount_type,
-    		        'name': ia.irrigation_system_id.field_id.name,
-    		    })
+			if 'field_id' in request.query_params:
+				data = self.irrigation_by_field(request.query_params.get('field_id'))
+			else:
+				data = self.all_thefields(user)
 			return Response(data, status=status.HTTP_200_OK)
 		except Exception as e:
 			logger.error(f"Error occurred during data processing: {str(e)}")  # Log error
 			return Response({f"error": "An error occurred while processing your request : {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+class recommandation(APIView):
+    
+	authentication_classes = [FARMERJWTAuthentication]
+	permission_classes = [IsAuthenticated]
+
+	def get(self, request):
+		if 'field_id' in request.query_params:
+			recommandation = None
+			drip = Drip_Irrigation.objects.get(field_id=field_id)
+			field_id = request.query_params.get('field_id')
+			path = f'/app/Data/fao_output/{field_id}/Irrig'
+			files = sorted([f for f in os.listdir(path) if f.endswith(".tif")], key=lambda x: x.split('.')[0])
+			latest_irrigation = Irrigation_amount.filter(
+					irrigation_system_id__field_id=field_id
+				).order_by('-date').first()
+			with rasterio.open(os.path.join(path, files[-6])) as src:
+				irr = src.read(1)
+				if np.nanmean(irr):
+					recommandation { 
+                    self.calculate_irrigation_duration_dripp(np.nanmean(irr), drip.Crop_Tubes_distance, drip.Crop_Drippers_distance, drip.Crop_outflow_rate)
 
 class check_pro(APIView):
 
