@@ -82,7 +82,7 @@ class login(APIView):
 			password = serializer.validated_data.get('password')
 			
 			try :
-
+				new = True
 				user, user_type = get_user_by_email(email)
 				if user is None:
 					return Response({"message": "User does not exist"}, status=status.HTTP_404_NOT_FOUND)
@@ -92,11 +92,13 @@ class login(APIView):
 
 				refresh = RefreshToken.for_user(user)
 				refresh['user_type'] = user_type
-
+				field = Field.objects.filter(user_id=user.id)
+				if len(field) : new = False
 				return Response({
 					'access_token': str(refresh.access_token),
 					'refresh_token': str(refresh),
-					'type' : user_type
+					'type' : user_type,
+					'is_new' : new,
 				}, status=status.HTTP_201_CREATED)
 	
 			except Exception as e:
