@@ -22,6 +22,18 @@ RUN npm i
 
 RUN npm i @eunchurn/react-windrose
 
+RUN npm i react-type-animation
+
+RUN npm i echarts
+
+RUN npm i echarts-liquidfill
+
+RUN npm i date-fns
+
+RUN npm i recharts
+
+RUN npm i react-type-animation
+
 RUN npx update-browserslist-db@latest
 
 CMD ["npm", "run", "dev"]

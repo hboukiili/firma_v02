@@ -96,7 +96,7 @@ function NavBar() {
           <Button
             as={Link}
             className="rounded-full bg-[#4FC38F] text-white"
-            href="/register"
+            href="/usertypes"
             variant="flat"
           >
             Sign Up

@@ -1,0 +1,16 @@
+<layer>
+  <name>ndvi_2025-01-01</name>
+  <id>LayerInfoImpl-778d9871:19516bedffc:-46ef</id>
+  <type>RASTER</type>
+  <defaultStyle>
+    <id>StyleInfoImpl-27b52b2:194fd373d62:-7ffd</id>
+  </defaultStyle>
+  <resource class="coverage">
+    <id>CoverageInfoImpl-778d9871:19516bedffc:-46f0</id>
+  </resource>
+  <attribution>
+    <logoWidth>0</logoWidth>
+    <logoHeight>0</logoHeight>
+  </attribution>
+  <dateCreated>2025-02-18 01:55:54.485 UTC</dateCreated>
+</layer>

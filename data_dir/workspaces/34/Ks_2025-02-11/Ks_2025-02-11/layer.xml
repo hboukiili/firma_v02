@@ -1,0 +1,16 @@
+<layer>
+  <name>Ks_2025-02-11</name>
+  <id>LayerInfoImpl-778d9871:1951434d402:611c</id>
+  <type>RASTER</type>
+  <defaultStyle>
+    <id>StyleInfoImpl-27b52b2:194fd373d62:-7ffd</id>
+  </defaultStyle>
+  <resource class="coverage">
+    <id>CoverageInfoImpl-778d9871:1951434d402:611b</id>
+  </resource>
+  <attribution>
+    <logoWidth>0</logoWidth>
+    <logoHeight>0</logoHeight>
+  </attribution>
+  <dateCreated>2025-02-18 01:45:36.505 UTC</dateCreated>
+</layer>

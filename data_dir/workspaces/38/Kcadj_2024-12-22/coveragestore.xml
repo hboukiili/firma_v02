@@ -1,0 +1,14 @@
+<coverageStore>
+  <id>CoverageStoreInfoImpl-778d9871:19516bedffc:-7069</id>
+  <name>Kcadj_2024-12-22</name>
+  <description>Raster Data</description>
+  <type>GeoTIFF</type>
+  <enabled>true</enabled>
+  <workspace>
+    <id>WorkspaceInfoImpl-778d9871:19516bedffc:-7563</id>
+  </workspace>
+  <__default>false</__default>
+  <dateCreated>2025-02-18 01:50:59.238 UTC</dateCreated>
+  <disableOnConnFailure>false</disableOnConnFailure>
+  <url>file:/data/38/Kcadj/Kcadj_2024-12-22.tif</url>
+</coverageStore>

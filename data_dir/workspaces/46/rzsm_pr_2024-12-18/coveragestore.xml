@@ -1,0 +1,14 @@
+<coverageStore>
+  <id>CoverageStoreInfoImpl--399bf5f5:19518dc0ec5:-6995</id>
+  <name>rzsm_pr_2024-12-18</name>
+  <description>Raster Data</description>
+  <type>GeoTIFF</type>
+  <enabled>true</enabled>
+  <workspace>
+    <id>WorkspaceInfoImpl-778d9871:19516bedffc:-18e3</id>
+  </workspace>
+  <__default>false</__default>
+  <dateCreated>2025-02-18 15:28:42.729 UTC</dateCreated>
+  <disableOnConnFailure>false</disableOnConnFailure>
+  <url>file:/data/46/rzsm_pr/rzsm_pr_2024-12-18.tif</url>
+</coverageStore>

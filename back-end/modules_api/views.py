@@ -66,11 +66,11 @@ class ogimet(APIView):
 
 		return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-	def get(self, request):
 
-		print(request.user.firstname, request.user.email)
+	# def get(self, request):
+		# print(request.user.firstname, request.user.email)
 
-		return Response("OK")
+		# return Response("OK")
 	
 class aquacrop(APIView):
 
@@ -169,7 +169,7 @@ class FaoTest(APIView):
 				}
 
 			final_data['dates'] = dates
-			print(final_data['rzsm_pr'])
+			# print(final_data['rzsm_pr'])
 			return Response(final_data, status=status.HTTP_200_OK)
 
 		except Exception as e:

@@ -1,0 +1,14 @@
+<coverageStore>
+  <id>CoverageStoreInfoImpl-778d9871:19516bedffc:-6ca0</id>
+  <name>Irrig_2025-01-30</name>
+  <description>Raster Data</description>
+  <type>GeoTIFF</type>
+  <enabled>true</enabled>
+  <workspace>
+    <id>WorkspaceInfoImpl-778d9871:19516bedffc:-7563</id>
+  </workspace>
+  <__default>false</__default>
+  <dateCreated>2025-02-18 01:51:12.354 UTC</dateCreated>
+  <disableOnConnFailure>false</disableOnConnFailure>
+  <url>file:/data/38/Irrig/Irrig_2025-01-30.tif</url>
+</coverageStore>

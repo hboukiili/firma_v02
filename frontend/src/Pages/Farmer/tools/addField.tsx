@@ -147,7 +147,7 @@ function requestGeoServerPixelValue(map: L.Map, geoServerUrl, Data: Farmer) {
 
   // Add a click event listener to the map
   map.on("click", function (e) {
-    const layerName = `${Data.RasterKey}:${Data.currentDate}`;
+    const layerName = `${Data.currentField?.id}:${Data.RasterKey}_${Data.currentDate}`;
     const latlng = e.latlng; // Get clicked coordinates
 
     // Define the parameters for GetFeatureInfo request
@@ -175,7 +175,7 @@ function requestGeoServerPixelValue(map: L.Map, geoServerUrl, Data: Farmer) {
           const firstKey = Object.keys(properties)[0];
           const firstValue = properties[firstKey];
 
-          content = `${firstValue}`;
+          content = `${firstValue.toFixed(2)}`;
         }
 
         // Create and show a popup at the clicked location with the data
@@ -196,15 +196,19 @@ const AddField = (prop: { options_: boolean }) => {
   const dispatch = useAppDispatch();
   const Data = useAppSelector((state) => state.farmer);
   const location = useLocation();
-  const {page} = useParams()
+  const { page } = useParams();
+  const [isLoad, setIsLoad] = useState(true);
   const flyToField = () => {
-    const len = Data.fieldInfo.length
+    setIsLoad(true);
+    const len = Data.fieldInfo.length;
     if (MapRef.current && Data.currentField) {
       const boundaries = Data.currentField?.boundaries.coordinates[0];
       const bounds = boundaries!.map((coord) => [coord[1], coord[0]]);
-      MapRef.current.flyToBounds(bounds, {
-        duration: 2,
-      });
+      MapRef.current
+        .flyToBounds(bounds, {
+          duration: 1,
+        })
+        .on("moveend", () => setIsLoad(false));
       MapRef.current.on("zoomend", function () {
         isZoomEnded(true);
       });
@@ -215,14 +219,14 @@ const AddField = (prop: { options_: boolean }) => {
     } else if (MapRef.current && Data.fieldInfo[len - 1]) {
       const boundaries = Data.fieldInfo[len - 1].boundaries.coordinates[0];
       const bounds = boundaries!.map((coord) => [coord[1], coord[0]]);
-      MapRef.current.flyToBounds(bounds, {
-        duration: 3,
-      });
+      MapRef.current
+        .flyToBounds(bounds, {
+          duration: 1,
+        })
+        .on("moveend", () => setIsLoad(false));
       dispatch(updateFarmerInfo({ boundaries: bounds }));
     }
   };
-  const whiteTileUrl =
-    "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/wcAAwAB/ZWQwF8AAAAASUVORK5CYII=";
 
   useEffect(() => {
     if (MapRef.current) {
@@ -230,14 +234,17 @@ const AddField = (prop: { options_: boolean }) => {
       MapRef_.addLayer(drawnItems);
     }
     dispatch(updateFarmerInfo({ boundaries: null }));
-    if (document.location.pathname.startsWith("/farmer1")) flyToField();
+    if (document.location.pathname.startsWith("/farmer1")) {
+      flyToField();
+      // setIsLoad(false);
+    }
     if (Data.DrawOption && MapRef.current) MapRef.current.off("click");
     if (MapRef.current && Data.isRasterData) {
-      requestGeoServerPixelValue(
+      MapRef.current.on("click",requestGeoServerPixelValue(
         MapRef_,
         "http://localhost:8080/geoserver/wms",
         Data
-      );
+      ));
     }
   }, [
     Data.currentField?.name,
@@ -260,7 +267,9 @@ const AddField = (prop: { options_: boolean }) => {
     >
       <div
         className={`absolute z-40 p-4 ${
-          location.pathname.startsWith("/farmer1") ? "bottom-0 left-0" : "top-0 right-0"
+          location.pathname.startsWith("/farmer1")
+            ? "bottom-0 left-0"
+            : "top-0 right-0"
         } `}
       >
         {prop.options_ && <DrawFieldTools />}
@@ -279,8 +288,8 @@ const AddField = (prop: { options_: boolean }) => {
       )}
 
       <MapContainer
-        center={[29, -8]}
-        zoom={10}
+        center={[31, -8]}
+        zoom={6}
         ref={MapRef}
         style={{
           width: "100%",
@@ -320,7 +329,13 @@ const AddField = (prop: { options_: boolean }) => {
             noWrap
             tileSize={512}
             transparent
-            styles={"RedGreen"}
+            styles={
+              Data.RasterKey === "Ks"
+                ? "RedGreen"
+                : Data.RasterKey === "rzsm_pr"
+                ? "RedGreen2"
+                : "irrStyle"
+            }
             bounds={Data.boundaries}
           />
         )}
@@ -335,21 +350,26 @@ const AddField = (prop: { options_: boolean }) => {
             />
           )} */}
 
-        {!Data.isRasterData && Data.fieldInfo.map((v, k) => {
-          const boundaries = v.boundaries.coordinates[0];
-          const bounds = boundaries!.map((coord) => [coord[1], coord[0]]);
-          let color = "#F5D152";
-          let opct = 0.5
-          if (v.name === Data.currentField?.name) {color = "#ffea00"; opct = 1};
-          return (
-            <Polygon
-              opacity={9}
-              key={k}
-              positions={bounds}
-              pathOptions={{ color: color ,opacity : opct, }}
-            />
-          );
-        })}
+        {!Data.isRasterData &&
+          !isLoad &&
+          Data.fieldInfo.map((v, k) => {
+            const boundaries = v.boundaries.coordinates[0];
+            const bounds = boundaries!.map((coord) => [coord[1], coord[0]]);
+            let color = "#fff";
+            let opct = 0.5;
+            if (v.name === Data.currentField?.name) {
+              color = "#ffea00";
+              opct = 1;
+            }
+            return (
+              <Polygon
+                opacity={9}
+                key={k}
+                positions={bounds}
+                pathOptions={{ color: color, opacity: opct }}
+              />
+            );
+          })}
 
         {<Shapefile removeLayer={false} />}
       </MapContainer>

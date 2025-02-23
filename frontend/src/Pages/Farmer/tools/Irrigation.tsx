@@ -11,13 +11,24 @@ import cloudIcn from "../../../assets/cloud-rain.svg";
 import alarmIcn from "../../../assets/alarm-average.svg";
 import calnIcn from "../../../assets/calendar-month.svg";
 import hstIcn from "../../../assets/history.svg";
-
+import { format } from "date-fns";
+import api from "../../../api/axios.js";
 import { ArrowLeftIcon } from "evergreen-ui";
-import { BarChart } from "@mui/x-charts/BarChart";
+// import { BarChart } from "@mui/x-charts/BarChart";
 import ReactApexCharts from "react-apexcharts";
 import { ApexOptions } from "apexcharts";
 import AddField from "./addField";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
+import { MultiChart_ } from "../Aquacrop";
+import {
+  Bar,
+  BarChart,
+  CartesianGrid,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from "recharts";
 
 const LastIrr = () => {
   return (
@@ -83,7 +94,7 @@ const IrrHero = () => {
               alt="bg"
               src={bg}
               classNames={{
-                wrapper : "absolute left-0 -top-[120px]"
+                wrapper: "absolute left-0 -top-[120px]",
               }}
               // className="w-full absolute top-0 left-0 z-10"
             />
@@ -129,113 +140,43 @@ const IrrHero = () => {
   );
 };
 
-const IrrChart = () => {
-  const Data = useAppSelector((state) => state.farmer);
+const SimpleBarChart = ({ dates, data }) => {
+  const chartData = dates.map((date, index) => ({
+    day: date,
+    value: data[index],
+  }));
 
-  function ChartData() {
-    let data = Data.RasterData?.Irrig.mean
-      .map((val, key) => {
-        if (val) {
-          return { dates: Data.DateRange[key], series: val };
-        } else return null;
-      })
-      .filter((item) => item !== null);
-
-    return data;
-  }
-  const dates = ChartData()?.map((v) => v.dates);
-  const series = ChartData()?.map((v) => v.series);
-
-  const opt: ApexOptions = {
-    chart: {
-      toolbar: { show: false },
-      height: 350,
-      zoom: false,
-      type: "bar",
-      animations: {
-        enabled: false,
-      },
-    },
-   
-    colors: ["#fff"],
-    plotOptions: {
-      bar: {
-        borderRadius: 2,
-        dataLabels: {
-          position: "top", // top, center, bottom
-        },
-      },
-    },
-    xaxis: {
-      categories: dates,
-      type: "category",
-      labels: {
-        show: false,
-        maxHeight: 16,
-      },
-      axisBorder: {
-        show: false,
-      },
-      axisTicks: {
-        show: false,
-      },
-    },
-    grid: {
-      show: false,
-    },
-    
-    forecastDataPoints: {
-      count: 14
-    },
-    annotations : {
-      xaxis: [{
-        // x : new Date("2024-04-22").getTime(),
-        x: 440,
-        strokeDashArray: 0,
-        borderColor: '#775DD0',
-        label: {
-          borderColor: '#775DD0',
-          style: {
-            color: '#fff',
-            background: '#775DD0',
-          },
-          text: 'Forcast',
-        }
-      },
-    ]
-    },
-    yaxis: {
-      axisBorder: {
-        show: false,
-      },
-      axisTicks: {
-        show: true,
-      },
-      labels: {
-        maxWidth: 30,
-
-        show: true,
-        formatter: (value: number) => value.toFixed(2),
-        style: { colors: "#fff", fontSize: "9px" },
-      },
-    },
-  };
-  console.log(dates)
   return (
-    <div className="h-full irr">
-      <ReactApexCharts
-        width="100%"
-        height="100%"
-        options={opt}
-        series={[
-          {
-            type: "bar",
-            name: "irrigation",
-            data: series,
-          },
-        ]}
-      />
-    </div>
+    <ResponsiveContainer width="100%">
+      <BarChart data={chartData}>
+        <CartesianGrid stroke="#4d7186" strokeDasharray="1 1" />
+        <XAxis
+          axisLine={false}
+          dataKey="day"
+          tick={{ fill: "#fff", fontSize: 10 }}
+          tickFormatter={(dates) => format(new Date(dates), "dd MMM")} // Formats as "01 Jan"
+        />
+        <YAxis
+          tick={{ fill: "white" }}
+          axisLine={false}
+          label={{
+            value: "Irrigation (mm)",
+            angle: -90,
+            style: {
+              marginLeft: "10px", // Margin on the left
+              marginRight: "10px",
+              fontWeight: "bold",
+              fontSize: 14,
+              fill: "#d8d8d8",
+            },
+            dx: -20,
+          }}
+        />
+        <Tooltip formatter={(value) => value.toFixed(2)} />
+
+        <Bar dataKey="value" fill="#6fbcf2" />
+      </BarChart>
+    </ResponsiveContainer>
   );
 };
 
@@ -262,8 +203,11 @@ const Irrhistory = () => {
             chart.
           </p>
         </div>
-        <div className="h-[230px]">
-          <IrrChart />
+        <div className="h-[230px] p-2">
+          <SimpleBarChart
+            data={Data.RasterData?.Irrig.mean}
+            dates={Data.DateRange}
+          />
         </div>
       </div>
       {/* <div className="rounded-[16px]  flexCenter flex-col gap-1 overflow-hidden pt-4  grow">
@@ -274,9 +218,75 @@ const Irrhistory = () => {
   );
 };
 
+interface Event {
+  id: number;
+  className: string;
+  title: string;
+  start: string;
+  extendedProps: {
+    dis: string;
+    icon: JSX.Element;
+    info: string;
+  };
+}
+
+function createIrrigationEvents(
+  irrigationValues: string[],
+  dates: string[]
+): Event[] {
+  return irrigationValues.map((value, index) => {
+   // Check if it's one of the last 7 values
+      return {
+        id: index + "aa",
+        className: "event-cln",
+        title: "",
+        start: dates[index],
+        extendedProps: {
+          dis: "Irrigation Record", // Set dis based on the condition
+          icon: <ReactSVG className="fill-white" src={drop} />,
+          info: `Duration : ${value}`,
+        },
+      };
+   
+  });
+}
+
+function createRainEvents(RainValues: number[], dates: string[]): Event[] {
+  return RainValues.map((value, index) => {
+    if (value)
+      return {
+        id: index + 1,
+        className: "event-cln",
+        title: "test",
+        start: dates[index],
+        extendedProps: {
+          dis: "", // Set dis based on the condition
+          icon: <ReactSVG className="fill-white" src={cloudIcn} />,
+          info: `${value.toFixed(2)} mm`,
+        },
+      };
+    else return {};
+  });
+}
+
 export const IrrigationManagement = () => {
   const dispatch = useAppDispatch();
   const Data = useAppSelector((state) => state.farmer);
+  const [irrEv, setIrrEV] = useState<{ duration: string[]; dates: string[] }>(
+    null
+  );
+  let IrrEvents: Event[];
+  if (irrEv) IrrEvents = createIrrigationEvents(irrEv.duration, irrEv.dates);
+  const RainEvent = createRainEvents(
+    Data.RasterData?.Rain.mean,
+    Data.DateRange
+  );
+  useEffect(() => {
+    api.get(`farmer/irr?field_id=${Data.currentField?.id}`).then((res) => {
+      console.log(res.data)
+      setIrrEV(res.data);
+    });
+  }, []);
   return (
     <div className="z-30 flex flex-col w-full h-full gap-5">
       <div className="w-full flexCenter gap-5">
@@ -287,89 +297,93 @@ export const IrrigationManagement = () => {
       <div className="w-full flex gap-5  grow rounded-[20px] lurBg p-2 font-Myfont">
         {/* <div className="rounded-[20px] w-[20%] bg-white"></div> */}
         <div className="rounded-[20px] w-full bg-white p-4">
-          <FullCalendar
-            events={[
-              {
-                id: 1,
-                className: "event-cln",
-                title: "test",
-                start: "2024-11-22",
-                extendedProps: {
-                  dis: "Irrigation Reminder",
-                  icon: <ReactSVG className="fill-white" src={drop} />,
-                  info: "Duration : 3H",
-                },
-              },
-              {
-                id: 2,
-                title: "Irrigation Reminder",
-                start: "2024-11-11",
-                className: "event-cln",
-                extendedProps: {
-                  dis: "Irrigation Reminder",
-                  icon: <ReactSVG className="fill-white" src={drop} />,
-                  info: "Duration : 3H",
-                },
-              },
-              {
-                id: 3,
-                title: "Irrigation Reminder",
-                start: "2024-11-19",
-                className: "event-cln",
-                extendedProps: {
-                  dis: "Irrigation Reminder",
-                  icon: <ReactSVG className="fill-white" src={drop} />,
-                  info: "Duration : 3H",
-                },
-              },
-              {
-                id: 4,
-                title: "Irrigation Reminder",
-                start: "2024-11-07",
-                className: "event-cln",
-                extendedProps: {
-                  dis: "",
-                  icon: <ReactSVG className="fill-white" src={cloudIcn} />,
-                  info: "7 mm",
-                },
-              },
-              {
-                id: 5,
-                title: "Irrigation Reminder",
-                start: "2024-11-06",
-                className: "event-cln",
-                extendedProps: {
-                  dis: "",
-                  icon: <ReactSVG className="fill-white" src={cloudIcn} />,
-                  info: "5 mm",
-                },
-              },
-            ]}
-            plugins={[dayGridPlugin]}
-            height={"100%"}
-            initialView="dayGridMonth"
-            themeSystem="bootstrap4"
-            eventContent={(event) => {
-              const style = !event.event.extendedProps.dis
-                ? " bg-[#115780] p-1 max-w-[100px] m-1"
-                : "bg-[#62c6ff] m-1";
-              return (
-                <div
-                  className={`flex items-center min-h-[30px] rounded-full gap-2 ${style} border-none`}
-                >
-                  <span>{event.event.extendedProps.icon}</span>
-                  <div className="flex flex-col">
-                    <span className="font-Myfont font-bld ">
-                      {event.event.extendedProps.dis}
-                    </span>
-                    <span className="text-[12px] font-bld text-[#c9ebff]">
-                      {event.event.extendedProps.info}
-                    </span>
+          {IrrEvents && (
+            <FullCalendar
+              events={[
+                ...IrrEvents,
+                ...RainEvent,
+                // {
+                //   id: 1,
+                //   className: "event-cln",
+                //   title: "test",
+                //   start: "2024-11-22",
+                //   extendedProps: {
+                //     dis: "Irrigation Reminder",
+                //     icon: <ReactSVG className="fill-white" src={drop} />,
+                //     info: "Duration : 3H",
+                //   },
+                // },
+                // {
+                //   id: 2,
+                //   title: "Irrigation Reminder",
+                //   start: "2024-11-11",
+                //   className: "event-cln",
+                //   extendedProps: {
+                //     dis: "Irrigation Reminder",
+                //     icon: <ReactSVG className="fill-white" src={drop} />,
+                //     info: "Duration : 3H",
+                //   },
+                // },
+                // {
+                //   id: 3,
+                //   title: "Irrigation Reminder",
+                //   start: "2024-11-19",
+                //   className: "event-cln",
+                //   extendedProps: {
+                //     dis: "Irrigation Reminder",
+                //     icon: <ReactSVG className="fill-white" src={drop} />,
+                //     info: "Duration : 3H",
+                //   },
+                // },
+                // {
+                //   id: 4,
+                //   title: "Irrigation Reminder",
+                //   start: "2025-02-07",
+                //   className: "event-cln",
+                //   extendedProps: {
+                //     dis: "",
+                //     icon: <ReactSVG className="fill-white" src={cloudIcn} />,
+                //     info: "7 mm",
+                //   },
+                // },
+                // {
+                //   id: 5,
+                //   title: "Irrigation Reminder",
+                //   start: "2024-11-06",
+                //   className: "event-cln",
+                //   extendedProps: {
+                //     dis: "",
+                //     icon: <ReactSVG className="fill-white" src={cloudIcn} />,
+                //     info: "5 mm",
+                //   },
+                // },
+              ]}
+              plugins={[dayGridPlugin]}
+              height={"100%"}
+              initialView="dayGridMonth"
+              themeSystem="bootstrap4"
+              eventContent={(event) => {
+                const style = !event.event.extendedProps.dis
+                  ? " bg-[#115780] p-2 px-2 max-w-[110px] m-1 flex justify-center item-center"
+                  : "bg-[#62c6ff] m-1 p-1";
+                return (
+                  <div
+                    className={`flex items-center min-h-[30px] rounded-full gap-2 ${style} border-none`}
+                  >
+                    <span>{event.event.extendedProps.icon}</span>
+                    <div className="flex flex-col">
+                      <span className="font-Myfont font-bld ">
+                        {event.event.extendedProps.dis}
+                      </span>
+                      <span className="text-[12px] font-bld text-[#c9ebff]">
+                        {event.event.extendedProps.info}
+                      </span>
+                    </div>
                   </div>
-                </div>
-              );
-            }}
-          />
+                );
+              }}
+            />
+          )}
         </div>
       </div>
     </div>

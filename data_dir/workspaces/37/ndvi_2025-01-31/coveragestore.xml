@@ -1,0 +1,14 @@
+<coverageStore>
+  <id>CoverageStoreInfoImpl-778d9871:1951434d402:7f98</id>
+  <name>ndvi_2025-01-31</name>
+  <description>Raster Data</description>
+  <type>GeoTIFF</type>
+  <enabled>true</enabled>
+  <workspace>
+    <id>WorkspaceInfoImpl-778d9871:1951434d402:7f0c</id>
+  </workspace>
+  <__default>false</__default>
+  <dateCreated>2025-02-18 01:49:16.179 UTC</dateCreated>
+  <disableOnConnFailure>false</disableOnConnFailure>
+  <url>file:/data/37/ndvi_vis/ndvi_2025-01-31.tif</url>
+</coverageStore>

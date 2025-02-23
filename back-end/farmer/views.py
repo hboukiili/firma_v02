@@ -416,7 +416,7 @@ class Irrigation(APIView):
 		fractional_part = duration - int(duration)
 		fractional_part = int(fractional_part * 60)
 		if fractional_part == 0 and int(duration) == 0: return ('0H2M')
-		return f'{str(int(duration))}H{str(fractional_part)}M'
+		return f'{str(int(duration))}h {str(fractional_part)}m'
 
 
 	def post(self, request):

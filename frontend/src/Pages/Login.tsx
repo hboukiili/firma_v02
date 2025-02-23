@@ -35,7 +35,9 @@ const Login = () => {
           if (res.data?.access_token && res.data?.refresh_token) {
             localStorage.setItem("access_token", res.data?.access_token);
             localStorage.setItem("refresh_token", res.data?.refresh_token);
-            window.location.href = "/usertypes";
+            window.location.href = res.data.is_new
+              ? "/farmersetup"
+              : "/farmer1";
           } else setError("Invalid username or password.");
         })
         .catch((error) => {
@@ -104,8 +106,12 @@ const Login = () => {
           />
         </div>
 
-        <div className="w-full gap-[20px] flex flex-col justify-between items-center">
-          <Button type="submit" radius="full" className="bg-Green text-white  ">
+        <div className="w-[67%] gap-[20px] flex flex-col justify-between items-center">
+          <Button
+            type="submit"
+            radius="full"
+            className="bg-Green text-white  w-full"
+          >
             Login
           </Button>
           <h6 className="font-Myfont font-normal">

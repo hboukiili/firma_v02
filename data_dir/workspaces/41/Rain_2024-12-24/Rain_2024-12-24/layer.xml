@@ -1,0 +1,16 @@
+<layer>
+  <name>Rain_2024-12-24</name>
+  <id>LayerInfoImpl-778d9871:19516bedffc:-4988</id>
+  <type>RASTER</type>
+  <defaultStyle>
+    <id>StyleInfoImpl-27b52b2:194fd373d62:-7ffd</id>
+  </defaultStyle>
+  <resource class="coverage">
+    <id>CoverageInfoImpl-778d9871:19516bedffc:-4989</id>
+  </resource>
+  <attribution>
+    <logoWidth>0</logoWidth>
+    <logoHeight>0</logoHeight>
+  </attribution>
+  <dateCreated>2025-02-18 01:55:10.644 UTC</dateCreated>
+</layer>

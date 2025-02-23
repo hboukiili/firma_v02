@@ -1,0 +1,16 @@
+<layer>
+  <name>Kcb_2025-01-02</name>
+  <id>LayerInfoImpl-778d9871:1951434d402:5e25</id>
+  <type>RASTER</type>
+  <defaultStyle>
+    <id>StyleInfoImpl-27b52b2:194fd373d62:-7ffd</id>
+  </defaultStyle>
+  <resource class="coverage">
+    <id>CoverageInfoImpl-778d9871:1951434d402:5e24</id>
+  </resource>
+  <attribution>
+    <logoWidth>0</logoWidth>
+    <logoHeight>0</logoHeight>
+  </attribution>
+  <dateCreated>2025-02-18 01:45:26.196 UTC</dateCreated>
+</layer>

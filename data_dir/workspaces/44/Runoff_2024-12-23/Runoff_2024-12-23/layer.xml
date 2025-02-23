@@ -1,0 +1,16 @@
+<layer>
+  <name>Runoff_2024-12-23</name>
+  <id>LayerInfoImpl-778d9871:19516bedffc:-2606</id>
+  <type>RASTER</type>
+  <defaultStyle>
+    <id>StyleInfoImpl-27b52b2:194fd373d62:-7ffd</id>
+  </defaultStyle>
+  <resource class="coverage">
+    <id>CoverageInfoImpl-778d9871:19516bedffc:-2607</id>
+  </resource>
+  <attribution>
+    <logoWidth>0</logoWidth>
+    <logoHeight>0</logoHeight>
+  </attribution>
+  <dateCreated>2025-02-18 01:59:06.441 UTC</dateCreated>
+</layer>

@@ -20,20 +20,20 @@ const Card = (data: card) => {
   const navTo = useNavigate();
 
   return (
-    <div className="w-[260px] p-2 h-[300px] bg-white flex justify-center items-center flex-col gap-[25px] rounded-lg">
-      <h1 className="font-Myfont font-bld text-DarkGreen">{data.name}</h1>
+    <div className="w-[300px] p-2 h-[400px] bg-white flex justify-between py-6 items-center flex-col gap-[25px] rounded-[20px]">
+      <h1 className="font-Myfont font-bld text-DarkGreen text-[18px]">{data.name}</h1>
       <ReactSVG src={data.icn} />
-      <p className="font-Myfont font-lt text-[10px] max-w-[180px] text-center">
+      <p className="font-Myfont font-lt text-[14px] max-w-[80%] text-center">
         Lorem Ipsum is simply dummy text of the printing and typesetting
         industry. Lorem Ipsum has been the industry's
       </p>
       <Button
         onClick={() => {
-          dispatch(updateUserInfo({ type: data.name.toLowerCase() }));
           navTo("/register");
+          dispatch(updateUserInfo({ type: data.name.toLowerCase() }));
         }}
         radius="full"
-        className=" max-w-[140px] bg-Green font-Myfont text-white"
+        className=" w-[240px] bg-[#4FC38F] font-Myfont text-white"
       >
         Unlock
       </Button>
@@ -48,10 +48,17 @@ const Usertypes = () => {
     { name: "Academic", icn: Policymake_icn },
   ];
   return (
-    <div className="relative flex flex-col justify-center items-center gap-10 w-full h-screen">
-      <h1 className="font-Myfont font-smbld text-[32px] text-DarkGreen">
-        Unlock Your Unique Experience
-      </h1>
+    <div className="relative font-Myfont flex flex-col justify-center items-center gap-20 w-full  h-screen">
+      <div className="flex flex-col justify-center gap-2 items-center w-[50%]">
+        <h1 className=" font-bld text-[32px] text-DarkGreen">
+          Unlock Your Unique Experience
+        </h1>
+        <p className="w-[65%] text-center">
+          Select your role to personalize your experience and unlock features
+          designed specifically for your needs, whether you're a farmer,
+          policymaker, or academic.
+        </p>
+      </div>
       <div className="z-10 flex gap-[25px]">
         {cards.map((v, _) => (
           <Card icn={v.icn} name={v.name} />

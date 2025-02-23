@@ -3,6 +3,8 @@ import numpy as np
 import math
 from scipy.interpolate import interp1d
 
+
+
 def convert_wind_speed(wind_speed_10m):
     """
     Convert wind speed from 10m height to 2m height using a logarithmic wind profile.
@@ -79,7 +81,7 @@ def get_final_date(response):
         "Rain": rain_sum,
         "ETref": et0_evapotranspiration,
         "Wndsp": [convert_wind_speed(ws) for ws in wind_speed_max],
-        "MorP": ["M"] * (len(rain_sum) + 7),
+        # "MorP": ["M"] * (len(rain_sum) + 7),
     }, daily_data.get('time')
 
 def fao_Open_meteo(forecast, start_date, end_date, lat, long, timezone="Africa/Casablanca"):
@@ -137,6 +139,9 @@ def fao_Open_meteo(forecast, start_date, end_date, lat, long, timezone="Africa/C
     else:
         print(f"Error: {response.status_code}")
         return None
+import pandas as pd
+pd.set_option('display.max_rows', None)  # This will display all rows
+pd.set_option('display.max_columns', None)  # This will display all columns
 
 def forcast_fao_Open_meteo(lat, long, timezone="Africa/Casablanca"):
     """
@@ -157,11 +162,16 @@ def forcast_fao_Open_meteo(lat, long, timezone="Africa/Casablanca"):
     response = requests.get(url, params=params)
     if response.status_code == 200:
         data, dates = get_final_date(response)
+        print(dates, data)
         # for key in data:
         #     if key == 'MorP': continue
         #     data[key] = fill_missing_values(data[key], method='mean')  # or 'interpolate'
-
+        new_weather_data = pd.DataFrame(data, index=dates)
+        print(new_weather_data)
         return data, dates
     else:
         print(f"Error: {response.status_code}")
         return None
+
+if __name__ == '__main__':
+    forcast_fao_Open_meteo(31.66665, -7.680666)

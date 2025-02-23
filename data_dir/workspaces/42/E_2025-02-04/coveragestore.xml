@@ -1,0 +1,14 @@
+<coverageStore>
+  <id>CoverageStoreInfoImpl-778d9871:19516bedffc:-4424</id>
+  <name>E_2025-02-04</name>
+  <description>Raster Data</description>
+  <type>GeoTIFF</type>
+  <enabled>true</enabled>
+  <workspace>
+    <id>WorkspaceInfoImpl-778d9871:19516bedffc:-4723</id>
+  </workspace>
+  <__default>false</__default>
+  <dateCreated>2025-02-18 01:56:07.792 UTC</dateCreated>
+  <disableOnConnFailure>false</disableOnConnFailure>
+  <url>file:/data/42/E/E_2025-02-04.tif</url>
+</coverageStore>

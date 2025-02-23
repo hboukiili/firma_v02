@@ -408,14 +408,14 @@ def process_new_field(field_id, boundaries_wkt, point, soumis_date):
                 #     print('data downloaded ...\n start ndvi process ...')
                 S2_ndvi(folder, ndvi_folder, specific_date)
             print('processing data ....')
-            field_irrigation_amounts = get_irrigation()
-            for field, amounts in field_irrigation_amounts.items():
-            # polygon, field_folder, meta = process_field(boundaries_wkt, field_id, specific_date)
-                polygon, field_folder, meta = process_field(field.boundaries.wkt, field.id, specific_date)
+            # field_irrigation_amounts = get_irrigation()
+            # for field, amounts in field_irrigation_amounts.items():
+            polygon, field_folder, meta = process_field(boundaries_wkt, field_id, specific_date)
+            # polygon, field_folder, meta = process_field(field.boundaries.wkt, field.id, specific_date)
                 # interpolate_ndvi(meta, field_folder)
-                fao_model(polygon, [-7.680666, 31.66665], field.id , amounts)
+                # fao_model(polygon, [-7.680666, 31.66665], field.id , amounts)
                 # print(field.id, amounts)
-            break
+            # break
         logger.info(f'{specific_date}')
         specific_date = (datetime.strptime(specific_date, "%Y-%m-%d") - timedelta(days=1)).strftime("%Y-%m-%d")
     session.close()
@@ -423,9 +423,10 @@ def process_new_field(field_id, boundaries_wkt, point, soumis_date):
     # for field, amounts in field_irrigation_amounts.items():
     #     folder = f"/app/Data/fao_output"
     #     field_folder = f"{folder}/{str(field.id)}/ndvi"
-    #     interpolate_ndvi(meta, field_folder)
-    #     print('running fao model ....')
-    #     fao_model(polygon, point, field_id , amounts)
+    interpolate_ndvi(meta, field_folder)
+    print('running fao model ....')
+    # fao_model(polygon, point, field_id , amounts)
+    fao_model(polygon, point, field_id , None)
 
 
 if __name__ == '__main__':

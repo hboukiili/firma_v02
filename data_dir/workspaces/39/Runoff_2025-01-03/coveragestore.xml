@@ -1,0 +1,14 @@
+<coverageStore>
+  <id>CoverageStoreInfoImpl-778d9871:19516bedffc:-5fb7</id>
+  <name>Runoff_2025-01-03</name>
+  <description>Raster Data</description>
+  <type>GeoTIFF</type>
+  <enabled>true</enabled>
+  <workspace>
+    <id>WorkspaceInfoImpl-778d9871:19516bedffc:-69d3</id>
+  </workspace>
+  <__default>false</__default>
+  <dateCreated>2025-02-18 01:52:42.102 UTC</dateCreated>
+  <disableOnConnFailure>false</disableOnConnFailure>
+  <url>file:/data/39/Runoff/Runoff_2025-01-03.tif</url>
+</coverageStore>

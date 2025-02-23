@@ -54,6 +54,7 @@ interface RasterData {
   kcb: { min: number[]; max: number[]; mean: number[] };
   ndvi: { min: number[]; max: number[]; mean: number[] };
   ETref: { min: number[]; max: number[]; mean: number[] };
+  rzsm_pr: { min: number[]; max: number[]; mean: number[] };
 }
 
 interface currentWeather {
@@ -93,7 +94,8 @@ export interface Farmer {
   soilPr: SoilPr | null;
   soilCheck: boolean;
   soilMethod: string;
-  scrollTo : boolean
+  scrollTo: boolean;
   Gdd: number[];
   Location: string;
+  WeatherData: { name: string; data: number[] }[] | null;
 }

@@ -21,7 +21,7 @@ import {
   Tooltip,
   Legend,
   ResponsiveContainer,
-  ComposedChart
+  ComposedChart,
 } from "recharts";
 interface DataSet {
   name: string;
@@ -76,13 +76,14 @@ export const MultiChart_ = ({ Data }: ChartProps) => {
   });
 
   return (
-    <ResponsiveContainer width="100%">
+    <ResponsiveContainer width="100%" className="">
       <ComposedChart data={chartData}>
         <CartesianGrid strokeDasharray="2 2" />
         <XAxis
           dataKey="date"
           tickFormatter={(date) => format(new Date(date), "dd MMM")} // Formats as "01 Jan"
           tick={{ fontSize: 10 }} // Reduces font size
+          axisLine={false}
         />
 
         {/* Generate multiple Y-Axes dynamically */}
@@ -91,20 +92,29 @@ export const MultiChart_ = ({ Data }: ChartProps) => {
             padding={{ top: 20 }}
             key={axis.id}
             yAxisId={axis.id}
-            // label={{
-            //   value: axis.title,
-            //   angle: -90,
-            //   position: "end",
-            //   fontSize: 14,
-            //   dx: 20
-            // }}
+            axisLine={false}
+            label={{
+              value: axis.title,
+              angle: -90,
+              style: {
+                marginLeft: "10px", // Margin on the left
+                marginRight: "10px",
+                fontWeight: "bold",
+                fontSize: 14,
+              },
+
+              dx: axis.opposite ? 20 : -20,
+
+              // dy: -20,
+            }}
             orientation={axis.opposite ? "right" : "left"} // Right or left placement
           />
         ))}
 
-        <Tooltip />
+        <Tooltip formatter={(value) => value.toFixed(2)} />
+
         <Legend
-          wrapperStyle={{ paddingTop: "20px" }}
+          wrapperStyle={{ paddingTop: "0px" }}
           iconSize={0}
           layout="horizontal"
           height={0}

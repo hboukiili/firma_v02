@@ -1,0 +1,65 @@
+<coverage>
+  <id>CoverageInfoImpl-778d9871:1951434d402:66ee</id>
+  <name>Runoff_2025-02-11</name>
+  <nativeName>Runoff_2025-02-11</nativeName>
+  <namespace>
+    <id>NamespaceInfoImpl-778d9871:1951434d402:5c5d</id>
+  </namespace>
+  <title>Runoff_2025-02-11 Layer</title>
+  <nativeCRS class="projected">PROJCS[&quot;WGS 84 / UTM zone 29N&quot;, 
+  GEOGCS[&quot;WGS 84&quot;, 
+    DATUM[&quot;World Geodetic System 1984&quot;, 
+      SPHEROID[&quot;WGS 84&quot;, 6378137.0, 298.257223563, AUTHORITY[&quot;EPSG&quot;,&quot;7030&quot;]], 
+      AUTHORITY[&quot;EPSG&quot;,&quot;6326&quot;]], 
+    PRIMEM[&quot;Greenwich&quot;, 0.0, AUTHORITY[&quot;EPSG&quot;,&quot;8901&quot;]], 
+    UNIT[&quot;degree&quot;, 0.017453292519943295], 
+    AXIS[&quot;Geodetic longitude&quot;, EAST], 
+    AXIS[&quot;Geodetic latitude&quot;, NORTH], 
+    AUTHORITY[&quot;EPSG&quot;,&quot;4326&quot;]], 
+  PROJECTION[&quot;Transverse_Mercator&quot;, AUTHORITY[&quot;EPSG&quot;,&quot;9807&quot;]], 
+  PARAMETER[&quot;central_meridian&quot;, -9.0], 
+  PARAMETER[&quot;latitude_of_origin&quot;, 0.0], 
+  PARAMETER[&quot;scale_factor&quot;, 0.9996], 
+  PARAMETER[&quot;false_easting&quot;, 500000.0], 
+  PARAMETER[&quot;false_northing&quot;, 0.0], 
+  UNIT[&quot;m&quot;, 1.0], 
+  AXIS[&quot;Easting&quot;, EAST], 
+  AXIS[&quot;Northing&quot;, NORTH], 
+  AUTHORITY[&quot;EPSG&quot;,&quot;32629&quot;]]</nativeCRS>
+  <srs>EPSG:32629</srs>
+  <nativeBoundingBox>
+    <minx>625139.4426966446</minx>
+    <maxx>625213.4426966446</maxx>
+    <miny>3504206.7409059163</miny>
+    <maxy>3504248.7409059163</maxy>
+    <crs class="projected">EPSG:32629</crs>
+  </nativeBoundingBox>
+  <latLonBoundingBox>
+    <minx>-7.6799583582963535</minx>
+    <maxx>-7.679172579789232</maxx>
+    <miny>31.666304088051355</miny>
+    <maxy>31.66669099999928</maxy>
+    <crs>EPSG:4326</crs>
+  </latLonBoundingBox>
+  <projectionPolicy>REPROJECT_TO_DECLARED</projectionPolicy>
+  <enabled>true</enabled>
+  <store class="coverageStore">
+    <id>CoverageStoreInfoImpl-778d9871:1951434d402:66ed</id>
+  </store>
+  <serviceConfiguration>false</serviceConfiguration>
+  <grid dimension="2">
+    <range>
+      <low>0 0</low>
+      <high>74 42</high>
+    </range>
+    <transform>
+      <scaleX>1.0</scaleX>
+      <scaleY>-1.0</scaleY>
+      <shearX>0.0</shearX>
+      <shearY>0.0</shearY>
+      <translateX>625139.9426966446</translateX>
+      <translateY>3504248.2409059163</translateY>
+    </transform>
+    <crs>EPSG:32629</crs>
+  </grid>
+</coverage>

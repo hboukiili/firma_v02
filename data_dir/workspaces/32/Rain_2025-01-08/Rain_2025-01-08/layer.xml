@@ -1,0 +1,16 @@
+<layer>
+  <name>Rain_2025-01-08</name>
+  <id>LayerInfoImpl--399bf5f5:19518dc0ec5:-76a4</id>
+  <type>RASTER</type>
+  <defaultStyle>
+    <id>StyleInfoImpl-27b52b2:194fd373d62:-7ffd</id>
+  </defaultStyle>
+  <resource class="coverage">
+    <id>CoverageInfoImpl--399bf5f5:19518dc0ec5:-76a5</id>
+  </resource>
+  <attribution>
+    <logoWidth>0</logoWidth>
+    <logoHeight>0</logoHeight>
+  </attribution>
+  <dateCreated>2025-02-18 15:09:12.52 UTC</dateCreated>
+</layer>

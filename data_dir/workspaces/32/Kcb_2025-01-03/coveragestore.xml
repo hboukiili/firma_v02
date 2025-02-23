@@ -1,0 +1,14 @@
+<coverageStore>
+  <id>CoverageStoreInfoImpl--399bf5f5:19518dc0ec5:-7e32</id>
+  <name>Kcb_2025-01-03</name>
+  <description>Raster Data</description>
+  <type>GeoTIFF</type>
+  <enabled>true</enabled>
+  <workspace>
+    <id>WorkspaceInfoImpl--399bf5f5:19518dc0ec5:-7ffc</id>
+  </workspace>
+  <__default>false</__default>
+  <dateCreated>2025-02-18 15:08:42.494 UTC</dateCreated>
+  <disableOnConnFailure>false</disableOnConnFailure>
+  <url>file:/data/32/Kcb/Kcb_2025-01-03.tif</url>
+</coverageStore>

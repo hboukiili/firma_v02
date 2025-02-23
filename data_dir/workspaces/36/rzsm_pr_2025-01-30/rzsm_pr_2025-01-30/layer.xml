@@ -1,0 +1,16 @@
+<layer>
+  <name>rzsm_pr_2025-01-30</name>
+  <id>LayerInfoImpl--399bf5f5:19518dc0ec5:-7164</id>
+  <type>RASTER</type>
+  <defaultStyle>
+    <id>StyleInfoImpl-27b52b2:194fd373d62:-7ffd</id>
+  </defaultStyle>
+  <resource class="coverage">
+    <id>CoverageInfoImpl--399bf5f5:19518dc0ec5:-7165</id>
+  </resource>
+  <attribution>
+    <logoWidth>0</logoWidth>
+    <logoHeight>0</logoHeight>
+  </attribution>
+  <dateCreated>2025-02-18 15:22:49.10 UTC</dateCreated>
+</layer>

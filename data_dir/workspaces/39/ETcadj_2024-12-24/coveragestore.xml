@@ -1,0 +1,14 @@
+<coverageStore>
+  <id>CoverageStoreInfoImpl-778d9871:19516bedffc:-63fe</id>
+  <name>ETcadj_2024-12-24</name>
+  <description>Raster Data</description>
+  <type>GeoTIFF</type>
+  <enabled>true</enabled>
+  <workspace>
+    <id>WorkspaceInfoImpl-778d9871:19516bedffc:-69d3</id>
+  </workspace>
+  <__default>false</__default>
+  <dateCreated>2025-02-18 01:52:27.572 UTC</dateCreated>
+  <disableOnConnFailure>false</disableOnConnFailure>
+  <url>file:/data/39/ETcadj/ETcadj_2024-12-24.tif</url>
+</coverageStore>

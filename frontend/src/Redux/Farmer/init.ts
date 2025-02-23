@@ -35,4 +35,5 @@ export const initialState: Farmer = {
   scrollTo : false,
   Gdd : [],
   Location : "Home",
+  WeatherData : null,
 };
