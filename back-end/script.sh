@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Start Redis server in the background
-redis-server --daemonize yes
+# redis-server --daemonize yes
 
 echo "Running migrations..."
 python manage.py makemigrations

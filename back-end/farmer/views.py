@@ -1,16 +1,16 @@
-from django.shortcuts import render
+# from django.shortcuts import render
 from rest_framework.views import APIView
-from rest_framework import permissions, status
+from rest_framework import permissions, status, generics
 from rest_framework.response import Response
+from rest_framework_simplejwt.views import TokenObtainPairView
+from django.conf import settings
+from firma_v02.auth import IsFarmer
 from models_only.models import Field, Soil, Crop
 from rest_framework.permissions import IsAuthenticated, AllowAny
-from drf_yasg.utils import swagger_auto_schema
 from drf_yasg import openapi
 import jwt 
 from .serializer import *
 from rest_framework_simplejwt.tokens import RefreshToken
-from .tools.functions_tools import get_user_by_email
-from .tools.FarmerAUTH import FARMERJWTAuthentication
 from django.contrib.gis.geos import GEOSGeometry
 import json
 from django.db import transaction
@@ -27,230 +27,188 @@ from django.forms.models import model_to_dict
 import numpy as np
 logger = logging.getLogger(__name__)
 
+from .serializer import UserRegistrationSerializer
 
+class register(generics.CreateAPIView):
 
-class register(APIView):
+    serializer_class = UserRegistrationSerializer
+    permission_classes = [AllowAny]
+    authentication_classes = []
 
-	permission_classes = [AllowAny]
+    def create(self, request, *args, **kwargs):
 
-	@swagger_auto_schema(
-		request_body=FarmerSerializer,
-		responses={201: FarmerSerializer}
-	)
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response({"detail": "User registered successfully"}, status=status.HTTP_201_CREATED)
 
-	def post(self, request):
-
-		if email_exists(request.data.get("email")):
-			return Response({'error': 'A user with this email already exists.'}, status=status.HTTP_400_BAD_REQUEST)
-		
-		if request.data.get('type') != None:
-			user_type = request.data.get('type')
-		
-		serializer = FarmerSerializer(data=request.data)
-		if serializer.is_valid() :
-
-			try :
-				user = serializer.save()
-				refresh = RefreshToken.for_user(user)
-				refresh['user_type'] = user_type
-				refresh_token = str(refresh)
-				return Response({'access_token': str(refresh.access_token),
-								'refresh_token': refresh_token,
-								'type' : user_type,
-							},
-							status=status.HTTP_201_CREATED)
-			except Exception as e:
-				return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
-				
-
-		return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 	
-class login(APIView):
+class login(TokenObtainPairView):
 
-	permission_classes = [AllowAny]
-
-	@swagger_auto_schema(
-		request_body=loginSerializer,
-		responses={201: loginSerializer}
-	)
-
-	def post(self, request):
-		serializer = loginSerializer(data=request.data)
-
-		if serializer.is_valid():
-			email = serializer.validated_data.get('email')
-			password = serializer.validated_data.get('password')
-			
-			try :
-				new = True
-				user, user_type = get_user_by_email(email)
-				if user is None:
-					return Response({"message": "User does not exist"}, status=status.HTTP_404_NOT_FOUND)
-
-				if not user.check_user_password(password):
-					return Response({"message": "Wrong password"}, status=status.HTTP_400_BAD_REQUEST)
-
-				refresh = RefreshToken.for_user(user)
-				refresh['user_type'] = user_type
-				field = Field.objects.filter(user_id=user.id)
-				if len(field) : new = False
-				return Response({
-					'access_token': str(refresh.access_token),
-					'refresh_token': str(refresh),
-					'type' : user_type,
-					'is_new' : new,
-				}, status=status.HTTP_201_CREATED)
-	
-			except Exception as e:
-				return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
-
-		return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    """
+    Returns the JWT tokens and also sets them in HttpOnly cookies.
+    """
+    def post(self, request, *args, **kwargs):
+        response = super().post(request, *args, **kwargs)
+        if response.status_code == 200:
+            data = response.data
+            access_token = data.get('access')
+            refresh_token = data.get('refresh')
+            # Set the cookies. Adjust parameters as needed.
+            access_cookie_max_age = int(settings.SIMPLE_JWT['ACCESS_TOKEN_LIFETIME'].total_seconds())
+            refresh_cookie_max_age = int(settings.SIMPLE_JWT['REFRESH_TOKEN_LIFETIME'].total_seconds())
+            
+            response.set_cookie(
+                'access_token',
+                access_token,
+                max_age=access_cookie_max_age,
+                httponly=True,
+                secure=False,  # Use True in production
+                samesite='Lax'
+            )
+            response.set_cookie(
+                'refresh_token',
+                refresh_token,
+                max_age=refresh_cookie_max_age,
+                httponly=True,
+                secure=False,
+                samesite='Lax'
+            )
+        return response
 
 
 class field(APIView):
 
+    permission_classes = [IsFarmer]
 
-	authentication_classes = [FARMERJWTAuthentication]
-	permission_classes = [IsAuthenticated]
-
-	def get(self, request):
+    def get(self, request):
 		
-		user = request.user
-		try : 
+        user = request.user
+        print(user.id, 'heeereeee')
+        try : 
 
 			# fields = Field.objects.all()
 
 			# for field in fields:
 			# 		process_new_field.delay(field.id, field.boundaries.wkt, field.boundaries[0][0])
 
-			fields = Field.objects.filter(user_id=user.id)
-			if fields.exists():
-				fields_data = [{'id' : field.id, 'name': field.name, 'boundaries': json.loads(field.boundaries.geojson)} for field in fields]
-				# wkt = []
-				# for field in fields:
-				# 	wkt.append(loads(field.boundaries.wkt))
-				# gdf = gpd.GeoDataFrame(geometry=wkt, crs="EPSG:4326")
-				# gdf.to_file('/app/shapefile.shp', driver="ESRI Shapefile")
-				return Response(fields_data, status=status.HTTP_200_OK)
+            fields = Field.objects.filter(user_id=user.id)
+            if fields.exists():
+                fields_data = [{'id' : field.id, 'name': field.name, 'boundaries': json.loads(field.boundaries.geojson)} for field in fields]
+                # wkt = []
+                # for field in fields:
+                # 	wkt.append(loads(field.boundaries.wkt))
+                # gdf = gpd.GeoDataFrame(geometry=wkt, crs="EPSG:4326")
+                # gdf.to_file('/app/shapefile.shp', driver="ESRI Shapefile")
+                return Response(fields_data, status=status.HTTP_200_OK)
 
-		except Exception as e:
-				return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
-		return Response({"detail": "No fields found for this user."}, status=status.HTTP_404_NOT_FOUND)
+        except Exception as e:
+            print(e)
+            return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+        return Response({"detail": "No fields found for this user."}, status=status.HTTP_404_NOT_FOUND)
+
+    def post(self, request):
+
+        serializer = FieldSerializer(data=request.data, context={'request': request})
+        if serializer.is_valid():
+            try :
+                serializer.save()
+                return Response({"message": "Field created successfully"}, status=status.HTTP_201_CREATED)
+            except Exception as e:
+                return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 	
-	@swagger_auto_schema(
-        request_body=FieldSerializer,
-        responses={201: FieldSerializer}
-    )
-
-	def post(self, request):
-		serializer = FieldSerializer(data=request.data, context={'request': request})
-		if serializer.is_valid():
-			try :
-				serializer.save()
-				return Response({"message": "Field created successfully"}, status=status.HTTP_201_CREATED)
-			except Exception as e:
-				return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
-		return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-	
-	@swagger_auto_schema(
-	    request_body=openapi.Schema(
-	        type=openapi.TYPE_OBJECT,
-	        properties={
-	            'field_id': openapi.Schema(type=openapi.TYPE_INTEGER),
-			},
-	    ),
-	)
-	def delete(self, request):
-		
-		field_id = request.data.get('field_id')
-
-		if field_id != None:
-			try :
-				Field.objects.filter(id=field_id).delete()
-				return Response({"message": "Field deleted successfully"}, status=status.HTTP_201_CREATED)
-			except Exception as e:
-					return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
-	
-# class soil(APIView):
-
-# 	authentication_classes = [FARMERJWTAuthentication]
-# 	permission_classes = [IsAuthenticated]
-
-	# def get(self, request):
-
-	# 	user_id = request.user
-	# 	soil = Soil.objects.filter(user_id=user_id.id)
-	# 	if soil.exists():
-	# 		fields_data = [{'name': i.soil_type} for i in soil]
-	# 		return Response(fields_data, status=status.HTTP_200_OK)
-	# 	else:
-	# 		return Response({"detail": "No soil found for this user."}, status=status.HTTP_404_NOT_FOUND)
-
-	# def post(self, request):
-	# 	pass
-
-# class season(APIView):
-
-# 	authentication_classes = [FARMERJWTAuthentication]
-# 	permission_classes = [IsAuthenticated]
-	
-	# @swagger_auto_schema(
-	# 	manual_parameters=[
-    #         openapi.Parameter('field_id', openapi.IN_QUERY, description="ID of the field", type=openapi.TYPE_INTEGER)
-	# 	],
-	# 	responses={200: SeasonSerializer(many=True)}
-	# )
-
-	# def get(self, request):
-	# 	field_id = request.query_params.get('field_id')
-		
-	# 	if not field_id:
-	# 		return Response({"error": "Field ID is required"}, status=status.HTTP_400_BAD_REQUEST)
-	# 	try :
-
-	# 		seasons = Season.objects.filter(field_id=field_id)
-	# 		if seasons.exists():
-	# 				seasons_data = [{'id' : _season.id, 'start_date' : _season.start_date} for _season in seasons]
-	# 				return Response(seasons_data, status=status.HTTP_200_OK)
-	
-	# 	except Exception as e:
-	# 		return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
-	# 	return Response({"detail": "No Season found for this field."}, status=status.HTTP_404_NOT_FOUND)
-
-	# @swagger_auto_schema(
-	# 	request_body=SeasonSerializer,
-	# 	responses={201: SeasonSerializer}
-	# )
-	# def post(self, request):
-	# 	serializer = SeasonSerializer(data=request.data)
-	# 	if serializer.is_valid():
-	# 		try:
-	# 			serializer.save()
-	# 			return Response({"message": "Season created successfully"}, status=status.HTTP_201_CREATED)
-	# 		except Exception as e:
-	# 			return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
-	# 	return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
-	# @swagger_auto_schema(
-	# 	operation_description="Delete season",
-	# 	request_body=openapi.Schema(
-	# 		type=openapi.TYPE_OBJECT,
-	# 		properties={
-	# 			'season_id': openapi.Schema(type=openapi.TYPE_INTEGER),
-	# 		},
-	# 	),
-	# 	responses={202: 'Season has been deleted successfully', 400: 'Bad request'}
-	# )
 	# def delete(self, request):
-	# 	season_id = request.data.get('season_id')
-	# 	if season_id:
-	# 		try:
-	# 			p = Season.objects.filter(id=season_id).delete()
-	# 			if p[0] == 1:
-	# 				return Response({'message': 'Season has been deleted successfully'}, status=status.HTTP_202_ACCEPTED)
+		
+	# 	field_id = request.data.get('field_id')
+
+	# 	if field_id != None:
+	# 		try :
+	# 			Field.objects.filter(id=field_id).delete()
+	# 			return Response({"message": "Field deleted successfully"}, status=status.HTTP_201_CREATED)
 	# 		except Exception as e:
-	# 			return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
-	# 	return Response({'message': 'Bad request'}, status=status.HTTP_400_BAD_REQUEST)
+	# 				return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+	
+# # class soil(APIView):
+
+# # 	authentication_classes = [FARMERJWTAuthentication]
+# # 	permission_classes = [IsAuthenticated]
+
+# 	# def get(self, request):
+
+# 	# 	user_id = request.user
+# 	# 	soil = Soil.objects.filter(user_id=user_id.id)
+# 	# 	if soil.exists():
+# 	# 		fields_data = [{'name': i.soil_type} for i in soil]
+# 	# 		return Response(fields_data, status=status.HTTP_200_OK)
+# 	# 	else:
+# 	# 		return Response({"detail": "No soil found for this user."}, status=status.HTTP_404_NOT_FOUND)
+
+# 	# def post(self, request):
+# 	# 	pass
+
+# # class season(APIView):
+
+# # 	authentication_classes = [FARMERJWTAuthentication]
+# # 	permission_classes = [IsAuthenticated]
+	
+# 	# @swagger_auto_schema(
+# 	# 	manual_parameters=[
+#     #         openapi.Parameter('field_id', openapi.IN_QUERY, description="ID of the field", type=openapi.TYPE_INTEGER)
+# 	# 	],
+# 	# 	responses={200: SeasonSerializer(many=True)}
+# 	# )
+
+# 	# def get(self, request):
+# 	# 	field_id = request.query_params.get('field_id')
+		
+# 	# 	if not field_id:
+# 	# 		return Response({"error": "Field ID is required"}, status=status.HTTP_400_BAD_REQUEST)
+# 	# 	try :
+
+# 	# 		seasons = Season.objects.filter(field_id=field_id)
+# 	# 		if seasons.exists():
+# 	# 				seasons_data = [{'id' : _season.id, 'start_date' : _season.start_date} for _season in seasons]
+# 	# 				return Response(seasons_data, status=status.HTTP_200_OK)
+	
+# 	# 	except Exception as e:
+# 	# 		return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+# 	# 	return Response({"detail": "No Season found for this field."}, status=status.HTTP_404_NOT_FOUND)
+
+# 	# @swagger_auto_schema(
+# 	# 	request_body=SeasonSerializer,
+# 	# 	responses={201: SeasonSerializer}
+# 	# )
+# 	# def post(self, request):
+# 	# 	serializer = SeasonSerializer(data=request.data)
+# 	# 	if serializer.is_valid():
+# 	# 		try:
+# 	# 			serializer.save()
+# 	# 			return Response({"message": "Season created successfully"}, status=status.HTTP_201_CREATED)
+# 	# 		except Exception as e:
+# 	# 			return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+# 	# 	return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+# 	# @swagger_auto_schema(
+# 	# 	operation_description="Delete season",
+# 	# 	request_body=openapi.Schema(
+# 	# 		type=openapi.TYPE_OBJECT,
+# 	# 		properties={
+# 	# 			'season_id': openapi.Schema(type=openapi.TYPE_INTEGER),
+# 	# 		},
+# 	# 	),
+# 	# 	responses={202: 'Season has been deleted successfully', 400: 'Bad request'}
+# 	# )
+# 	# def delete(self, request):
+# 	# 	season_id = request.data.get('season_id')
+# 	# 	if season_id:
+# 	# 		try:
+# 	# 			p = Season.objects.filter(id=season_id).delete()
+# 	# 			if p[0] == 1:
+# 	# 				return Response({'message': 'Season has been deleted successfully'}, status=status.HTTP_202_ACCEPTED)
+# 	# 		except Exception as e:
+# 	# 			return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+# 	# 	return Response({'message': 'Bad request'}, status=status.HTTP_400_BAD_REQUEST)
 
 SOIL_METHODS = {
     'Selection': 'Selection',
@@ -265,8 +223,8 @@ IRRIGATION_TYPES = {
 }
 
 class RegisterData(APIView):
-    authentication_classes = [FARMERJWTAuthentication]
-    permission_classes = [IsAuthenticated]
+
+    permission_classes = [IsFarmer]
 
     def process_soil(self, method, value, field):
         soil_kwargs = {
@@ -382,144 +340,143 @@ class RegisterData(APIView):
 
 class Irrigation(APIView):
 
-	authentication_classes = [FARMERJWTAuthentication]
-	permission_classes = [IsAuthenticated]
+    permission_classes = [IsFarmer]
 
-	def get_fc_value(self, field_id):
+    def get_fc_value(self, field_id):
 
-		path = f'Data/fao_output/{field_id}/fc'
+        path = f'Data/fao_output/{field_id}/fc'
 
-		files = [f for f in os.listdir(path) if os.path.isfile(os.path.join(path, f))]
+        files = [f for f in os.listdir(path) if os.path.isfile(os.path.join(path, f))]
 
-		files = sorted(files, key=lambda x: x.split('.')[0])
-		with rasterio.open(f"{path}/{files[-1]}") as tif:
-			fc = tif.read(1)
-			fc_mean = np.nanmean(fc)
-			return fc_mean
+        files = sorted(files, key=lambda x: x.split('.')[0])
+        with rasterio.open(f"{path}/{files[-1]}") as tif:
+          fc = tif.read(1)
+          fc_mean = np.nanmean(fc)
+          return fc_mean
 
-	def calculate_irrigation_duration_dripp(self, mm, disTubes, disDr, outflowRate):
+    def calculate_irrigation_duration_dripp(self, mm, disTubes, disDr, outflowRate):
 
-		"""
-		Calculate the irrigation duration based on the desired water depth and application parameters.
+        """
+        Calculate the irrigation duration based on the desired water depth and application parameters.
 
-		Parameters:
-			mm (float): Desired water depth in millimeters.
-			disTubes (float): Length or one dimension of the area (in meters).
-			disDr (float): The other dimension of the area (in meters).
-			outflowRate (float): Application rate (in cubic meters per minute).
+        Parameters:
+          mm (float): Desired water depth in millimeters.
+          disTubes (float): Length or one dimension of the area (in meters).
+          disDr (float): The other dimension of the area (in meters).
+          outflowRate (float): Application rate (in cubic meters per minute).
 
-		Returns:
-			float: The duration required (in minutes).
-		"""
+        Returns:
+          float: The duration required (in minutes).
+        """
 		# Convert mm to m, compute the volume, then divide by the outflow rate.
-		duration = mm * disTubes * disDr / outflowRate
-		fractional_part = duration - int(duration)
-		fractional_part = int(fractional_part * 60)
-		if fractional_part == 0 and int(duration) == 0: return ('0H2M')
-		return f'{str(int(duration))}h {str(fractional_part)}m'
+        duration = mm * disTubes * disDr / outflowRate
+        fractional_part = duration - int(duration)
+        fractional_part = int(fractional_part * 60)
+        if fractional_part == 0 and int(duration) == 0: return ('0H2M')
+        return f'{str(int(duration))}h {str(fractional_part)}m'
 
 
-	def post(self, request):
+    def post(self, request):
 
-		field_id				= request.data.get('field_id')
-		irrigation_Amount 		= request.data.get('value')
-		date					= request.data.get('date')
-		Unity					= request.data.get('unity')
+        field_id				= request.data.get('field_id')
+        irrigation_Amount 		= request.data.get('value')
+        date					= request.data.get('date')
+        Unity					= request.data.get('unity')
 
 		# print(field_id, date, Unity, irrigation_Amount)
-		if field_id and irrigation_Amount and date and Unity:
-			try :
-				user = request.user
-				irrigation = Irrigation_system.objects. \
-					select_related('field_id').get(field_id=field_id) #field_id__user_id=user.id
-				if Unity == 'hour':
+        if field_id and irrigation_Amount and date and Unity:
+            try :
+                user = request.user
+                irrigation = Irrigation_system.objects. \
+                    select_related('field_id').get(field_id=field_id) #field_id__user_id=user.id
+                if Unity == 'hour':
+                
+                    fc = self.get_fc_value(field_id)
 
-					fc = self.get_fc_value(field_id)
+                    if irrigation.irrigation_type == 'Drip':
+                        drip = Drip_Irrigation.objects.get(field_id=field_id)
+                        c4 = int(irrigation_Amount)
+                        if drip.Crop_Tubes_distance != None:
+                            c1 = drip.Crop_Tubes_distance
+                            c2 = drip.Crop_Drippers_distance
+                            c3 = drip.Crop_outflow_rate
+                            irrigation_Amount = (c4 * c3) / (c1 * c2 * fc)
+                        elif drip.Tree_outflow_rate != None:
+                            T1 = drip.Tree_row_distance
+                            T2 = drip.Tree_distance
+                            T3 = drip.drippers_number_by_tree
+                            T4 = drip.Tree_outflow_rate
+                            irrigation_Amount = (T4 * T3 * c4) / (T1 * T2 * fc)
 
-					if irrigation.irrigation_type == 'Drip':
-						drip = Drip_Irrigation.objects.get(field_id=field_id)
-						c4 = int(irrigation_Amount)
-						if drip.Crop_Tubes_distance != None:
-							c1 = drip.Crop_Tubes_distance
-							c2 = drip.Crop_Drippers_distance
-							c3 = drip.Crop_outflow_rate
-							irrigation_Amount = (c4 * c3) / (c1 * c2 * fc)
-						elif drip.Tree_outflow_rate != None:
-							T1 = drip.Tree_row_distance
-							T2 = drip.Tree_distance
-							T3 = drip.drippers_number_by_tree
-							T4 = drip.Tree_outflow_rate
-							irrigation_Amount = (T4 * T3 * c4) / (T1 * T2 * fc)
+                if irrigation != None:
+                    new_irr = Irrigation_amount(amount=irrigation_Amount, date=date,irrigation_system_id=irrigation, amount_type=Unity)
+                    new_irr.save()
 
-				if irrigation != None:
-					new_irr = Irrigation_amount(amount=irrigation_Amount, date=date,irrigation_system_id=irrigation, amount_type=Unity)
-					new_irr.save()
-
-				return Response(status=status.HTTP_201_CREATED)
+                    return Response(status=status.HTTP_201_CREATED)
 			
-			except Exception as e:
-				logger.error(f"Error occurred during data processing: {str(e)}")  # Log error
-				return Response({f"error": "An error occurred while processing your request : {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-		return Response("Error in Data", status=status.HTTP_400_BAD_REQUEST)
+            except Exception as e:
+                logger.error(f"Error occurred during data processing: {str(e)}")  # Log error
+                return Response({f"error": "An error occurred while processing your request : {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        return Response("Error in Data", status=status.HTTP_400_BAD_REQUEST)
 
-	def all_thefields(self, user):
+    def all_thefields(self, user):
 
 
-		irrigation_qs = Irrigation_amount.objects.filter(
+        irrigation_qs = Irrigation_amount.objects.filter(
 			irrigation_system_id__field_id__user_id=user.id,
 			amount__gt=0
 		).select_related('irrigation_system_id', 'irrigation_system_id__field_id').order_by('id')
 
-		data = []
-		for ia in irrigation_qs:
-			drip = Drip_Irrigation.objects.get(field_id=ia.irrigation_system_id.field_id.id)
-			duration = self.calculate_irrigation_duration_dripp(ia.amount, drip.Crop_Tubes_distance, drip.Crop_Drippers_distance, drip.Crop_outflow_rate)
-			data.append({
-				'ammount_id' : ia.id,
-				'date': ia.date.strftime('%Y-%m-%d'),
-				'amount': duration,
-				'amount_type': ia.amount_type,
-				'name': ia.irrigation_system_id.field_id.name,
-			})
+        data = []
+        for ia in irrigation_qs:
+            drip = Drip_Irrigation.objects.get(field_id=ia.irrigation_system_id.field_id.id)
+            duration = self.calculate_irrigation_duration_dripp(ia.amount, drip.Crop_Tubes_distance, drip.Crop_Drippers_distance, drip.Crop_outflow_rate)
+            data.append({
+                'ammount_id' : ia.id,
+                'date': ia.date.strftime('%Y-%m-%d'),
+                'amount': duration,
+                'amount_type': ia.amount_type,
+                'name': ia.irrigation_system_id.field_id.name,
+            })
 
-		return data
+        return data
 
-	def irrigation_by_field(self, field_id):
-		irrigation_qs = Irrigation_amount.objects.filter(
+    def irrigation_by_field(self, field_id):
+
+        irrigation_qs = Irrigation_amount.objects.filter(
 				irrigation_system_id__field_id=field_id,
 				amount__gt=0
 		).order_by('date')
 
-		dates = []
-		amount = []
-		for ia in irrigation_qs:
-			drip = Drip_Irrigation.objects.get(field_id=ia.irrigation_system_id.field_id.id)
-			duration = self.calculate_irrigation_duration_dripp(ia.amount, drip.Crop_Tubes_distance, drip.Crop_Drippers_distance, drip.Crop_outflow_rate)
-			dates.append(ia.date.strftime('%Y-%m-%d'))
-			amount.append(duration)
+        dates = []
+        amount = []
+        for ia in irrigation_qs:
+            drip = Drip_Irrigation.objects.get(field_id=ia.irrigation_system_id.field_id.id)
+            duration = self.calculate_irrigation_duration_dripp(ia.amount, drip.Crop_Tubes_distance, drip.Crop_Drippers_distance, drip.Crop_outflow_rate)
+            dates.append(ia.date.strftime('%Y-%m-%d'))
+            amount.append(duration)
 
-		return {
+        return {
 			'dates' : dates,
 			'duration' : amount,
 		}
 
 
-	def get(self, request):
-		user = request.user
-		try :
-			if 'field_id' in request.query_params:
-				data = self.irrigation_by_field(request.query_params.get('field_id'))
-			else:
-				data = self.all_thefields(user)
-			return Response(data, status=status.HTTP_200_OK)
-		except Exception as e:
-			logger.error(f"Error occurred during data processing: {str(e)}")  # Log error
-			return Response({f"error": "An error occurred while processing your request : {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    def get(self, request):
+
+        user = request.user
+        try :
+          if 'field_id' in request.query_params:
+              data = self.irrigation_by_field(request.query_params.get('field_id'))
+          else:
+              data = self.all_thefields(user)
+          return Response(data, status=status.HTTP_200_OK)
+        except Exception as e:
+          logger.error(f"Error occurred during data processing: {str(e)}")  # Log error
+          return Response({f"error": "An error occurred while processing your request : {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 class recommandation(APIView):
-    
-	authentication_classes = [FARMERJWTAuthentication]
-	permission_classes = [IsAuthenticated]
+
 
 	def get(self, request):
 
@@ -550,14 +507,11 @@ class recommandation(APIView):
 				return Response({'latest' : latest, 'recommandation' : recommandation}, status=status.HTTP_200_OK)
 			except Exception as e:
 				logger.error(f"Error occurred during data processing: {str(e)}")  # Log error
-				return Response({f"error": "An error occurred while processing your request : {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+				return Response({f"error": "An error occurred while processing your request : {str(e)}"}, status=status.HTTP_503_SERVICE_UNAVAILABLE)
 
 		return Response("Error in Data", status=status.HTTP_400_BAD_REQUEST)
 
 class check_pro(APIView):
-
-	authentication_classes = [FARMERJWTAuthentication]
-	permission_classes = [IsAuthenticated]
 	
 	def get(self, request):
 
@@ -573,69 +527,69 @@ class check_pro(APIView):
 		else :
 			return Response("Task is still running")
 
-import requests
-import csv
-import pandas as pd
-def send_req(field_id, date, value, unity='m³'):
+# import requests
+# import csv
+# import pandas as pd
+# def send_req(field_id, date, value, unity='m³'):
 	
-	payload = {
-		'field_id' : field_id,
-		'date' : date,
-		'value' : value,
-		'unity' : unity
-	}
+# 	payload = {
+# 		'field_id' : field_id,
+# 		'date' : date,
+# 		'value' : value,
+# 		'unity' : unity
+# 	}
 
-	response = requests.post('http://localhost:8000/farmer/irr', json=payload)
-	print(response.status_code)
+# 	response = requests.post('http://localhost:8000/farmer/irr', json=payload)
+# 	print(response.status_code)
 
-class test(APIView):
+# class test(APIView):
 
-	def get(self, request):
+# 	def get(self, request):
 		
-		fields = {
-			'E3P2' : '32',
-			'E3P1' : '34',
-			'E3P4' : '35',
-			'E3P3' : '36',
-			'E3P6' : '37',
-			'E3P8' : '38',
-			'E3P7' : '39',
-			'E3P5' : '40',
-			'E2P6' : '41',
-			'E2P5' : '42',
-			'E2P7' : '43',
-			'E2P4' : '44',
-			'E2P3' : '45',
-			'E2P2' : '46',
-			'E2P1' : '47',
-		}
-		df = pd.read_csv('/app/tools/irrigation parcelle lraba 18_02_2025(Feuil1).csv', sep=';')
-		df.drop('date',axis=1, inplace=True)
-		start_date = "2024-12-17"
-		end_date = '16-02-2025'
+# 		fields = {
+# 			'E3P2' : '32',
+# 			'E3P1' : '34',
+# 			'E3P4' : '35',
+# 			'E3P3' : '36',
+# 			'E3P6' : '37',
+# 			'E3P8' : '38',
+# 			'E3P7' : '39',
+# 			'E3P5' : '40',
+# 			'E2P6' : '41',
+# 			'E2P5' : '42',
+# 			'E2P7' : '43',
+# 			'E2P4' : '44',
+# 			'E2P3' : '45',
+# 			'E2P2' : '46',
+# 			'E2P1' : '47',
+# 		}
+# 		df = pd.read_csv('/app/tools/irrigation parcelle lraba 18_02_2025(Feuil1).csv', sep=';')
+# 		df.drop('date',axis=1, inplace=True)
+# 		start_date = "2024-12-17"
+# 		end_date = '16-02-2025'
 
-		# # Generate a date range and format it as strings
-		date_range = pd.date_range(start=start_date, end=end_date)
-		dates_str = date_range.strftime("%Y-%m-%d").tolist()
-		for i in df:
-			field_id = fields[i]
-			x = 0
-			while (x < len(date_range)):
-				send_req(field_id, dates_str[x], df[i][x])
-				# print(field_id, dates_str[x], df[i][x])
-				x += 1
+# 		# # Generate a date range and format it as strings
+# 		date_range = pd.date_range(start=start_date, end=end_date)
+# 		dates_str = date_range.strftime("%Y-%m-%d").tolist()
+# 		for i in df:
+# 			field_id = fields[i]
+# 			x = 0
+# 			while (x < len(date_range)):
+# 				send_req(field_id, dates_str[x], df[i][x])
+# 				# print(field_id, dates_str[x], df[i][x])
+# 				x += 1
 
-		# fields = Field.objects.all()	
-		# for field in fields:
-		# 	print(field.id, field.name)
-		# 	if field.id == 32 or field.id == 34 or field.id == 35:
-		# 		continue
-		# 	path = f"/app/Data/fao_output/{field.id}/Irrig"
-		# 	files = sorted([f for f in os.listdir(path) if f.endswith(".tif")], key=lambda x: x.split('.')[0])
-		# 	send_req(field.id, '2024-12-16', 0)
-		# 	for file in files:
-		# 		date = file.split('_')[1].split('.')[0]
-		# 		with rasterio.open(os.path.join(path, file)) as src:
-		# 			ndvi = src.read(1)
-		# 			send_req(field.id, date, float(np.nanmean(ndvi)))
-		return Response("No ...")
+# 		# fields = Field.objects.all()	
+# 		# for field in fields:
+# 		# 	print(field.id, field.name)
+# 		# 	if field.id == 32 or field.id == 34 or field.id == 35:
+# 		# 		continue
+# 		# 	path = f"/app/Data/fao_output/{field.id}/Irrig"
+# 		# 	files = sorted([f for f in os.listdir(path) if f.endswith(".tif")], key=lambda x: x.split('.')[0])
+# 		# 	send_req(field.id, '2024-12-16', 0)
+# 		# 	for file in files:
+# 		# 		date = file.split('_')[1].split('.')[0]
+# 		# 		with rasterio.open(os.path.join(path, file)) as src:
+# 		# 			ndvi = src.read(1)
+# 		# 			send_req(field.id, date, float(np.nanmean(ndvi)))
+# 		return Response("No ...")

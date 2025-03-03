@@ -80,7 +80,7 @@ class Irrigation:
            '{:s}\n'
            '{:s}\n'
            'Year-DOY  Depth     fw IrrEff\n'
-          ).format(ast,timestamp,ast,self.comment,ast)
+          ).format(ast,timestamp,ast,self,ast)
         if not self.idata.empty:
             s += self.idata.to_string(header=False,formatters=fmts)
         return s

@@ -4,13 +4,12 @@ import jwt.utils
 from rest_framework.views import APIView
 from rest_framework import permissions, status
 from rest_framework.response import Response
-from models_only.models import Farmer, Field
+from models_only.models import User, Field
 from .tools.ogimet import Ogimet_class
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from .serializer import Ogimet_Serializer
 from drf_yasg.utils import swagger_auto_schema
 from drf_yasg import openapi
-from farmer.tools.FarmerAUTH import FARMERJWTAuthentication
 from .tools.aquacrop_ import aquacrop_run
 from  datetime import datetime, timedelta
 from .tools.gee import aquacrop_
@@ -22,19 +21,14 @@ import requests
 import matplotlib.pyplot as plt
 import logging
 from .tools.weather import *
+from firma_v02.auth import IsFarmer
 
 
 logger = logging.getLogger(__name__)
 
 class ogimet(APIView):
     
-	authentication_classes = [FARMERJWTAuthentication]
-	permission_classes = [IsAuthenticated]
-
-	@swagger_auto_schema(
-		request_body=Ogimet_Serializer,
-		responses={201: Ogimet_Serializer}
-	)
+	permission_classes = [IsFarmer]
 
 	def post(self, request):
 
@@ -67,26 +61,14 @@ class ogimet(APIView):
 		return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
-	# def get(self, request):
-		# print(request.user.firstname, request.user.email)
-
-		# return Response("OK")
 	
 class aquacrop(APIView):
 
-	authentication_classes = [FARMERJWTAuthentication]
-	permission_classes = [IsAuthenticated]
-
+	permission_classes = [IsFarmer]
 
 	def get(self, request):
 
 		return Response(aquacrop_run())
-
-	@swagger_auto_schema(
-		request_body=Ogimet_Serializer,
-		responses={201: Ogimet_Serializer}
-	)
-
 	
 	def post(self, request):
 
@@ -122,8 +104,8 @@ class aquacrop(APIView):
 
 class FaoTest(APIView):
 
-	authentication_classes = [FARMERJWTAuthentication]
-	permission_classes = [IsAuthenticated]
+	permission_classes = [IsFarmer]
+
 
 	def get(self, request):
 		field_id = request.query_params.get('field_id')
@@ -178,8 +160,8 @@ class FaoTest(APIView):
 
 class current_weather(APIView):
 
-	authentication_classes = [FARMERJWTAuthentication]
-	permission_classes = [IsAuthenticated]
+	permission_classes = [IsFarmer]
+
 
 	def get(self, request):
 
@@ -233,8 +215,8 @@ class current_weather(APIView):
 
 class weather(APIView):
 
-	authentication_classes = [FARMERJWTAuthentication]
-	permission_classes = [IsAuthenticated]
+	permission_classes = [IsFarmer]
+
 
 	def get(self, request):
 		
@@ -265,8 +247,8 @@ class weather(APIView):
 	
 class Forcast(APIView):
 
-	authentication_classes = [FARMERJWTAuthentication]
-	permission_classes = [IsAuthenticated]
+	permission_classes = [IsFarmer]
+
 
 	def get(self, request):
 		
@@ -291,8 +273,8 @@ class Forcast(APIView):
 
 class gdd(APIView):
 	
-	authentication_classes = [FARMERJWTAuthentication]
-	permission_classes = [IsAuthenticated]
+	permission_classes = [IsFarmer]
+
 
 	def get(self, request):
 

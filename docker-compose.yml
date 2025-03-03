@@ -9,15 +9,17 @@ services:
       # - ./firma-backend/tools:/tools
     ports:
       - "8000:8000"
+      - '5432:5432'
+      # - '6543:6543'
     restart : always
-    depends_on:
-      - postgres
-  ml:
-    build : ./ML
-    volumes:
-    - ./ML:/app
-    ports:
-        - "8001:8001"
+    # depends_on:
+    #   - postgres
+  # ml:
+  #   build : ./ML
+  #   volumes:
+  #   - ./ML:/app
+  #   ports:
+  #       - "8001:8001"
   frontend:
     build: ./frontend/
     volumes:
@@ -28,17 +30,16 @@ services:
     depends_on:
       - backend
 
-  postgres:
-    image: postgis/postgis:16-3.4
-    environment:
-      POSTGRES_DB: firma
-      POSTGRES_USER: admin
-      POSTGRES_PASSWORD: firma123
-    volumes:
-      - ./postgis:/var/lib/postgresql/data
-      - ./db_tools/Ogimet_stations.sql:/Ogimet_stations.sql
-      - ./db_tools/script.sh:/script.sh
-    # command: chmod +x /script.sh && /script.sh
+  # postgres:
+  #   image: postgis/postgis:16-3.4
+  #   environment:
+  #     POSTGRES_DB: firma
+  #     POSTGRES_USER: admin
+  #     POSTGRES_PASSWORD: firma123
+  #   volumes:
+  #     - ./postgis:/var/lib/postgresql/data
+      # - ./db_tools/Ogimet_stations.sql:/Ogimet_stations.sql
+      # - ./db_tools/script.sh:/script.sh
   geoserver:
     image: kartoza/geoserver:latest
     ports:
@@ -51,7 +52,11 @@ services:
       JAVA_OPTS: "-Dorg.geoserver.logging.level=DEBUG"
       # JAVA_OPTS: 
     volumes:
-      - ./geoserver_data:/var/lib/geoserver_data
+      # - ./geoserver_data:/var/lib/geoserver_data
       - ./back-end/Data/fao_output:/data
       - ./data_dir:/opt/geoserver/data_dir
+
+networks:
+    my_network:
+      driver: bridge
 

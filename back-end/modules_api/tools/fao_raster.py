@@ -23,6 +23,7 @@ pd.set_option('display.max_rows', None)  # This will display all rows
 pd.set_option('display.max_columns', None)  # This will display all columns
 
 
+
 # Initialize logger
 logger = logging.getLogger(__name__)
 
@@ -75,16 +76,21 @@ def run_fao_model(fc, kcb, h, weather_data, index, par, irr, airr):
     model.run()
 
     return model.odata
-
 def resample_data(meta, data, polygon, shape, output_path, output_folder):
 
+    # print('meta : ', meta)
+    # print(polygon, polygon)
+    # print('shape', shape)
     polygon = loads(polygon)
     actual_geojson = [mapping(polygon)]
-
+    # print(polygon)
     new_transform, new_width, new_height = calculate_default_transform(
                 meta['crs'], meta['crs'], shape[1] * 10, shape[0] * 10,
                 *polygon.bounds, resolution=(1, 1)  # Adjust resolution as needed
             )
+    # print('new transform : ', new_transform)
+    # print('new_width', new_width)
+    # print('new_height', new_height)
             # Resample the raster
     resampled_raster = np.empty((new_height, new_width), dtype=meta['dtype'])
     reproject(
@@ -122,15 +128,17 @@ def resample_data(meta, data, polygon, shape, output_path, output_folder):
     })
 
     # Save the final clipped raster
+    # print('before resampling : ',data)
+    # print('after resampling : ', final_clipped[0])
+    # print('new meta', final_meta)
     with rasterio.open(output_path, 'w', **final_meta) as dst:
         dst.write(final_clipped[0], 1)  # Single-band write
         
-    publish_single_layer(
-                output_folder.split('/')[-2],
-                output_path.split('/')[-1],
-                output_folder.split('/')[-1]
-            )
-
+    # publish_single_layer(
+    #             output_folder.split('/')[-2],
+    #             output_path.split('/')[-1],
+    #             output_folder.split('/')[-1]
+    #         )
 def save_raster(data_dict, output_folder, meta, shape, polygon):
     """Save computed rasters to disk."""
 
@@ -140,12 +148,11 @@ def save_raster(data_dict, output_folder, meta, shape, polygon):
             parsed_date = datetime.strptime(date_str, '%Y-%j')
             date = parsed_date.strftime('%Y-%m-%d')
             output_path = os.path.join(output_folder, f"{output_folder.split('/')[-1]}_{date}.tif")
-
-            # Create the output folder if it doesn't exist
+            # print(data)
             os.makedirs(output_folder, mode=0o777, exist_ok=True)
             os.chmod(output_folder, 0o777)
             
-            resample_data(meta, data, polygon, shape, output_path, output_folder)            
+            resample_data(meta, data, polygon, shape, output_path, output_folder)
 
         except Exception as e:
             print(f"Error processing {date_str}: {e}")
@@ -187,7 +194,6 @@ def process_field(ndvi_folder, output_folder, weather_data, index, par, airr, po
                 # Run the FAO model for this pixel
                 odata = run_fao_model(fc_pixel, kcb_pixel, h, weather_data, index, par, irr, airr)
                 # Save results for each parameter
-                # print(odata['rzsm_pr'])
                 for param, values in odata.items():
                     if param in results:
                         for date, value in values.items():
@@ -200,17 +206,18 @@ def process_field(ndvi_folder, output_folder, weather_data, index, par, airr, po
 
     # Save all results as rasters
     for param, data_dict in results.items():
+        # print(param)
         param_output_folder = os.path.join(output_folder, param)
         save_raster(data_dict, param_output_folder, meta, fc.shape[1:], polygon)
-
+            # break
 
     logger.info("Field processing completed.")
 
 @shared_task
 def fao_model(polygon, point, field_id, irr_data=None):
     
-    # delete_workspace(field_id)
-    # create_workspace(field_id)
+    delete_workspace(field_id)
+    create_workspace(field_id)
     ndvi_folder     = f"/app/Data/fao_output/{field_id}/ndvi"
     output_folder   = f"/app/Data/fao_output/{field_id}"
 
@@ -242,7 +249,6 @@ def fao_model(polygon, point, field_id, irr_data=None):
         irr             = Irrigation(Data)
         airr.addset(index[-7], index[-3], ksc=0.9, mad=0.5)
     else : irr = None
-
     process_field(ndvi_folder, output_folder, weather_data, index, par, airr, polygon, irr)
 
 if __name__ == '__main__':

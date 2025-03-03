@@ -19,7 +19,7 @@ COPY ./requirements.txt .
 
 RUN pip install --no-cache-dir -r requirements.txt
 
-RUN pip install aquacrop==3.0.7 pyfao56
+RUN pip install aquacrop==3.0.7
 
 RUN export DJANGO_SETTINGS_MODULE=firma_v02.settings
 

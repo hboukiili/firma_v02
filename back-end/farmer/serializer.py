@@ -22,27 +22,23 @@ class GeoJSONStringField(serializers.Field):
         # Convert the GEOSGeometry object to GeoJSON string
         return value.json
 
-def email_exists(email):
-    return (Farmer.objects.filter(email=email).exists() or
-            Searcher.objects.filter(email=email).exists() or
-            PolicyMaker.objects.filter(email=email).exists())
+class UserRegistrationSerializer(serializers.ModelSerializer):
+    password = serializers.CharField(write_only=True)
 
-class FarmerSerializer(serializers.ModelSerializer):
-    type = serializers.CharField()
-    
     class Meta:
-        model = Farmer
-        fields = ['first_name', 'last_name', 'email', 'password', 'type',]
-        extra_kwargs = {'password': {'write_only': True}}
-    
-    def create(self, validated_data):
-        validated_data.pop('type')
-        return Farmer.objects.create_user(**validated_data)
-    
-class loginSerializer(serializers.Serializer):
+        model = User
+        fields = ('email', 'first_name', 'last_name', 'role', 'password')
 
-    email = serializers.EmailField()
-    password = serializers.CharField(max_length=20)
+    def create(self, validated_data):
+        password = validated_data.pop('password')
+        # The create_user method in our manager automatically assigns the group.
+        user = User.objects.create_user(password=password, **validated_data)
+        return user
+
+# def email_exists(email):
+#     return (Farmer.objects.filter(email=email).exists() or
+#             Searcher.objects.filter(email=email).exists() or
+#             PolicyMaker.objects.filter(email=email).exists())
 
 class FieldSerializer(GeoFeatureModelSerializer):
     boundaries = GeoJSONStringField()
@@ -56,9 +52,9 @@ class FieldSerializer(GeoFeatureModelSerializer):
         validated_data['user_id'] = self.context['request'].user
         return super().create(validated_data)
 
-class SoilSerializer(serializers.Serializer):
+# class SoilSerializer(serializers.Serializer):
 
-    pass
+#     pass
 
 # class SeasonSerializer(serializers.ModelSerializer):
 #     class Meta:

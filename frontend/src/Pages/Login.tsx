@@ -32,13 +32,13 @@ const Login = () => {
       await api
         .post("/farmer/login", user)
         .then((res) => {
-          if (res.data?.access_token && res.data?.refresh_token) {
-            localStorage.setItem("access_token", res.data?.access_token);
-            localStorage.setItem("refresh_token", res.data?.refresh_token);
+          // if (res.data?.access_token && res.data?.refresh_token) {
+          //   localStorage.setItem("access_token", res.data?.access_token);
+          //   localStorage.setItem("refresh_token", res.data?.refresh_token);
             window.location.href = res.data.is_new
               ? "/farmersetup"
               : "/farmer1";
-          } else setError("Invalid username or password.");
+          // } else setError("Invalid username or password.");
         })
         .catch((error) => {
           console.log(error);

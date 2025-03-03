@@ -33,7 +33,7 @@ const Register = () => {
         last_name: Data.last_name,
         email: Data.email,
         password: Data.password,
-        type: "farmer",
+        role: "farmer",
       })
       .then((res) => {
         window.location.href = "/login";

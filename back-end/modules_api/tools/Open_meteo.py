@@ -162,12 +162,12 @@ def forcast_fao_Open_meteo(lat, long, timezone="Africa/Casablanca"):
     response = requests.get(url, params=params)
     if response.status_code == 200:
         data, dates = get_final_date(response)
-        print(dates, data)
+        # print(dates, data)
         # for key in data:
         #     if key == 'MorP': continue
         #     data[key] = fill_missing_values(data[key], method='mean')  # or 'interpolate'
-        new_weather_data = pd.DataFrame(data, index=dates)
-        print(new_weather_data)
+        # new_weather_data = pd.DataFrame(data, index=dates)
+        # print(new_weather_data)
         return data, dates
     else:
         print(f"Error: {response.status_code}")

@@ -32,11 +32,16 @@ ALLOWED_HOSTS = []
 
 # Application definition
 
+# settings.py
 REST_FRAMEWORK = {
-    'DEFAULT_AUTHENTICATION_CLASSES': [
-        'rest_framework_simplejwt.authentication.JWTAuthentication',
-    ],
+    'DEFAULT_AUTHENTICATION_CLASSES': (
+        'firma_v02.auth.CookieJWTAuthentication',
+    ),
+    'DEFAULT_PERMISSION_CLASSES': (
+        'rest_framework.permissions.IsAuthenticated',
+    ),
 }
+
 
 INSTALLED_APPS = [
     # 'jazzmin',
@@ -55,7 +60,7 @@ INSTALLED_APPS = [
     'corsheaders',
     'django_celery_beat',
     'django_celery_results',
-    'modules_api',
+    # 'modules_api',
     'polymorphic',
     # 'ratelimit',
 ]
@@ -142,16 +147,36 @@ WSGI_APPLICATION = 'firma_v02.wsgi.application'
 #     }
 # }
 
+# DATABASES = {
+#     'default': {
+#         'ENGINE': 'django.contrib.gis.db.backends.postgis',
+#         'NAME': 'firma',
+#         'USER': 'admin',
+#         'PASSWORD': 'firma123',
+#         'HOST': 'postgres',
+#         'PORT': '5432',
+#     }
+# }
+
+
+
+import os
+import dj_database_url
+from dotenv import load_dotenv
+
+load_dotenv()
+
 DATABASES = {
     'default': {
-        'ENGINE': 'django.contrib.gis.db.backends.postgis',
-        'NAME': 'firma',
-        'USER': 'admin',
+        'ENGINE': 'django.contrib.gis.db.backends.postgis',  # Use PostGIS backend
+        'NAME': 'postgres',
+        'USER': 'postgres.rlzwnviqokrstrrpkeko',
         'PASSWORD': 'firma123',
-        'HOST': 'postgres',
+        'HOST': 'aws-0-eu-central-1.pooler.supabase.com',
         'PORT': '5432',
     }
 }
+
 
 
 # Password validation
@@ -195,7 +220,7 @@ STATIC_URL = 'static/'
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 # SECRET_KEY = 'firma'
-# AUTH_USER_MODEL = 'models_only.Farmer'
+AUTH_USER_MODEL =  'models_only.User'
 
 # service_account = 'firma-796@trencendece.iam.gserviceaccount.com'
 # credentials = ee.ServiceAccountCredentials(service_account,"cloud_credentials.json")

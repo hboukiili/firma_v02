@@ -2,10 +2,11 @@ from django.contrib import admin
 from .models import *
 # Register your models here.
 
-admin.site.register(Farmer)
-admin.site.register(Searcher)
-admin.site.register(PolicyMaker)
+# admin.site.register(Farmer)
+# admin.site.register(Searcher)
+# admin.site.register(PolicyMaker)
 admin.site.register(Field)
+admin.site.register(User)
 admin.site.register(Crop)
 admin.site.register(Soil)
 admin.site.register(Remote_sensing)

@@ -126,4 +126,7 @@ django-extensions
 kombu
 geopandas
 scipy==1.9.3
+dj_database_url
+python-dotenv
+django-polymorphic
 # flower

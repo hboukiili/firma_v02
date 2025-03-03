@@ -13,8 +13,10 @@ import os
 import rasterio
 from rasterio.enums import Resampling
 import zipfile
+from .tools.fao_raster import fao_model
+from .tools.geoserver_tools import *
 from .tools.ndvi_calcul import S2_ndvi
-from models_only.models import Farmer, Field, Irrigation_system, Irrigation_amount
+from models_only.models import User, Field, Irrigation_system, Irrigation_amount
 from shapely.wkt import loads
 import pyfao56 as fao
 from pyfao56.tools import forecast
@@ -35,8 +37,6 @@ from affine import Affine
 import math
 from shapely.geometry import box
 from celery import group
-from .tools.fao_raster import fao_model
-from .tools.geoserver_tools import *
 from celery import chain
 from django.db.models import Prefetch
 from rasterio.features import shapes
@@ -374,7 +374,7 @@ def run_model():
     return "Model completed successfully"
 
 @shared_task
-def process_new_field(field_id, boundaries_wkt, point, soumis_date):
+def process_new_field(field_id, boundaries_wkt, point, soumis_date, irr=None):
 
     ndvi_folder = '/app/Data/ndvi'
     result_len = 0
@@ -410,24 +410,28 @@ def process_new_field(field_id, boundaries_wkt, point, soumis_date):
             print('processing data ....')
             # field_irrigation_amounts = get_irrigation()
             # for field, amounts in field_irrigation_amounts.items():
-            polygon, field_folder, meta = process_field(boundaries_wkt, field_id, specific_date)
-            # polygon, field_folder, meta = process_field(field.boundaries.wkt, field.id, specific_date)
-                # interpolate_ndvi(meta, field_folder)
-                # fao_model(polygon, [-7.680666, 31.66665], field.id , amounts)
+                # polygon, field_folder, meta = process_field(field.boundaries.wkt, field.id, specific_date)
+                # print(meta)
                 # print(field.id, amounts)
-            # break
+                # interpolate_ndvi(meta, field_folder)
+            #     print('running')
+                # fao_model(polygon, [-7.680666, 31.66665], field.id , amounts)
+                # break
+            polygon, field_folder, meta = process_field(boundaries_wkt, field_id, specific_date)
         logger.info(f'{specific_date}')
         specific_date = (datetime.strptime(specific_date, "%Y-%m-%d") - timedelta(days=1)).strftime("%Y-%m-%d")
-    session.close()
+    # session.close()
     # field_irrigation_amounts = get_irrigation()
     # for field, amounts in field_irrigation_amounts.items():
     #     folder = f"/app/Data/fao_output"
     #     field_folder = f"{folder}/{str(field.id)}/ndvi"
+        # interpolate_ndvi(meta, field_folder)
     interpolate_ndvi(meta, field_folder)
     print('running fao model ....')
+    fao_model(polygon, point, field_id , irr)
+    # irr = [0,0,0,0,22.1025159719055,0,0,17.6837275379944,0,0,0,0,0,0,0,0,0,0,0,1.49415274357901,6.17857993029613,0,0,0,0,0,0,0,0,0,0,0,0,7.32873682771792,0,0,0,0,0,0,0,0,0,11.4635460291087,0,0,0,0,0,0,0,0,0,0,0,0,5.41118737465725,9.41030684042074,0,0,0,0,0,]
     # fao_model(polygon, point, field_id , amounts)
-    fao_model(polygon, point, field_id , None)
 
 
 if __name__ == '__main__':
-    process_new_field(32, 'POLYGON ((-7.680666 31.66665, -7.679964 31.666687, -7.679883 31.666271, -7.680436 31.666276, -7.680554 31.666536, -7.680666 31.66665))', [-7.680666, 31.66665], '2024-12-15')  # Valid input example
+    process_new_field(1, 'POLYGON ((-7.680666 31.66665, -7.679964 31.666687, -7.679883 31.666271, -7.680436 31.666276, -7.680554 31.666536, -7.680666 31.66665))', [-7.680666, 31.66665], '2024-12-15')  # Valid input example
