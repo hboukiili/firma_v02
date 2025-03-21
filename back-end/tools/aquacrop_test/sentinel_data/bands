@@ -1,0 +1,34 @@
+
+R10m
+tif_band    original_band   
+band 1   : B02
+band 2   : B03
+band 3   : B04
+band 4   : B08
+
+R20m
+
+B01.jp2
+B02.jp2
+B03.jp2
+B04.jp2
+B05.jp2
+B06.jp2
+B07.jp2
+B11.jp2
+B12.jp2
+B8A.jp2
+
+R60m
+
+B01.jp2
+B02.jp2
+B03.jp2
+B04.jp2
+B05.jp2
+B06.jp2
+B07.jp2
+B09.jp2
+B11.jp2
+B12.jp2
+B8A.jp2

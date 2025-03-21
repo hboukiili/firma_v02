@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<informationPackage xmlns="http://www.eumetsat.int/sip">
+    <dataSection>
+        <dataObject ID="browse.jpg">
+            <fileType>Browse</fileType>
+            <format>JPEG</format>
+            <size>1652900</size>
+            <path>browse.jpg</path>
+        </dataObject>
+        <dataObject ID="S3A_SL_2_WST____20250203T221336_20250203T235435_20250205T044019_6059_122_143______MAR_O_NT_003.SEN3/20250203221336-MAR-L2P_GHRSST-SSTskin-SLSTRA-20250205044019-v02.0-fv01.0.nc">
+            <fileType>Data</fileType>
+            <format>NetCDF</format>
+            <size>678333231</size>
+            <path>S3A_SL_2_WST____20250203T221336_20250203T235435_20250205T044019_6059_122_143______MAR_O_NT_003.SEN3/20250203221336-MAR-L2P_GHRSST-SSTskin-SLSTRA-20250205044019-v02.0-fv01.0.nc</path>
+        </dataObject>
+        <dataObject ID="S3A_SL_2_WST____20250203T221336_20250203T235435_20250205T044019_6059_122_143______MAR_O_NT_003.SEN3/xfdumanifest.xml">
+            <fileType>Data</fileType>
+            <format>XML</format>
+            <size>219295</size>
+            <path>S3A_SL_2_WST____20250203T221336_20250203T235435_20250205T044019_6059_122_143______MAR_O_NT_003.SEN3/xfdumanifest.xml</path>
+        </dataObject>
+    </dataSection>
+    <eopmetadataSection>
+        <path>EOPMetadata.xml</path>
+    </eopmetadataSection>
+</informationPackage>

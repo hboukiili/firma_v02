@@ -1,0 +1,61 @@
+/* .label- label {
+    color: #1E6F5C !important;
+    font-size: 12px !important;
+} */
+
+.label- span {
+  color: #1e6f5c85 !important;
+}
+
+.bgF {
+  /* background-image: url("../../../assets/plcyBg.svg"); */
+  background-size: cover;
+  background-color: #d3e1d1;
+  /* width: 100%; */
+  /* height: 100%; */
+  /* overflow-x: hidden; */
+}
+
+.toplevel > path {
+  fill: transparent !important;
+}
+.grids {
+  display: none !important;
+}
+
+/* //calendar */
+
+.fc-button-primary {
+  background-color: #1e6f5c85 !important;
+  border: 0px !important;
+  border-radius: 20px !important;
+}
+
+.fc-button-group {
+  gap: 5px;
+}
+
+.fc-view-harness {
+  padding: 20px !important;
+}
+
+.fc-view-harness-active {
+  border: 0px !important;
+}
+.fc-scrollgrid {
+  border-radius: 30px !important;
+}
+.fc-event{
+  border: 0px !important;
+  background-color: transparent !important;
+
+}
+/* .event-cln {
+  height: 30px;
+  
+} */
+
+.irr  path{
+  stroke: none !important;
+
+}
