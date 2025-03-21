@@ -44,8 +44,8 @@ services:
     image: kartoza/geoserver:latest
     ports:
       - "8080:8080"
-    depends_on:
-      - postgres
+    # depends_on:
+    #   - postgres
     environment:
       GEOSERVER_ADMIN_PASSWORD : 123
       GEOSERVER_ADMIN_USER: test
